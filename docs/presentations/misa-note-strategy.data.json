@@ -20,7 +20,7 @@
         ],
         [
           "Phần IV",
-          "Chiến lược và lộ trình phát triển sản phẩm"
+          "Định hướng phát triển sản phẩm"
         ]
       ],
       "conclusion": "ĐỀ XUẤT CHIẾN LƯỢC TÁI PHÁT TRIỂN MISA GHI CHÚ THÀNH MISA NOTE",
@@ -830,240 +830,271 @@
       "status": ""
     },
     {
-      "section": "Phần IV: Chiến lược và lộ trình phát triển sản phẩm",
-      "title": "Phần IV — Chiến lược và lộ trình phát triển MISA Note",
+      "section": "Phần IV: Định hướng phát triển MISA Note",
+      "title": "Phần IV — Định hướng phát triển MISA Note",
       "message": "",
       "items": [],
       "conclusion": "",
       "kind": "board-divider",
       "status": "",
-      "notes": "## **SLIDE 37 — PHẦN IV: CHIẾN LƯỢC VÀ LỘ TRÌNH PHÁT TRIỂN SẢN PHẨM**\n\n**Tiêu đề:** Phần IV — Chiến lược và lộ trình phát triển MISA Note\n\n**Nội dung giới thiệu:**\n\nTừ kết quả đánh giá sản phẩm hiện tại và nghiên cứu các nền tảng hàng đầu, MISA Note cần được phát triển theo một định hướng rõ ràng: **hoàn thiện năng lực ghi chú và quản lý tài liệu, đồng thời từng bước ứng dụng AI để nâng cao giá trị khai thác tri thức.**\n\nChiến lược tập trung vào hai mục tiêu: xây dựng sản phẩm đáp ứng hiệu quả nhu cầu nội bộ MISA và tạo nền tảng để phát triển thành giải pháp thương mại dành cho doanh nghiệp.",
-      "intro": "Từ kết quả đánh giá sản phẩm hiện tại và nghiên cứu các nền tảng hàng đầu, MISA Note cần được phát triển theo một định hướng rõ ràng: hoàn thiện năng lực ghi chú và quản lý tài liệu, đồng thời từng bước ứng dụng AI để nâng cao giá trị khai thác tri thức.\n\nChiến lược tập trung vào hai mục tiêu: xây dựng sản phẩm đáp ứng hiệu quả nhu cầu nội bộ MISA và tạo nền tảng để phát triển thành giải pháp thương mại dành cho doanh nghiệp."
+      "notes": "Phần IV — Định hướng phát triển MISA Note\n\nPhát triển sản phẩm phục vụ nội bộ MISA trước; từ nhu cầu khách hàng, xác định giải pháp và cách đưa sản phẩm ra thị trường.\n\nĐề xuất tích hợp AI để tìm kiếm, tổng hợp và tái sử dụng tri thức, gắn với những công việc cụ thể.\n\n\n\n\n\n\n\n",
+      "intro": "Phát triển sản phẩm phục vụ nội bộ MISA trước; từ nhu cầu khách hàng, xác định giải pháp và cách đưa sản phẩm ra thị trường.\n\nĐề xuất tích hợp AI để tìm kiếm, tổng hợp và tái sử dụng tri thức, gắn với những công việc cụ thể.",
+      "basis": "",
+      "context": "",
+      "value": "",
+      "principle": ""
     },
     {
-      "section": "Phần IV: Chiến lược và lộ trình phát triển sản phẩm",
-      "title": "Định hướng chiến lược: từ ghi chú đến khai thác tri thức bằng AI",
-      "message": "Phát triển theo bốn năng lực kế thừa, từ quản lý thông tin đến khai thác và tái sử dụng tri thức bằng AI.",
+      "section": "Phần IV: Định hướng phát triển MISA Note",
+      "title": "Mục tiêu 1: phát triển cho nội bộ MISA trước",
+      "message": "Ưu tiên giải quyết nhu cầu làm việc thực tế của nhân viên và các đơn vị trong MISA.",
       "items": [
         [
-          "Năng lực chiến lược",
-          "Định hướng phát triển",
-          "Giá trị mang lại"
+          "Chủ động quản lý thông tin",
+          "• Tạo, chỉnh sửa và tổ chức ghi chú cá nhân, tài liệu nhóm.\n• Tìm lại thông tin thuận tiện khi cần."
         ],
         [
-          "1. Ghi chú và quản lý tài liệu",
-          "Tạo lập, chỉnh sửa, tổ chức, tìm kiếm và chia sẻ tài liệu trong một không gian thống nhất.",
-          "Nền tảng quản lý thông tin cho công việc hằng ngày."
+          "Chia sẻ và phối hợp dễ dàng",
+          "• Chia sẻ trực quan, tận dụng phân quyền hiện có.\n• Hỗ trợ cùng cập nhật và sử dụng tri thức."
         ],
         [
-          "2. AI tìm kiếm và hỏi đáp tri thức",
-          "Tìm kiếm ngữ nghĩa; trả lời dựa trên tài liệu, kèm trích dẫn nguồn.",
-          "Rút ngắn thời gian tìm kiếm, tiếp cận đúng thông tin."
-        ],
-        [
-          "3. AI phân tích và tổng hợp tài liệu",
-          "Phân tích một hoặc nhiều tài liệu; tổng hợp, so sánh và xác định điểm quan trọng.",
-          "Chuyển thông tin lớn thành nội dung phục vụ công việc và quyết định."
-        ],
-        [
-          "4. AI tạo nội dung đa định dạng",
-          "Chuyển tri thức thành báo cáo, bản trình bày, sơ đồ tư duy hoặc âm thanh.",
-          "Tái sử dụng thông tin, giảm công sức tạo nội dung từ đầu."
+          "Có giá trị trong công việc",
+          "• Phục vụ ghi chép, họp, tra cứu quy trình và báo cáo.\n• Thu nhận phản hồi để hoàn thiện sản phẩm."
         ]
       ],
-      "conclusion": "Ghi chú tạo ra tri thức; AI giúp khai thác tri thức hiệu quả hơn.",
-      "kind": "board-table",
-      "status": "",
-      "notes": "**Thông điệp chính:** MISA Note cần phát triển theo bốn năng lực có tính kế thừa, từ quản lý thông tin cơ bản đến khai thác và tái sử dụng tri thức bằng AI.\n\n| Năng lực chiến lược | Định hướng phát triển | Giá trị mang lại |\n| --- | --- | --- |\n| 1. Ghi chú và quản lý tài liệu | Cho phép người dùng tạo lập, chỉnh sửa, tổ chức, tìm kiếm và chia sẻ tài liệu trong một không gian thống nhất. | Hình thành nền tảng quản lý thông tin phục vụ công việc hằng ngày. |\n| 2. AI tìm kiếm và hỏi đáp tri thức | Tìm kiếm theo ngữ nghĩa, trả lời câu hỏi dựa trên tài liệu và cung cấp trích dẫn nguồn. | Rút ngắn thời gian tìm kiếm, giúp người dùng tiếp cận đúng thông tin cần thiết. |\n| 3. AI phân tích và tổng hợp tài liệu | Phân tích một hoặc nhiều tài liệu, tổng hợp nội dung, so sánh thông tin và xác định các điểm quan trọng. | Chuyển khối lượng thông tin lớn thành nội dung có giá trị cho công việc và ra quyết định. |\n| 4. AI tạo nội dung đa định dạng | Chuyển đổi tri thức từ tài liệu thành báo cáo, bản trình bày, sơ đồ tư duy hoặc nội dung âm thanh. | Tăng khả năng tái sử dụng thông tin, giảm công sức tạo nội dung từ đầu. |\n\n**Cơ sở lựa chọn:** Kết quả nghiên cứu Notion cho thấy vai trò của tổ chức thông tin linh hoạt; Gemini Notebook nổi bật ở khả năng khai thác tài liệu bằng AI; Lark thể hiện giá trị của việc kết nối tài liệu với hoạt động phối hợp. MISA Note có thể kết hợp những bài học này theo lộ trình phù hợp với năng lực và nhu cầu thực tế.\n\n**Kết luận:** Quản lý ghi chú là nền tảng để người dùng tạo ra tri thức; AI là hướng phát triển giúp khai thác tri thức đó hiệu quả hơn.\n\nNguồn cập nhật: https://blog.google/innovation-and-ai/products/gemini-notebook/notebooklm-gemini-notebook/ ; https://support.google.com/gemininotebook/answer/16206563?hl=en ; https://support.google.com/gemininotebook/answer/16757456?hl=en . Đối chiếu ngày 13/11/2026. Bản trình bày được mô tả là bộ slide; tài liệu trợ giúp hiện nêu xuất PDF, không khẳng định xuất PPTX trực tiếp.",
-      "basis": "Bài học: Notion — tổ chức linh hoạt; Gemini Notebook — khai thác tài liệu bằng AI; Lark — kết nối tài liệu và phối hợp."
-    },
-    {
-      "section": "Phần IV: Chiến lược và lộ trình phát triển sản phẩm",
-      "title": "Mục tiêu 1: công cụ làm việc thiết yếu trong nội bộ MISA",
-      "message": "Trước khi thương mại hóa, MISA Note cần chứng minh giá trị sử dụng thực tế ngay trong môi trường MISA.",
-      "items": [
-        [
-          "Giải quyết hạn chế hiện tại",
-          "• Chuyển từ tiếp nhận tài liệu có sẵn sang chủ động tạo lập, quản lý và khai thác thông tin.\n• Người dùng ghi lại nội dung công việc, xây dựng tài liệu, tổ chức và tìm kiếm khi cần."
-        ],
-        [
-          "Quản lý và chia sẻ tri thức",
-          "• Tập trung tài liệu và ghi chú, giảm thông tin phân tán, khó tìm hoặc phải trao đổi nhiều lần.\n• Kế thừa phân quyền hiện có; cải thiện trải nghiệm chia sẻ và kiểm soát phạm vi truy cập."
-        ],
-        [
-          "Kiểm chứng trước khi mở rộng",
-          "Triển khai cho các nhóm người dùng nội bộ và đánh giá:\n• Mức sử dụng, tỷ lệ quay lại.\n• Thời gian tìm và xử lý thông tin.\n• Hài lòng và phản hồi.\n• Ổn định, bảo mật, vận hành."
-        ]
-      ],
-      "conclusion": "Nội bộ là nơi hoàn thiện sản phẩm, kiểm chứng giá trị và tích lũy kinh nghiệm.",
+      "conclusion": "Thành công đầu tiên: nhân viên MISA dùng được, dùng thường xuyên và thấy hữu ích.",
       "kind": "board-cards",
       "status": "",
-      "notes": "## **SLIDE 39 — MỤC TIÊU 1: XÂY DỰNG MISA NOTE THÀNH CÔNG CỤ LÀM VIỆC THIẾT YẾU TRONG NỘI BỘ**\n\n**Thông điệp chính:** Trước khi thương mại hóa, MISA Note cần chứng minh giá trị sử dụng thực tế ngay trong môi trường MISA.\n\n### **1. Giải quyết những hạn chế của sản phẩm hiện tại**\n\nChuyển từ mô hình người dùng chủ yếu tiếp nhận tài liệu có sẵn sang một nền tảng cho phép chủ động tạo lập, quản lý và khai thác thông tin.\n\nNgười dùng có thể ghi lại nội dung công việc, xây dựng tài liệu, tổ chức thông tin và tìm kiếm khi cần.\n\n### **2. Nâng cao hiệu quả quản lý và chia sẻ tri thức nội bộ**\n\nTập trung tài liệu và ghi chú trong không gian làm việc có tổ chức, giảm tình trạng thông tin phân tán, khó tìm kiếm hoặc phải trao đổi nhiều lần.\n\nKế thừa khả năng phân quyền hiện có, đồng thời hoàn thiện trải nghiệm chia sẻ để người dùng dễ dàng phối hợp và kiểm soát phạm vi truy cập.\n\n### **3. Kiểm chứng giá trị trước khi mở rộng**\n\nTriển khai cho các nhóm người dùng nội bộ, đánh giá khả năng đáp ứng công việc thực tế thông qua:\n\n- Mức độ sử dụng và tỷ lệ quay lại.\n- Thời gian tìm kiếm, xử lý thông tin.\n- Mức độ hài lòng và phản hồi của người dùng.\n- Tính ổn định, bảo mật và khả năng vận hành.\n\n**Kết luận:** Nội bộ MISA là môi trường để hoàn thiện sản phẩm, kiểm chứng giá trị và tích lũy kinh nghiệm trước khi tiếp cận khách hàng bên ngoài."
+      "notes": "Mục tiêu 1: phát triển cho nội bộ MISA trước\n\n\n\nƯu tiên giải quyết nhu cầu làm việc thực tế của nhân viên và các đơn vị trong MISA.\n\nChủ động quản lý thông tin\n• Tạo, chỉnh sửa và tổ chức ghi chú cá nhân, tài liệu nhóm.\n• Tìm lại thông tin thuận tiện khi cần.\n\nChia sẻ và phối hợp dễ dàng\n• Chia sẻ trực quan, tận dụng phân quyền hiện có.\n• Hỗ trợ cùng cập nhật và sử dụng tri thức.\n\nCó giá trị trong công việc\n• Phục vụ ghi chép, họp, tra cứu quy trình và báo cáo.\n• Thu nhận phản hồi để hoàn thiện sản phẩm.\n\n\n\n\n\nThành công đầu tiên: nhân viên MISA dùng được, dùng thường xuyên và thấy hữu ích.",
+      "basis": "",
+      "context": "",
+      "value": "",
+      "principle": "",
+      "intro": ""
     },
     {
-      "section": "Phần IV: Chiến lược và lộ trình phát triển sản phẩm",
-      "title": "Ưu tiên hoàn thiện nền tảng ghi chú và quản lý tài liệu",
-      "message": "AI có giá trị phải dựa trên năng lực tạo lập, lưu trữ và quản lý thông tin được hoàn thiện.",
+      "section": "Phần IV: Định hướng phát triển MISA Note",
+      "title": "Nội bộ MISA: tập trung hoàn thiện trải nghiệm cốt lõi",
+      "message": "Kế thừa chức năng phù hợp; ưu tiên những điểm đang cản trở việc tạo, tìm và chia sẻ thông tin.",
       "items": [
         [
-          "Tạo lập và chỉnh sửa",
-          "• Trình soạn thảo linh hoạt, Quick Note và hệ thống mẫu.\n• Ghi lại ý tưởng, thông tin và nội dung công việc thuận tiện."
+          "Tạo lập thuận tiện",
+          "Ghi chú cá nhân, tài liệu nhóm, ghi nhanh và mẫu nội dung cho công việc."
         ],
         [
-          "Tổ chức thông tin",
-          "• Không gian cá nhân và nhóm; thư mục, tài liệu có cấu trúc.\n• Hỗ trợ tìm kiếm và truy cập nhanh."
+          "Tổ chức và tìm kiếm",
+          "Cấu trúc rõ ràng; tìm tài liệu và nội dung cần thiết với ít thao tác."
         ],
         [
           "Chia sẻ và phối hợp",
-          "• Kế thừa phân quyền hiện có.\n• Cải thiện chia sẻ cho cá nhân, nhóm, không gian làm việc; nghiên cứu hình thức phối hợp phù hợp."
+          "Quyền truy cập dễ hiểu; cùng chỉnh sửa, bình luận và trao đổi trên tài liệu."
         ],
         [
-          "Vận hành tin cậy",
-          "• Lưu trữ, bảo vệ dữ liệu và kiểm soát truy cập.\n• Giữ hiệu năng ổn định khi người dùng và tài liệu tăng."
+          "Triển khai và cải thiện",
+          "Dùng tại các nhóm thực tế; theo dõi mức sử dụng, phản hồi và chất lượng vận hành."
         ]
       ],
-      "conclusion": "Một môi trường thống nhất cho toàn bộ luồng ghi chú → tổ chức → tìm kiếm → chia sẻ.",
+      "conclusion": "Hoàn thiện trải nghiệm nội bộ là cơ sở để lựa chọn nhu cầu và giá trị có thể mở rộng ra khách hàng.",
       "kind": "board-cards",
       "status": "",
-      "notes": "## **SLIDE 40 — ƯU TIÊN HOÀN THIỆN NỀN TẢNG GHI CHÚ VÀ QUẢN LÝ TÀI LIỆU**\n\n**Thông điệp chính:** Muốn phát triển các năng lực AI có giá trị, MISA Note trước hết phải đáp ứng tốt nhu cầu tạo lập, lưu trữ và quản lý thông tin.\n\n**Tạo lập và chỉnh sửa nội dung**\n\nPhát triển trình soạn thảo tài liệu linh hoạt, ghi chú nhanh (Quick Note) và hệ thống mẫu, giúp người dùng dễ dàng ghi lại ý tưởng, thông tin và nội dung công việc.\n\n**Tổ chức và quản lý thông tin**\n\nXây dựng không gian làm việc cá nhân và nhóm, quản lý thư mục, tài liệu theo cấu trúc rõ ràng, hỗ trợ tìm kiếm và truy cập nhanh.\n\n**Chia sẻ và phối hợp**\n\nKế thừa tính năng phân quyền hiện có, cải thiện thao tác chia sẻ cho cá nhân, nhóm và không gian làm việc; nghiên cứu bổ sung các hình thức phối hợp phù hợp.\n\n**Nền tảng vận hành tin cậy**\n\nĐảm bảo khả năng lưu trữ, bảo vệ dữ liệu, kiểm soát truy cập và duy trì hiệu năng ổn định khi số lượng người dùng và tài liệu tăng.\n\n**Giá trị kỳ vọng:** Hình thành một môi trường làm việc thống nhất, nơi người dùng có thể hoàn thành toàn bộ quá trình từ ghi chú, tổ chức, tìm kiếm đến chia sẻ tài liệu."
+      "notes": "Nội bộ MISA: tập trung hoàn thiện trải nghiệm cốt lõi\n\n\n\nKế thừa chức năng phù hợp; ưu tiên những điểm đang cản trở việc tạo, tìm và chia sẻ thông tin.\n\nTạo lập thuận tiện\nGhi chú cá nhân, tài liệu nhóm, ghi nhanh và mẫu nội dung cho công việc.\n\nTổ chức và tìm kiếm\nCấu trúc rõ ràng; tìm tài liệu và nội dung cần thiết với ít thao tác.\n\nChia sẻ và phối hợp\nQuyền truy cập dễ hiểu; cùng chỉnh sửa, bình luận và trao đổi trên tài liệu.\n\nTriển khai và cải thiện\nDùng tại các nhóm thực tế; theo dõi mức sử dụng, phản hồi và chất lượng vận hành.\n\n\n\n\n\nHoàn thiện trải nghiệm nội bộ là cơ sở để lựa chọn nhu cầu và giá trị có thể mở rộng ra khách hàng.",
+      "basis": "",
+      "context": "",
+      "value": "",
+      "principle": "",
+      "intro": ""
     },
     {
-      "section": "Phần IV: Chiến lược và lộ trình phát triển sản phẩm",
-      "title": "Mục tiêu 2: tạo giá trị khác biệt để hướng tới thương mại hóa",
-      "message": "Sau khi hoàn thành mục tiêu nội bộ, phát triển giá trị khác biệt để thuyết phục khách hàng doanh nghiệp lựa chọn.",
+      "section": "Phần IV: Định hướng phát triển MISA Note",
+      "title": "Mục tiêu 2: tìm hiểu và triển khai cho khách hàng",
+      "message": "Sau mục tiêu nội bộ, xác định khách hàng nào cần sản phẩm và lý do họ sẵn sàng mua.",
       "items": [
         [
-          "Định vị theo nhu cầu",
-          "• Không chạy đua số lượng tính năng.\n• Tập trung quản lý, tìm kiếm và khai thác tri thức cho doanh nghiệp Việt Nam."
+          "Tìm đúng khách hàng",
+          "• Khảo sát nhóm doanh nghiệp có nhu cầu quản lý tri thức.\n• Làm rõ người sử dụng và người quyết định mua."
         ],
         [
-          "Khác biệt dựa trên AI",
-          "Từ lưu trữ sang hỏi đáp, tổng hợp và tạo nội dung trực tiếp từ tri thức tổ chức."
+          "Hiểu đúng bài toán",
+          "• Họ đang quản lý tài liệu bằng cách nào, vướng ở đâu?\n• Nhu cầu nào đủ quan trọng để thay đổi và trả phí?"
         ],
         [
-          "Hệ sinh thái MISA",
-          "• Nghiên cứu kết nối thông tin và tài liệu ngay trong quy trình làm việc quen thuộc.\n• Đánh giá nhu cầu, kỹ thuật và hiệu quả đầu tư."
+          "Đề xuất giải pháp phù hợp",
+          "• Chọn tình huống, tính năng và cách triển khai theo nhu cầu.\n• Làm rõ giá trị so với công cụ đang dùng."
         ],
         [
-          "Kiểm chứng kinh doanh",
-          "• Xác định phân khúc, bài toán thực tế và giá trị sẵn sàng trả phí.\n• Thử với khách hàng phù hợp trước khi mở rộng."
+          "Thử với khách hàng thực tế",
+          "• Triển khai thử, hướng dẫn và nhận phản hồi.\n• Đánh giá giá trị, mức sử dụng và khả năng trả phí."
         ]
       ],
-      "conclusion": "Thương mại hóa cần giải pháp khác biệt, đáp ứng nhu cầu và tạo doanh thu bền vững.",
+      "conclusion": "Đích đến: giải pháp đáp ứng nhu cầu khách hàng, có lý do mua và có thể triển khai thực tế.",
       "kind": "board-cards",
       "status": "",
-      "notes": "## **SLIDE 41 — MỤC TIÊU 2: PHÁT TRIỂN GIÁ TRỊ KHÁC BIỆT ĐỂ HƯỚNG TỚI THƯƠNG MẠI HÓA**\n\n**Thông điệp chính:** MISA Note cần có giá trị vượt ra ngoài một ứng dụng ghi chú thông thường để tạo lý do thuyết phục khách hàng doanh nghiệp lựa chọn sản phẩm.\n\n### **1. Định vị sản phẩm theo nhu cầu doanh nghiệp**\n\nKhông cạnh tranh bằng số lượng tính năng với các nền tảng lớn. MISA Note tập trung giải quyết bài toán quản lý, tìm kiếm và khai thác tri thức trong môi trường làm việc của doanh nghiệp Việt Nam.\n\n### **2. Phát triển lợi thế cạnh tranh dựa trên AI**\n\nThay vì chỉ lưu trữ tài liệu, MISA Note hướng tới khả năng giúp người dùng đặt câu hỏi, tổng hợp thông tin và tạo ra nội dung phục vụ công việc trực tiếp từ nguồn tri thức của tổ chức.\n\n### **3. Khai thác tiềm năng hệ sinh thái MISA**\n\nNghiên cứu khả năng kết nối với các sản phẩm MISA để người dùng tiếp cận thông tin và tài liệu ngay trong quy trình làm việc quen thuộc.\n\nĐây là cơ hội khác biệt hóa cần được kiểm chứng về nhu cầu, tính khả thi kỹ thuật và hiệu quả đầu tư.\n\n### **4. Kiểm chứng mô hình kinh doanh**\n\nXác định phân khúc khách hàng mục tiêu, những bài toán có nhu cầu thực tế và giá trị khách hàng sẵn sàng chi trả. Thử nghiệm với nhóm khách hàng phù hợp trước khi quyết định mở rộng.\n\n**Kết luận:** Thương mại hóa không đơn thuần là đưa sản phẩm nội bộ ra thị trường, mà là phát triển một giải pháp có giá trị khác biệt, đáp ứng nhu cầu và tạo được doanh thu bền vững."
+      "notes": "Mục tiêu 2: tìm hiểu và triển khai cho khách hàng\n\n\n\nSau mục tiêu nội bộ, xác định khách hàng nào cần sản phẩm và lý do họ sẵn sàng mua.\n\nTìm đúng khách hàng\n• Khảo sát nhóm doanh nghiệp có nhu cầu quản lý tri thức.\n• Làm rõ người sử dụng và người quyết định mua.\n\nHiểu đúng bài toán\n• Họ đang quản lý tài liệu bằng cách nào, vướng ở đâu?\n• Nhu cầu nào đủ quan trọng để thay đổi và trả phí?\n\nĐề xuất giải pháp phù hợp\n• Chọn tình huống, tính năng và cách triển khai theo nhu cầu.\n• Làm rõ giá trị so với công cụ đang dùng.\n\nThử với khách hàng thực tế\n• Triển khai thử, hướng dẫn và nhận phản hồi.\n• Đánh giá giá trị, mức sử dụng và khả năng trả phí.\n\n\n\n\n\nĐích đến: giải pháp đáp ứng nhu cầu khách hàng, có lý do mua và có thể triển khai thực tế.",
+      "basis": "",
+      "context": "",
+      "value": "",
+      "principle": "",
+      "intro": ""
     },
     {
-      "section": "Phần IV: Chiến lược và lộ trình phát triển sản phẩm",
-      "title": "AI tìm kiếm và hỏi đáp: biến tài liệu thành tri thức có thể khai thác",
-      "message": "Người dùng cần tìm được câu trả lời khi cần, thay vì chỉ có một nơi lưu trữ tài liệu.",
+      "section": "Phần IV: Định hướng phát triển MISA Note",
+      "title": "Làm sao để bán được: từ nhu cầu đến gói giải pháp",
+      "message": "Chuyển năng lực sản phẩm thành lời chào bán rõ ràng: cho ai, giải quyết việc gì và đem lại giá trị nào.",
       "items": [
         [
-          "Bài toán hiện tại",
-          "• Thông tin nằm trong nhiều tài liệu.\n• Người dùng phải tìm, mở và đọc từng văn bản; chi phí thời gian tăng cùng quy mô kho tài liệu."
+          "1. Chọn tình huống để bán",
+          "Kho tri thức nội bộ, tra cứu quy trình hoặc tổng hợp báo cáo — chọn theo khảo sát."
         ],
         [
-          "Giải pháp đề xuất",
-          "• Tìm kiếm theo ngữ nghĩa.\n• Hỏi bằng ngôn ngữ tự nhiên.\n• Tổng hợp câu trả lời từ tài liệu được phép truy cập.\n• Trích dẫn và đường dẫn kiểm tra nguồn."
+          "2. Chứng minh giá trị",
+          "Demo trên công việc thực tế; ghi nhận kết quả và phản hồi từ đợt dùng thử."
         ],
         [
-          "Tình huống ứng dụng",
-          "• “Quy trình đề xuất và phê duyệt mua sắm thiết bị hiện tại như thế nào?”\n• AI trả về các bước tóm tắt, kèm tài liệu để đối chiếu."
+          "3. Xây dựng gói và giá",
+          "Đề xuất phạm vi tính năng, mức phí và hạn mức AI phù hợp nhu cầu, chi phí phục vụ."
+        ],
+        [
+          "4. Chuẩn bị đưa vào sử dụng",
+          "Làm rõ chuyển dữ liệu, phân quyền, hướng dẫn và hỗ trợ; tận dụng kênh khách hàng MISA."
+        ]
+      ],
+      "conclusion": "Có thể bán khi khách hàng hiểu giá trị, chấp nhận chi phí và được hỗ trợ đưa sản phẩm vào công việc.",
+      "kind": "board-cards",
+      "status": "",
+      "notes": "Làm sao để bán được: từ nhu cầu đến gói giải pháp\n\n\n\nChuyển năng lực sản phẩm thành lời chào bán rõ ràng: cho ai, giải quyết việc gì và đem lại giá trị nào.\n\n1. Chọn tình huống để bán\nKho tri thức nội bộ, tra cứu quy trình hoặc tổng hợp báo cáo — chọn theo khảo sát.\n\n2. Chứng minh giá trị\nDemo trên công việc thực tế; ghi nhận kết quả và phản hồi từ đợt dùng thử.\n\n3. Xây dựng gói và giá\nĐề xuất phạm vi tính năng, mức phí và hạn mức AI phù hợp nhu cầu, chi phí phục vụ.\n\n4. Chuẩn bị đưa vào sử dụng\nLàm rõ chuyển dữ liệu, phân quyền, hướng dẫn và hỗ trợ; tận dụng kênh khách hàng MISA.\n\n\n\n\n\nCó thể bán khi khách hàng hiểu giá trị, chấp nhận chi phí và được hỗ trợ đưa sản phẩm vào công việc.",
+      "basis": "",
+      "context": "",
+      "value": "",
+      "principle": "",
+      "intro": ""
+    },
+    {
+      "section": "Phần IV: Định hướng phát triển MISA Note",
+      "title": "Đề xuất tích hợp AI: ba hướng trên nền tảng ghi chú",
+      "message": "Kế thừa bốn nhóm chức năng ở slide cuối tài liệu nghiên cứu; ghi chú là nền tảng, AI mở rộng giá trị khai thác.",
+      "items": [
+        [
+          "Nền tảng: tạo và quản lý ghi chú",
+          "Tạo, chỉnh sửa, sắp xếp và quản lý thông tin — hình thành nguồn tri thức để khai thác."
+        ],
+        [
+          "AI tìm kiếm và tương tác với nguồn",
+          "Tìm theo ý nghĩa, hỏi đáp từ nguồn được phép; mở rộng kết nối nguồn khi có nhu cầu."
+        ],
+        [
+          "AI tổng hợp tài liệu",
+          "Tóm tắt, tổng hợp nhiều tài liệu và rút ra điểm chính phục vụ công việc."
+        ],
+        [
+          "AI đầu ra đa định dạng",
+          "Tạo văn bản, báo cáo, bảng, biểu đồ hoặc nội dung trình bày từ cùng bộ nguồn."
+        ]
+      ],
+      "conclusion": "Chọn tính năng AI theo bài toán sử dụng; ưu tiên giá trị rõ ràng, chất lượng và quyền truy cập.",
+      "kind": "board-grid",
+      "status": "",
+      "notes": "Đề xuất tích hợp AI: ba hướng trên nền tảng ghi chú\n\n\n\nKế thừa bốn nhóm chức năng ở slide cuối tài liệu nghiên cứu; ghi chú là nền tảng, AI mở rộng giá trị khai thác.\n\nNền tảng: tạo và quản lý ghi chú\nTạo, chỉnh sửa, sắp xếp và quản lý thông tin — hình thành nguồn tri thức để khai thác.\n\nAI tìm kiếm và tương tác với nguồn\nTìm theo ý nghĩa, hỏi đáp từ nguồn được phép; mở rộng kết nối nguồn khi có nhu cầu.\n\nAI tổng hợp tài liệu\nTóm tắt, tổng hợp nhiều tài liệu và rút ra điểm chính phục vụ công việc.\n\nAI đầu ra đa định dạng\nTạo văn bản, báo cáo, bảng, biểu đồ hoặc nội dung trình bày từ cùng bộ nguồn.\n\n\n\n\n\nChọn tính năng AI theo bài toán sử dụng; ưu tiên giá trị rõ ràng, chất lượng và quyền truy cập.\n\nCơ sở: slide 35 (slide cuối) của docs/Nghien-cuu-djoi-thu-Cac-ung-dung-Ghi-chep-AI.pptx: tạo và quản lý ghi chú; AI tìm kiếm và tương tác với nguồn lưu trữ; AI tổng hợp tài liệu; AI đầu ra đa định dạng. Các tình huống và cách triển khai trên slide là đề xuất cho MISA Note, không phải tính năng đã triển khai.",
+      "basis": "",
+      "context": "",
+      "value": "",
+      "principle": "",
+      "intro": ""
+    },
+    {
+      "section": "Phần IV: Định hướng phát triển MISA Note",
+      "title": "AI tìm kiếm và tương tác với nguồn lưu trữ",
+      "message": "Giúp người dùng tiếp cận câu trả lời từ tri thức được phép sử dụng.",
+      "items": [
+        [
+          "Đề xuất tính năng",
+          "• Tìm kiếm theo ý nghĩa và hỏi bằng ngôn ngữ tự nhiên.\n• Trả lời kèm tham chiếu về nguồn."
+        ],
+        [
+          "Phạm vi nguồn",
+          "• Bắt đầu từ ghi chú, tài liệu trong MISA Note.\n• Nghiên cứu kết nối nguồn khác theo nhu cầu và phân quyền."
+        ],
+        [
+          "Tình huống sử dụng",
+          "“Thủ tục đề xuất mua thiết bị gồm những bước nào?” — nhận hướng dẫn cùng tài liệu để kiểm tra."
         ],
         [
           "Giá trị mang lại",
-          "• Giảm thời gian tra cứu.\n• Tăng khả năng tiếp cận tri thức nội bộ.\n• Giảm phụ thuộc vào việc hỏi người nắm thông tin."
+          "• Giảm thao tác tìm và đọc từng tài liệu.\n• Giảm phụ thuộc vào việc hỏi người nắm thông tin."
         ]
       ],
-      "conclusion": "Ưu tiên đánh giá triển khai sớm: giải quyết trực tiếp hạn chế tìm kiếm ở Phần I.",
+      "conclusion": "Ưu tiên thử trong nội bộ: tra cứu quy trình, hướng dẫn và kiến thức dùng thường xuyên.",
       "kind": "board-grid",
       "status": "",
-      "notes": "## **SLIDE 42 — AI TÌM KIẾM VÀ HỎI ĐÁP: BIẾN KHO TÀI LIỆU THÀNH NGUỒN TRI THỨC CÓ THỂ KHAI THÁC**\n\n**Thông điệp chính:** Giá trị của tài liệu không chỉ nằm ở khả năng lưu trữ mà còn ở việc người dùng có thể tìm được câu trả lời chính xác khi cần.\n\n### **Bài toán hiện tại**\n\nThông tin nằm trong nhiều tài liệu, người dùng phải tìm kiếm, mở và đọc từng tài liệu để xác định nội dung cần thiết. Quá trình này tiêu tốn thời gian, đặc biệt khi số lượng tài liệu ngày càng lớn.\n\n### **Giải pháp đề xuất**\n\n- Tìm kiếm theo ngữ nghĩa, không phụ thuộc hoàn toàn vào từ khóa.\n- Đặt câu hỏi trực tiếp bằng ngôn ngữ tự nhiên.\n- AI tổng hợp câu trả lời từ các tài liệu người dùng được phép truy cập.\n- Cung cấp trích dẫn và đường dẫn để kiểm tra lại thông tin gốc.\n\n### **Tình huống ứng dụng**\n\nNhân viên đặt câu hỏi: *“Quy trình đề xuất và phê duyệt mua sắm thiết bị hiện tại như thế nào?”*\n\nThay vì tự tìm và đọc nhiều văn bản, người dùng nhận được nội dung tóm tắt các bước thực hiện, kèm tài liệu nguồn để đối chiếu.\n\n### **Giá trị mang lại**\n\nGiảm thời gian tra cứu, nâng cao khả năng tiếp cận tri thức nội bộ và giảm sự phụ thuộc vào việc hỏi trực tiếp những người nắm giữ thông tin.\n\n**Định hướng ưu tiên:** Đây là một trong những năng lực AI nên được đánh giá triển khai sớm, bởi giải quyết trực tiếp hạn chế tìm kiếm đã xác định tại Phần I."
+      "notes": "AI tìm kiếm và tương tác với nguồn lưu trữ\n\n\n\nGiúp người dùng tiếp cận câu trả lời từ tri thức được phép sử dụng.\n\nĐề xuất tính năng\n• Tìm kiếm theo ý nghĩa và hỏi bằng ngôn ngữ tự nhiên.\n• Trả lời kèm tham chiếu về nguồn.\n\nPhạm vi nguồn\n• Bắt đầu từ ghi chú, tài liệu trong MISA Note.\n• Nghiên cứu kết nối nguồn khác theo nhu cầu và phân quyền.\n\nTình huống sử dụng\n“Thủ tục đề xuất mua thiết bị gồm những bước nào?” — nhận hướng dẫn cùng tài liệu để kiểm tra.\n\nGiá trị mang lại\n• Giảm thao tác tìm và đọc từng tài liệu.\n• Giảm phụ thuộc vào việc hỏi người nắm thông tin.\n\n\n\n\n\nƯu tiên thử trong nội bộ: tra cứu quy trình, hướng dẫn và kiến thức dùng thường xuyên.\n\nCơ sở: slide 35 (slide cuối) của docs/Nghien-cuu-djoi-thu-Cac-ung-dung-Ghi-chep-AI.pptx: tạo và quản lý ghi chú; AI tìm kiếm và tương tác với nguồn lưu trữ; AI tổng hợp tài liệu; AI đầu ra đa định dạng. Các tình huống và cách triển khai trên slide là đề xuất cho MISA Note, không phải tính năng đã triển khai.",
+      "basis": "",
+      "context": "",
+      "value": "",
+      "principle": "",
+      "intro": ""
     },
     {
-      "section": "Phần IV: Chiến lược và lộ trình phát triển sản phẩm",
-      "title": "AI phân tích và tổng hợp: nâng cao giá trị sử dụng tài liệu",
-      "message": "Hỗ trợ người dùng tổng hợp thông tin cần thiết cho công việc và ra quyết định, không chỉ đọc nhanh hơn.",
+      "section": "Phần IV: Định hướng phát triển MISA Note",
+      "title": "AI tổng hợp tài liệu: từ nhiều nguồn đến thông tin cần dùng",
+      "message": "Hỗ trợ xử lý tài liệu dài và thông tin phân tán để nắm bắt nội dung nhanh hơn.",
       "items": [
         [
-          "Bài toán người dùng",
-          "• Phải xử lý nhiều báo cáo, biên bản và tài liệu cùng vấn đề.\n• Tổng hợp thủ công tốn thời gian, dễ bỏ sót thông tin quan trọng."
+          "Đề xuất tính năng",
+          "• Tóm tắt tài liệu, tổng hợp nhiều nguồn.\n• Rút ra điểm chính, kết luận và đầu việc."
         ],
         [
-          "Giải pháp đề xuất",
-          "• Tóm tắt tài liệu dài, tổng hợp đa nguồn.\n• So sánh giống/khác giữa phiên bản.\n• Trích xuất kết luận, quyết định, đầu việc.\n• Tham chiếu nguồn cho nội dung quan trọng."
-        ],
-        [
-          "Tình huống ứng dụng",
-          "• Tổng hợp kết quả từ nhiều báo cáo tuần.\n• AI xây dựng báo cáo chung, chỉ ra vấn đề nổi bật, thay đổi và công việc cần theo dõi."
+          "Tình huống sử dụng",
+          "Tổng hợp báo cáo tuần của nhiều nhóm thành bản chung, nêu vấn đề và việc cần theo dõi."
         ],
         [
           "Giá trị mang lại",
-          "• Giảm công tổng hợp thủ công.\n• Giúp quản lý nắm bắt thông tin nhanh.\n• Tăng khả năng sử dụng lại dữ liệu đã tạo."
+          "• Giảm công đọc và tổng hợp thủ công.\n• Hỗ trợ quản lý nắm tình hình và chuẩn bị quyết định."
+        ],
+        [
+          "Điều kiện sử dụng",
+          "• Giữ tham chiếu để kiểm tra thông tin.\n• Người dùng rà soát kết quả trước khi sử dụng."
         ]
       ],
-      "conclusion": "Thử trên tài liệu có cấu trúc và tình huống rõ ràng trước khi phân tích phức tạp.",
+      "conclusion": "Chọn loại tài liệu và yêu cầu tổng hợp cụ thể để thử nghiệm, thay vì triển khai AI dàn trải.",
       "kind": "board-grid",
       "status": "",
-      "notes": "## **SLIDE 43 — AI PHÂN TÍCH VÀ TỔNG HỢP: NÂNG CAO GIÁ TRỊ SỬ DỤNG CỦA TÀI LIỆU**\n\n**Thông điệp chính:** MISA Note hướng tới hỗ trợ người dùng không chỉ đọc tài liệu nhanh hơn mà còn tổng hợp được thông tin cần thiết để phục vụ công việc và ra quyết định.\n\n### **Bài toán người dùng**\n\nTrong công việc, người dùng thường phải xử lý nhiều báo cáo, biên bản và tài liệu liên quan đến cùng một vấn đề. Việc tổng hợp thủ công mất thời gian và có nguy cơ bỏ sót thông tin quan trọng.\n\n### **Giải pháp đề xuất**\n\n- Tóm tắt nội dung chính của tài liệu dài.\n- Tổng hợp thông tin từ nhiều tài liệu.\n- So sánh các điểm giống và khác nhau giữa các phiên bản.\n- Trích xuất kết luận, quyết định và công việc cần thực hiện.\n- Cung cấp nguồn tham chiếu cho những nội dung quan trọng.\n\n### **Tình huống ứng dụng**\n\nNgười quản lý cần tổng hợp kết quả công việc từ nhiều báo cáo tuần.\n\nAI hỗ trợ xây dựng báo cáo tổng hợp, xác định những vấn đề nổi bật, nội dung thay đổi và các công việc cần tiếp tục theo dõi.\n\n### **Giá trị mang lại**\n\nGiảm công việc tổng hợp thủ công, hỗ trợ người quản lý nắm bắt thông tin nhanh hơn và nâng cao khả năng sử dụng lại dữ liệu đã được tạo ra.\n\n**Định hướng ưu tiên:** Thử nghiệm với những loại tài liệu có cấu trúc và tình huống sử dụng rõ ràng trước khi mở rộng sang phân tích phức tạp."
+      "notes": "AI tổng hợp tài liệu: từ nhiều nguồn đến thông tin cần dùng\n\n\n\nHỗ trợ xử lý tài liệu dài và thông tin phân tán để nắm bắt nội dung nhanh hơn.\n\nĐề xuất tính năng\n• Tóm tắt tài liệu, tổng hợp nhiều nguồn.\n• Rút ra điểm chính, kết luận và đầu việc.\n\nTình huống sử dụng\nTổng hợp báo cáo tuần của nhiều nhóm thành bản chung, nêu vấn đề và việc cần theo dõi.\n\nGiá trị mang lại\n• Giảm công đọc và tổng hợp thủ công.\n• Hỗ trợ quản lý nắm tình hình và chuẩn bị quyết định.\n\nĐiều kiện sử dụng\n• Giữ tham chiếu để kiểm tra thông tin.\n• Người dùng rà soát kết quả trước khi sử dụng.\n\n\n\n\n\nChọn loại tài liệu và yêu cầu tổng hợp cụ thể để thử nghiệm, thay vì triển khai AI dàn trải.\n\nCơ sở: slide 35 (slide cuối) của docs/Nghien-cuu-djoi-thu-Cac-ung-dung-Ghi-chep-AI.pptx: tạo và quản lý ghi chú; AI tìm kiếm và tương tác với nguồn lưu trữ; AI tổng hợp tài liệu; AI đầu ra đa định dạng. Các tình huống và cách triển khai trên slide là đề xuất cho MISA Note, không phải tính năng đã triển khai.",
+      "basis": "",
+      "context": "",
+      "value": "",
+      "principle": "",
+      "intro": ""
     },
     {
-      "section": "Phần IV: Chiến lược và lộ trình phát triển sản phẩm",
-      "title": "AI đa định dạng: mở rộng khả năng tái sử dụng tri thức",
-      "message": "Chuyển cùng một nguồn tài liệu thành nhiều hình thức truyền đạt mà không phải biên soạn lại từ đầu.",
+      "section": "Phần IV: Định hướng phát triển MISA Note",
+      "title": "AI đầu ra đa định dạng: tái sử dụng tri thức",
+      "message": "Chuyển cùng nguồn tài liệu thành hình thức phù hợp từng mục đích, giảm biên soạn lại từ đầu.",
       "items": [
         [
-          "Báo cáo",
-          "Tổng hợp và trình bày nội dung theo cấu trúc báo cáo."
+          "Văn bản và báo cáo",
+          "Tạo bản nháp tóm tắt, báo cáo theo cấu trúc yêu cầu."
         ],
         [
-          "Slide",
-          "Chuyển tài liệu thành dàn ý và nội dung thuyết trình."
+          "Bảng và biểu đồ",
+          "Sắp xếp, đối chiếu dữ liệu và thể hiện kết quả trực quan."
         ],
         [
-          "Sơ đồ tư duy",
-          "Trực quan hóa cấu trúc và mối liên hệ giữa thông tin."
+          "Nội dung trình bày",
+          "Chuyển ý chính thành dàn bài, nội dung slide hoặc sơ đồ."
         ],
         [
-          "Audio",
-          "Chuyển tài liệu thành dạng nghe, thuận tiện tiếp cận."
+          "Nội dung âm thanh",
+          "Nghiên cứu dạng nghe cho phổ biến kiến thức và đào tạo."
         ]
       ],
-      "conclusion": "Phát triển có chọn lọc: ưu tiên đầu ra có giá trị rõ ràng và kiểm soát được chất lượng.",
+      "conclusion": "Triển khai có chọn lọc theo nhu cầu nội bộ và khách hàng; không phát triển đồng thời mọi định dạng.",
       "kind": "board-formats",
       "status": "",
-      "notes": "## **SLIDE 44 — AI ĐA ĐỊNH DẠNG: MỞ RỘNG KHẢ NĂNG TÁI SỬ DỤNG TRI THỨC**\n\n**Thông điệp chính:** Cùng một nguồn tài liệu có thể được chuyển đổi thành nhiều hình thức truyền đạt khác nhau, phù hợp với mục đích sử dụng mà không cần xây dựng lại nội dung từ đầu.\n\n### **Bài toán người dùng**\n\nMột nội dung thường phải được biên soạn lại cho nhiều mục đích: báo cáo, thuyết trình, đào tạo hoặc truyền đạt thông tin. Quá trình chuyển đổi thủ công làm tăng thời gian và chi phí thực hiện.\n\n### **Giải pháp đề xuất**\n\n**Báo cáo**\n\nTổng hợp và trình bày nội dung theo cấu trúc báo cáo.\n\n**Slide**\n\nChuyển tài liệu thành dàn ý và nội dung thuyết trình.\n\n**Sơ đồ tư duy**\n\nTrực quan hóa cấu trúc và mối liên hệ giữa các thông tin.\n\n**Audio**\n\nChuyển nội dung tài liệu thành dạng nghe để tiếp cận thuận tiện hơn.\n\n### **Giá trị mang lại**\n\nTăng hiệu suất tạo nội dung, đa dạng hóa cách tiếp cận tri thức và mở rộng những tình huống sử dụng MISA Note trong doanh nghiệp.\n\n**Định hướng ưu tiên:** Phát triển có chọn lọc theo nhu cầu thực tế. Không triển khai đồng thời tất cả định dạng; ưu tiên những đầu ra có khả năng tạo giá trị rõ ràng và kiểm soát được chất lượng.",
-      "context": "Bài toán: cùng nội dung cần biên soạn cho báo cáo, thuyết trình, đào tạo và truyền đạt thông tin.",
-      "value": "Giá trị: tăng hiệu suất tạo nội dung, đa dạng cách tiếp cận và mở rộng tình huống sử dụng trong doanh nghiệp."
-    },
-    {
-      "section": "Phần IV: Chiến lược và lộ trình phát triển sản phẩm",
-      "title": "Lộ trình phát triển: hoàn thiện nội bộ, từng bước thương mại hóa",
-      "message": "Đầu tư theo giai đoạn, gắn kết quả sản phẩm với giá trị sử dụng và tiềm năng kinh doanh để kiểm soát rủi ro.",
-      "items": [
-        [
-          "1. Hoàn thiện nền tảng",
-          "• Phát triển ghi chú, quản lý tài liệu, tìm kiếm, chia sẻ; đáp ứng vận hành nội bộ.\n• Kết quả: hoàn chỉnh các luồng cốt lõi, sẵn sàng triển khai nội bộ."
-        ],
-        [
-          "2. Nội bộ và thử AI",
-          "• Mở rộng dùng trong MISA, nhận phản hồi, đo hiệu quả. Thử AI ứng dụng cao, ưu tiên tìm kiếm và khai thác tài liệu.\n• Kết quả: bằng chứng giá trị, chất lượng và tính khả thi AI."
-        ],
-        [
-          "3. Xác thực thương mại",
-          "• Nghiên cứu khách hàng; chọn bài toán và pilot có kiểm soát. Đo sử dụng, hiệu quả, chi phí, khả năng trả phí.\n• Kết quả: phân khúc tiềm năng, giá trị khác biệt và cơ sở mô hình kinh doanh."
-        ],
-        [
-          "4. Hoàn thiện và mở rộng",
-          "• Phát triển năng lực đã kiểm chứng, tối ưu chi phí, nâng tích hợp và lập kế hoạch kinh doanh.\n• Kết quả: triển khai và kinh doanh bền vững nếu pilot đạt tiêu chí đầu tư."
-        ]
-      ],
-      "conclusion": "Thống nhất hai mục tiêu: hoàn thiện nội bộ và hình thành giải pháp tri thức có thể thương mại hóa.",
-      "kind": "board-roadmap",
-      "status": "",
-      "notes": "## **SLIDE 45 — LỘ TRÌNH PHÁT TRIỂN: HOÀN THIỆN NỘI BỘ, KIỂM CHỨNG GIÁ TRỊ, TỪNG BƯỚC THƯƠNG MẠI HÓA**\n\n**Thông điệp chính:** Đề xuất đầu tư theo từng giai đoạn, gắn kết quả phát triển sản phẩm với giá trị sử dụng và tiềm năng kinh doanh, nhằm kiểm soát rủi ro và tối ưu nguồn lực.\n\n1. **Giai đoạn 1 — Hoàn thiện nền tảng MISA Note**\n\n   Phát triển các chức năng ghi chú, quản lý tài liệu, tìm kiếm và chia sẻ; đảm bảo hệ thống đáp ứng yêu cầu vận hành nội bộ.\n\n   Kết quả kỳ vọng: Sản phẩm hoàn chỉnh các luồng sử dụng cốt lõi, sẵn sàng triển khai nội bộ.\n2. **Giai đoạn 2 — Triển khai nội bộ và thử nghiệm AI**\n\n   Mở rộng sử dụng trong MISA, thu thập phản hồi và đo lường hiệu quả. Thử nghiệm các năng lực AI có tính ứng dụng cao, ưu tiên tìm kiếm và khai thác tài liệu.\n\n   Kết quả kỳ vọng: Có bằng chứng về giá trị sử dụng, chất lượng sản phẩm và tính khả thi của AI.\n3. **Giai đoạn 3 — Xác thực nhu cầu và thử nghiệm thương mại**\n\n   Nghiên cứu khách hàng mục tiêu, lựa chọn bài toán phù hợp và triển khai pilot có kiểm soát. Đánh giá mức độ sử dụng, hiệu quả, chi phí và khả năng trả phí.\n\n   Kết quả kỳ vọng: Xác định được phân khúc tiềm năng, giá trị khác biệt và cơ sở xây dựng mô hình kinh doanh.\n4. **Giai đoạn 4 — Hoàn thiện giải pháp và mở rộng thị trường**\n\n   Tiếp tục phát triển những năng lực đã được kiểm chứng, tối ưu chi phí, nâng cao khả năng tích hợp và xây dựng kế hoạch kinh doanh.\n\n   Kết quả kỳ vọng: Sản phẩm có khả năng triển khai và phát triển kinh doanh bền vững, nếu kết quả pilot đáp ứng tiêu chí đầu tư.\n\n### **Nguyên tắc đầu tư**\n\nMỗi giai đoạn cần có kết quả đầu ra và tiêu chí đánh giá rõ ràng. Việc mở rộng phạm vi phát triển và đầu tư chỉ được quyết định dựa trên hiệu quả thực tế, không dựa trên kỳ vọng về công nghệ.\n\n\n\n**Kết luận:** Đề xuất Ban lãnh đạo thống nhất định hướng phát triển MISA Note theo hai mục tiêu: hoàn thiện sản phẩm phục vụ nội bộ và từng bước hình thành giải pháp quản lý tri thức thông minh có tiềm năng thương mại hóa.",
-      "principle": "Nguyên tắc: mỗi giai đoạn có đầu ra và tiêu chí rõ; mở rộng đầu tư theo hiệu quả thực tế, không theo kỳ vọng công nghệ."
+      "notes": "AI đầu ra đa định dạng: tái sử dụng tri thức\n\n\n\nChuyển cùng nguồn tài liệu thành hình thức phù hợp từng mục đích, giảm biên soạn lại từ đầu.\n\nVăn bản và báo cáo\nTạo bản nháp tóm tắt, báo cáo theo cấu trúc yêu cầu.\n\nBảng và biểu đồ\nSắp xếp, đối chiếu dữ liệu và thể hiện kết quả trực quan.\n\nNội dung trình bày\nChuyển ý chính thành dàn bài, nội dung slide hoặc sơ đồ.\n\nNội dung âm thanh\nNghiên cứu dạng nghe cho phổ biến kiến thức và đào tạo.\n\nVí dụ: một bộ báo cáo có thể dùng để tóm tắt điều hành, đối chiếu dữ liệu, thuyết trình hoặc đào tạo.\n\nGiá trị: tăng khả năng tái sử dụng tri thức cho báo cáo, truyền đạt và học tập.\n\nTriển khai có chọn lọc theo nhu cầu nội bộ và khách hàng; không phát triển đồng thời mọi định dạng.\n\nCơ sở: slide 35 (slide cuối) của docs/Nghien-cuu-djoi-thu-Cac-ung-dung-Ghi-chep-AI.pptx: tạo và quản lý ghi chú; AI tìm kiếm và tương tác với nguồn lưu trữ; AI tổng hợp tài liệu; AI đầu ra đa định dạng. Các tình huống và cách triển khai trên slide là đề xuất cho MISA Note, không phải tính năng đã triển khai.",
+      "context": "Ví dụ: một bộ báo cáo có thể dùng để tóm tắt điều hành, đối chiếu dữ liệu, thuyết trình hoặc đào tạo.",
+      "value": "Giá trị: tăng khả năng tái sử dụng tri thức cho báo cáo, truyền đạt và học tập.",
+      "basis": "",
+      "principle": "",
+      "intro": ""
     }
   ],
   "source_powerpoint": "docs/Nghien-cuu-djoi-thu-Cac-ung-dung-Ghi-chep-AI.pptx",

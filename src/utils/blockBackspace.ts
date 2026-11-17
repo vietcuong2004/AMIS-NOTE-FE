@@ -173,11 +173,12 @@ export function computeBlocksAfterMergeWithPrevious(
   return null;
 }
 
-/** Exit the first item of a list block back into a plain paragraph on Backspace at offset 0. */
-export function computeBlocksAfterExitListFirstItem(
+/** Exit an item into a paragraph, preserving the lists before and after it. */
+export function computeBlocksAfterExitListItem(
   blocks: Block[],
   blockId: string,
-  createNewBlockId: () => string
+  createNewBlockId: () => string,
+  itemIndex = 0
 ): { blocks: Block[]; focus: BlockFocusTarget } | null {
   const idx = blocks.findIndex((block) => block.id === blockId);
   if (idx === -1) return null;
@@ -194,7 +195,8 @@ export function computeBlocksAfterExitListFirstItem(
           inlineLinks: block.properties?.inlineLinks,
         },
       ];
-  const first = items[0];
+  const first = items[itemIndex];
+  if (!first) return null;
   const paragraphProps: BlockProperties | undefined = block.properties
     ? {
         ...block.properties,
@@ -213,18 +215,20 @@ export function computeBlocksAfterExitListFirstItem(
     properties: paragraphProps,
   };
 
+  const before = items.slice(0, itemIndex);
+  const after = items.slice(itemIndex + 1);
+  const listSegment = (segment: typeof items, id: string): Block => ({
+    ...block,
+    id,
+    content: segment.map((item) => item.content).join('\n'),
+    properties: { ...block.properties, listItems: segment },
+  });
+  const replacement: Block[] = [];
+  if (before.length) replacement.push(listSegment(before, block.id));
+  replacement.push(exitedParagraph);
+  if (after.length) replacement.push(listSegment(after, before.length ? createNewBlockId() : block.id));
   const next = [...blocks];
-  if (items.length === 1) {
-    next.splice(idx, 1, exitedParagraph);
-  } else {
-    const remaining = items.slice(1);
-    const updatedList: Block = {
-      ...block,
-      content: remaining.map((item) => item.content).join('\n'),
-      properties: { ...block.properties, listItems: remaining },
-    };
-    next.splice(idx, 1, exitedParagraph, updatedList);
-  }
+  next.splice(idx, 1, ...replacement);
 
   return { blocks: next, focus: { blockId: exitedParagraph.id, offset: 0 } };
 }

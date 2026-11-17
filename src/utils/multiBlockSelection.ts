@@ -143,6 +143,8 @@ export function useMultiBlockSelection({
       const target = event.target as HTMLElement | null;
       if (!target || !('nodeType' in target)) return;
       if (containerRef.current?.contains(target)) return;
+      const surface = containerRef.current?.closest('[data-block-selection-surface]');
+      if (surface?.contains(target)) return;
       if (target.closest?.('[role="toolbar"], [role="menu"], [role="listbox"]')) return;
       clearSelection();
     };
@@ -194,6 +196,11 @@ export function useMultiBlockSelection({
       if (isInteractiveControlTarget(event.target)) return;
 
       const container = containerRef.current;
+      // A surface handler also receives clicks in the margins around the block container.
+      // Text fields outside it (such as the document title) keep their own selection.
+      const target = event.target as HTMLElement;
+      const startedInText = Boolean(target.closest('textarea, [contenteditable="true"]'));
+      if (startedInText && !container.contains(target)) return;
       const currentBlocks = blocksRef.current;
       if (currentBlocks.length === 0) return;
 
@@ -218,6 +225,12 @@ export function useMultiBlockSelection({
       dragCleanupRef.current?.();
       let isMultiDragging = false;
       const anchorIdx = clickedIdx;
+      if (!startedInText) {
+        event.preventDefault();
+        clearNativeTextSelection();
+        setRawSelectedIds([currentBlocks[clickedIdx].id]);
+        container.focus({ preventScroll: true });
+      }
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
         if (!containerRef.current) return;
@@ -229,7 +242,7 @@ export function useMultiBlockSelection({
         );
         if (hoveredIdx === -1) return;
 
-        if (!isMultiDragging && hoveredIdx === anchorIdx) {
+        if (startedInText && !isMultiDragging && hoveredIdx === anchorIdx) {
           return;
         }
         isMultiDragging = true;

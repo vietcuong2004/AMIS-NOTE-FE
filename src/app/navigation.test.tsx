@@ -3481,3 +3481,36 @@ test('Quick Note header title input selects all text on focus/click for immediat
 
 
 
+
+test('editor selects and copies blocks when dragging from the canvas margin', async () => {
+  const { saveStoredDocuments } = await import('../utils/storage');
+  const base = getStoredDocuments().find(doc => !doc.isTrash)!;
+  saveStoredDocuments([{ ...base, id: 'margin-selection', blocks: [
+    { id: 'margin-first', type: 'paragraph', content: 'First selected paragraph' },
+    { id: 'margin-second', type: 'paragraph', content: 'Second selected paragraph' },
+  ] }]);
+  await mount('/documents/margin-selection');
+  const container = document.getElementById('document-editor-container')!;
+  const surface = container.closest('[data-block-selection-surface]')!;
+  const blocks = Array.from(container.querySelectorAll<HTMLElement>('[data-block-id]'));
+  blocks.forEach((block, index) => {
+    block.getBoundingClientRect = () => ({ top: 100 + index * 50, bottom: 150 + index * 50, height: 50, left: 100, right: 500, width: 400, x: 100, y: 100 + index * 50, toJSON() {} });
+  });
+  await act(async () => surface.dispatchEvent(new window.MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, clientX: 30, clientY: 120 })));
+  assert.equal(blocks[0].dataset.blockSelected, 'true');
+  assert.equal(document.activeElement, container);
+  await act(async () => window.dispatchEvent(new window.MouseEvent('mousemove', { bubbles: true, cancelable: true, clientX: 30, clientY: 175 })));
+  await act(async () => window.dispatchEvent(new window.MouseEvent('mouseup', { bubbles: true })));
+  assert(blocks.every(block => block.dataset.blockSelected === 'true'));
+  const copied = new Map<string, string>();
+  const copy = new window.Event('copy', { bubbles: true, cancelable: true });
+  Object.defineProperty(copy, 'clipboardData', { value: { setData: (type: string, value: string) => copied.set(type, value) } });
+  await act(async () => container.dispatchEvent(copy));
+  assert.match(copied.get('text/plain')!, /First selected paragraph/);
+  assert.match(copied.get('text/plain')!, /Second selected paragraph/);
+  await act(async () => {
+    const input = blocks[0].querySelector('textarea')!;
+    input.dispatchEvent(new window.MouseEvent('mousedown', { bubbles: true, cancelable: true, clientY: 120 }));
+  });
+  assert(blocks.every(block => !block.dataset.blockSelected));
+});

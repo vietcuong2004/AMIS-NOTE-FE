@@ -2457,175 +2457,6 @@
       "pictures": []
     },
     {
-      "kind": "board-table",
-      "profile": null,
-      "item_columns": [
-        3,
-        3,
-        3,
-        3,
-        3
-      ],
-      "image_count": 0,
-      "bindings": [
-        {
-          "shape_id": "3",
-          "path": [
-            "section"
-          ]
-        },
-        {
-          "shape_id": "4",
-          "path": [
-            "title"
-          ]
-        },
-        {
-          "shape_id": "5",
-          "path": [
-            "message"
-          ]
-        },
-        {
-          "shape_id": "6",
-          "path": [
-            "items",
-            0,
-            0
-          ]
-        },
-        {
-          "shape_id": "7",
-          "path": [
-            "items",
-            0,
-            1
-          ]
-        },
-        {
-          "shape_id": "8",
-          "path": [
-            "items",
-            0,
-            2
-          ]
-        },
-        {
-          "shape_id": "9",
-          "path": [
-            "items",
-            1,
-            0
-          ]
-        },
-        {
-          "shape_id": "10",
-          "path": [
-            "items",
-            1,
-            1
-          ]
-        },
-        {
-          "shape_id": "11",
-          "path": [
-            "items",
-            1,
-            2
-          ]
-        },
-        {
-          "shape_id": "12",
-          "path": [
-            "items",
-            2,
-            0
-          ]
-        },
-        {
-          "shape_id": "13",
-          "path": [
-            "items",
-            2,
-            1
-          ]
-        },
-        {
-          "shape_id": "14",
-          "path": [
-            "items",
-            2,
-            2
-          ]
-        },
-        {
-          "shape_id": "15",
-          "path": [
-            "items",
-            3,
-            0
-          ]
-        },
-        {
-          "shape_id": "16",
-          "path": [
-            "items",
-            3,
-            1
-          ]
-        },
-        {
-          "shape_id": "17",
-          "path": [
-            "items",
-            3,
-            2
-          ]
-        },
-        {
-          "shape_id": "18",
-          "path": [
-            "items",
-            4,
-            0
-          ]
-        },
-        {
-          "shape_id": "19",
-          "path": [
-            "items",
-            4,
-            1
-          ]
-        },
-        {
-          "shape_id": "20",
-          "path": [
-            "items",
-            4,
-            2
-          ]
-        },
-        {
-          "shape_id": "21",
-          "path": [
-            "basis"
-          ]
-        },
-        {
-          "shape_id": "22",
-          "path": [
-            "conclusion"
-          ]
-        },
-        {
-          "shape_id": "23",
-          "page_number": true
-        }
-      ],
-      "pictures": []
-    },
-    {
       "kind": "board-cards",
       "profile": null,
       "item_columns": [
@@ -2822,6 +2653,218 @@
     },
     {
       "kind": "board-cards",
+      "profile": null,
+      "item_columns": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "image_count": 0,
+      "bindings": [
+        {
+          "shape_id": "3",
+          "path": [
+            "section"
+          ]
+        },
+        {
+          "shape_id": "4",
+          "path": [
+            "title"
+          ]
+        },
+        {
+          "shape_id": "5",
+          "path": [
+            "message"
+          ]
+        },
+        {
+          "shape_id": "7",
+          "path": [
+            "items",
+            0,
+            0
+          ]
+        },
+        {
+          "shape_id": "8",
+          "path": [
+            "items",
+            0,
+            1
+          ]
+        },
+        {
+          "shape_id": "10",
+          "path": [
+            "items",
+            1,
+            0
+          ]
+        },
+        {
+          "shape_id": "11",
+          "path": [
+            "items",
+            1,
+            1
+          ]
+        },
+        {
+          "shape_id": "13",
+          "path": [
+            "items",
+            2,
+            0
+          ]
+        },
+        {
+          "shape_id": "14",
+          "path": [
+            "items",
+            2,
+            1
+          ]
+        },
+        {
+          "shape_id": "16",
+          "path": [
+            "items",
+            3,
+            0
+          ]
+        },
+        {
+          "shape_id": "17",
+          "path": [
+            "items",
+            3,
+            1
+          ]
+        },
+        {
+          "shape_id": "18",
+          "path": [
+            "conclusion"
+          ]
+        },
+        {
+          "shape_id": "19",
+          "page_number": true
+        }
+      ],
+      "pictures": []
+    },
+    {
+      "kind": "board-cards",
+      "profile": null,
+      "item_columns": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "image_count": 0,
+      "bindings": [
+        {
+          "shape_id": "3",
+          "path": [
+            "section"
+          ]
+        },
+        {
+          "shape_id": "4",
+          "path": [
+            "title"
+          ]
+        },
+        {
+          "shape_id": "5",
+          "path": [
+            "message"
+          ]
+        },
+        {
+          "shape_id": "7",
+          "path": [
+            "items",
+            0,
+            0
+          ]
+        },
+        {
+          "shape_id": "8",
+          "path": [
+            "items",
+            0,
+            1
+          ]
+        },
+        {
+          "shape_id": "10",
+          "path": [
+            "items",
+            1,
+            0
+          ]
+        },
+        {
+          "shape_id": "11",
+          "path": [
+            "items",
+            1,
+            1
+          ]
+        },
+        {
+          "shape_id": "13",
+          "path": [
+            "items",
+            2,
+            0
+          ]
+        },
+        {
+          "shape_id": "14",
+          "path": [
+            "items",
+            2,
+            1
+          ]
+        },
+        {
+          "shape_id": "16",
+          "path": [
+            "items",
+            3,
+            0
+          ]
+        },
+        {
+          "shape_id": "17",
+          "path": [
+            "items",
+            3,
+            1
+          ]
+        },
+        {
+          "shape_id": "18",
+          "path": [
+            "conclusion"
+          ]
+        },
+        {
+          "shape_id": "19",
+          "page_number": true
+        }
+      ],
+      "pictures": []
+    },
+    {
+      "kind": "board-grid",
       "profile": null,
       "item_columns": [
         2,
@@ -3251,118 +3294,6 @@
         },
         {
           "shape_id": "21",
-          "page_number": true
-        }
-      ],
-      "pictures": []
-    },
-    {
-      "kind": "board-roadmap",
-      "profile": null,
-      "item_columns": [
-        2,
-        2,
-        2,
-        2
-      ],
-      "image_count": 0,
-      "bindings": [
-        {
-          "shape_id": "3",
-          "path": [
-            "section"
-          ]
-        },
-        {
-          "shape_id": "4",
-          "path": [
-            "title"
-          ]
-        },
-        {
-          "shape_id": "5",
-          "path": [
-            "message"
-          ]
-        },
-        {
-          "shape_id": "7",
-          "path": [
-            "items",
-            0,
-            0
-          ]
-        },
-        {
-          "shape_id": "8",
-          "path": [
-            "items",
-            0,
-            1
-          ]
-        },
-        {
-          "shape_id": "10",
-          "path": [
-            "items",
-            1,
-            0
-          ]
-        },
-        {
-          "shape_id": "11",
-          "path": [
-            "items",
-            1,
-            1
-          ]
-        },
-        {
-          "shape_id": "13",
-          "path": [
-            "items",
-            2,
-            0
-          ]
-        },
-        {
-          "shape_id": "14",
-          "path": [
-            "items",
-            2,
-            1
-          ]
-        },
-        {
-          "shape_id": "16",
-          "path": [
-            "items",
-            3,
-            0
-          ]
-        },
-        {
-          "shape_id": "17",
-          "path": [
-            "items",
-            3,
-            1
-          ]
-        },
-        {
-          "shape_id": "18",
-          "path": [
-            "principle"
-          ]
-        },
-        {
-          "shape_id": "19",
-          "path": [
-            "conclusion"
-          ]
-        },
-        {
-          "shape_id": "20",
           "page_number": true
         }
       ],

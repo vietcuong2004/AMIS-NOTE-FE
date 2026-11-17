@@ -6,10 +6,10 @@ import { listLevel, listNumbers } from '../../utils/listLevels';
 
 type Item = NonNullable<BlockProperties['listItems']>[number];
 
-export function ListBlock({ block, readOnly, autoFocus, onChange, onBackspaceFirstItem }: {
+export function ListBlock({ block, readOnly, autoFocus, onChange, onExitItem }: {
   block: Block; readOnly: boolean; autoFocus: boolean;
   onChange: (content: string, properties: BlockProperties) => void;
-  onBackspaceFirstItem?: () => void;
+  onExitItem?: (itemIndex: number) => void;
 }) {
   const items: Item[] = block.properties?.listItems?.length ? block.properties.listItems
     : [{ id: `${block.id}-item`, content: block.content, checked: !!block.properties?.checked }];
@@ -86,15 +86,15 @@ export function ListBlock({ block, readOnly, autoFocus, onChange, onBackspaceFir
               updated.splice(index, 1, { ...item, content: item.content.slice(0, start), inlineLinks: (item.inlineLinks || []).filter(link => link.end <= start) }, next);
               save(updated); setFocus({ id: next.id, offset: 0 });
             } else if (event.key === 'Backspace' && event.currentTarget.selectionStart === 0 && event.currentTarget.selectionEnd === 0) {
-              if (index > 0) {
+              if (onExitItem && (item.content === '' || index === 0)) {
+                event.preventDefault(); event.stopPropagation();
+                onExitItem(index);
+              } else if (index > 0) {
                 event.preventDefault(); event.stopPropagation();
                 const previous = items[index - 1];
                 const updated = [...items];
                 updated.splice(index - 1, 2, { ...previous, content: previous.content + item.content, inlineLinks: [...(previous.inlineLinks || []), ...(item.inlineLinks || []).map(link => ({ ...link, start: link.start + previous.content.length, end: link.end + previous.content.length }))] });
                 save(updated); setFocus({ id: previous.id, offset: previous.content.length });
-              } else if (onBackspaceFirstItem) {
-                event.preventDefault(); event.stopPropagation();
-                onBackspaceFirstItem();
               }
             }
           }} />

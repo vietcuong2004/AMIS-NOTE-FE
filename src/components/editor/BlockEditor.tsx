@@ -36,7 +36,7 @@ import { getFolderAncestors } from '../../utils/folders';
 import {
   BlockFocusTarget,
   computeBlocksAfterDelete,
-  computeBlocksAfterExitListFirstItem,
+  computeBlocksAfterExitListItem,
   computeBlocksAfterMergeWithPrevious,
   focusBlockAtOffset,
 } from '../../utils/blockBackspace';
@@ -294,12 +294,13 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     applyBlockFocusResult(computeBlocksAfterMergeWithPrevious(docRef.current.blocks, blockId));
   };
 
-  const handleExitListStart = (blockId: string) => {
+  const handleExitListItem = (blockId: string, itemIndex: number) => {
     applyBlockFocusResult(
-      computeBlocksAfterExitListFirstItem(
+      computeBlocksAfterExitListItem(
         docRef.current.blocks,
         blockId,
-        () => `blk_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+        () => `blk_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        itemIndex
       )
     );
   };
@@ -957,6 +958,10 @@ function getTextareaSelectionCoords(
       {/* Editor Canvas */}
       <div
         ref={scrollContainerRef}
+        data-block-selection-surface
+        onMouseDown={(event) => {
+          if (!blocksContainerRef.current?.contains(event.target as Node)) handleContainerMouseDown(event);
+        }}
         onScroll={(e) => maybeExpandBottomSpace(e.currentTarget)}
         onWheel={(e) => {
           if (e.deltaY > 0) maybeExpandBottomSpace(e.currentTarget);
@@ -1088,7 +1093,7 @@ function getTextareaSelectionCoords(
                 onUpdate={handleUpdateBlock}
                 onDelete={handleDeleteBlock}
                 onMergeWithPrevious={handleMergeWithPrevious}
-                onExitListStart={handleExitListStart}
+                onExitListItem={handleExitListItem}
                 onDuplicate={handleDuplicateBlock}
                 onMoveUp={handleMoveBlockUp}
                 onMoveDown={handleMoveBlockDown}

@@ -26,7 +26,7 @@ import { Block, BlockProperties, BlockType, QuickNote } from '../../types';
 import {
   BlockFocusTarget,
   computeBlocksAfterDelete,
-  computeBlocksAfterExitListFirstItem,
+  computeBlocksAfterExitListItem,
   computeBlocksAfterMergeWithPrevious,
   focusBlockAtOffset,
 } from '../../utils/blockBackspace';
@@ -1193,12 +1193,13 @@ export const QuickNoteModal: React.FC<QuickNoteModalProps> = ({
     applyBackspaceResult(computeBlocksAfterMergeWithPrevious(draftRef.current.blocks, blockId));
   };
 
-  const handleExitListStart = (blockId: string) => {
+  const handleExitListItem = (blockId: string, itemIndex: number) => {
     applyBackspaceResult(
-      computeBlocksAfterExitListFirstItem(
+      computeBlocksAfterExitListItem(
         draftRef.current.blocks,
         blockId,
-        () => createQuickNoteId('qblk')
+        () => createQuickNoteId('qblk'),
+        itemIndex
       )
     );
   };
@@ -1891,6 +1892,10 @@ export const QuickNoteModal: React.FC<QuickNoteModalProps> = ({
               key={draft.draftKey}
               ref={editorBodyRef}
               data-quick-note-editor-body
+              data-block-selection-surface
+              onMouseDown={(event) => {
+                if (!blocksContainerRef.current?.contains(event.target as Node)) handleContainerMouseDown(event);
+              }}
               onFocusCapture={(event) => {
                 const blockEl = (event.target as HTMLElement).closest<HTMLElement>('[data-block-id]');
                 if (blockEl?.dataset.blockId) {
@@ -1953,7 +1958,7 @@ export const QuickNoteModal: React.FC<QuickNoteModalProps> = ({
                       onUpdate={handleUpdateBlock}
                       onDelete={handleDeleteBlock}
                       onMergeWithPrevious={handleMergeWithPrevious}
-                      onExitListStart={handleExitListStart}
+                      onExitListItem={handleExitListItem}
                       onDuplicate={handleDuplicateBlock}
                       onMoveUp={(id) => handleMoveBlock(id, -1)}
                       onMoveDown={(id) => handleMoveBlock(id, 1)}

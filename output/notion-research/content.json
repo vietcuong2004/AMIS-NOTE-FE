@@ -1,0 +1,477 @@
+{
+  "date": "2026-11-16",
+  "slides": [
+    {
+      "group": "CAPTURE",
+      "title": "Notion Capture — Thu thập và tạo lập thông tin",
+      "subtitle": "Ghi lại kiến thức: tài liệu, dữ liệu và nội dung cuộc họp trong cùng một không gian.",
+      "cards": [
+        {
+          "title": "Tài liệu (Docs)",
+          "description": "Soạn bằng các khối nội dung.",
+          "value": "Từ ghi nhanh đến đặc tả sản phẩm.",
+          "url": "https://www.notion.com/help/writing-and-editing-basics",
+          "icon": "doc"
+        },
+        {
+          "title": "Cơ sở dữ liệu",
+          "description": "Mỗi mục là một trang có thuộc tính.",
+          "value": "Theo dõi việc và tài liệu theo cấu trúc.",
+          "url": "https://www.notion.com/help/intro-to-databases",
+          "icon": "db"
+        },
+        {
+          "title": "AI Meeting Notes",
+          "description": "Chép lời và tổng hợp cuộc họp.",
+          "value": "Giữ ý chính và đầu việc sau họp.",
+          "url": "https://www.notion.com/help/ai-meeting-notes",
+          "icon": "mic"
+        },
+        {
+          "title": "Phối hợp thời gian thực",
+          "description": "Cùng sửa, bình luận và @nhắc.",
+          "value": "Phản hồi ngay tại nội dung cần xử lý.",
+          "url": "https://www.notion.com/help/collaborate-with-people",
+          "icon": "users"
+        },
+        {
+          "title": "Đồng bộ dữ liệu",
+          "description": "Đưa dữ liệu Jira, Salesforce vào Notion.",
+          "value": "Xem dữ liệu nguồn cạnh kế hoạch nhóm.",
+          "url": "https://www.notion.com/help/sync-data-from-other-tools-to-notion",
+          "icon": "sync"
+        },
+        {
+          "title": "Biểu mẫu (Forms)",
+          "description": "Câu trả lời đi vào cơ sở dữ liệu.",
+          "value": "Thu phản hồi mà không nhập lại.",
+          "url": "https://www.notion.com/help/forms",
+          "icon": "form"
+        },
+        {
+          "title": "Nhập dữ liệu",
+          "description": "Nhập tệp và nội dung từ công cụ khác.",
+          "value": "Tập trung tài liệu đã có vào một nơi.",
+          "url": "https://www.notion.com/help/import-data-into-notion",
+          "icon": "download"
+        },
+        {
+          "title": "Ứng dụng di động",
+          "description": "Ghi và đọc trên iOS, Android.",
+          "value": "Tiếp tục công việc khi rời máy tính.",
+          "url": "https://www.notion.com/help/notion-for-mobile",
+          "icon": "mobile"
+        },
+        {
+          "title": "Web Clipper",
+          "description": "Lưu trang web vào trang đích.",
+          "value": "Tạo thư viện tham khảo khi nghiên cứu.",
+          "url": "https://www.notion.com/help/web-clipper",
+          "icon": "clip"
+        }
+      ],
+      "image": "images/slide-01/capture.jpg",
+      "value": "Thông tin được ghi một lần, có cấu trúc và sẵn sàng để nhóm sử dụng.",
+      "urls": [
+        "https://www.notion.com/vi/product/features",
+        "https://www.notion.com/help/writing-and-editing-basics",
+        "https://www.notion.com/help/intro-to-databases",
+        "https://www.notion.com/help/ai-meeting-notes",
+        "https://www.notion.com/help/collaborate-with-people",
+        "https://www.notion.com/help/sync-data-from-other-tools-to-notion",
+        "https://www.notion.com/help/forms",
+        "https://www.notion.com/help/import-data-into-notion",
+        "https://www.notion.com/help/notion-for-mobile",
+        "https://www.notion.com/help/web-clipper"
+      ],
+      "notes": "Giữ nguyên chín tính năng Capture từ trang Features. “Phối hợp thời gian thực” tương ứng mục Collaboration. Đồng bộ dữ liệu khác với Synced Blocks: managed sync lấy dữ liệu từ công cụ nguồn vào cơ sở dữ liệu Notion; các thuộc tính đồng bộ là chỉ đọc. Không mô tả là đồng bộ hai chiều."
+    },
+    {
+      "group": "CAPTURE",
+      "title": "Notion Docs — Một trình soạn thảo, nhiều loại tài liệu",
+      "subtitle": "Nội dung là các block có thể ghép, di chuyển và tái sử dụng.",
+      "points": [
+        [
+          "Block & lệnh /",
+          "Chèn tiêu đề, danh sách, bảng, ảnh, tệp hoặc nội dung nhúng."
+        ],
+        [
+          "Kéo thả & chuyển loại",
+          "Dùng tay nắm sáu chấm để đổi vị trí hoặc chuyển kiểu block."
+        ],
+        [
+          "Trang con & nội dung đồng bộ",
+          "Tách phần chi tiết thành trang con; sửa Synced Block để cập nhật các bản liên kết."
+        ]
+      ],
+      "example": "Đặc tả sản phẩm: bối cảnh → yêu cầu → bảng tiêu chí; nhúng thiết kế, tách phụ lục và đồng bộ nguyên tắc chung.",
+      "value": "Giữ mô tả, thiết kế và yêu cầu trong một tài liệu; giảm sao chép cùng nội dung sang nhiều nơi.",
+      "steps": [
+        "Tạo trang",
+        "Gõ / chọn block",
+        "Sắp xếp nội dung",
+        "Liên kết & chia sẻ"
+      ],
+      "urls": [
+        "https://www.notion.com/help/writing-and-editing-basics",
+        "https://www.notion.com/help/create-a-subpage",
+        "https://www.notion.com/help/synced-blocks"
+      ],
+      "notes": "Ví dụ đặc tả do người nghiên cứu xây dựng từ khả năng đã xác nhận; không phải quy trình mẫu nguyên văn của Notion. Các block cơ bản, đa phương tiện và embeds dùng chung trên một trang. Trang con tổ chức phần chi tiết. Synced Blocks chia sẻ cùng nội dung ở nhiều nơi; người xem cần có quyền với trang chứa block gốc. Không đồng nhất Synced Blocks với managed database sync.",
+      "images": [
+        "images/slide-02/block-menu-frame32.png"
+      ]
+    },
+    {
+      "group": "CAPTURE",
+      "title": "AI Meeting Notes — Từ cuộc họp đến việc cần làm",
+      "subtitle": "Giữ ghi chú thủ công và nội dung AI trong cùng biên bản.",
+      "points": [
+        [
+          "Ghi nhận & chép lời",
+          "Bắt đầu từ /meet; ghi âm để tạo transcript."
+        ],
+        [
+          "Tóm tắt theo ngữ cảnh",
+          "AI dùng cả lời nói và ghi chú để rút ý chính, quyết định, đầu việc."
+        ],
+        [
+          "Lưu & sử dụng lại",
+          "Rà soát bản tóm tắt, chia sẻ trang và tổ chức vào kho biên bản để tìm lại."
+        ]
+      ],
+      "example": "Họp chốt yêu cầu: BA ghi điều kiện đặc biệt trong Notes; AI tổng hợp thảo luận và đầu việc để nhóm kiểm tra.",
+      "value": "Giảm vừa nghe vừa gõ và viết lại biên bản; quyết định, đầu việc có nơi để theo dõi lại.",
+      "steps": [
+        "Bắt đầu ghi chép",
+        "Ghi nhận cuộc họp",
+        "AI xử lý",
+        "Tóm tắt",
+        "Chia sẻ & lưu"
+      ],
+      "urls": [
+        "https://www.notion.com/help/ai-meeting-notes",
+        "https://www.notion.com/help/guides/preserve-perfect-meeting-memory-with-ai-meeting-notes"
+      ],
+      "notes": "Cần sự đồng ý của người tham dự và quyền ghi âm. Desktop thu được âm thanh hệ thống và mic; web chỉ mic. AI Meeting Notes không mặc định là kho lưu bản ghi âm lâu dài. Người dùng kiểm tra quyết định, người phụ trách và đầu việc; không coi tóm tắt là biên bản đã được duyệt. Kho biên bản và tìm kiếm là cách tổ chức trang trong Notion, không phải AI tự gửi hoặc tự giao việc trong ví dụ.",
+      "images": [
+        "images/slide-03/summary-actions.png"
+      ]
+    },
+    {
+      "group": "FIND",
+      "title": "Notion Find — Tổ chức và khai thác tri thức",
+      "subtitle": "Tìm câu trả lời: kết nối nguồn, nhận biết độ tin cậy và lần theo ngữ cảnh.",
+      "cards": [
+        {
+          "title": "Tìm kiếm cấp tổ chức",
+          "description": "Hỏi trên Notion và ứng dụng kết nối.",
+          "value": "Nhận câu trả lời có nguồn tham khảo.",
+          "url": "https://www.notion.com/help/enterprise-search",
+          "icon": "search"
+        },
+        {
+          "title": "Wiki",
+          "description": "Tập trung tri thức trong trang chung.",
+          "value": "Có điểm bắt đầu để tra cứu nội bộ.",
+          "url": "https://www.notion.com/help/wikis-and-verified-pages",
+          "icon": "book"
+        },
+        {
+          "title": "Không gian nhóm",
+          "description": "Tổ chức nội dung theo teamspace.",
+          "value": "Mỗi nhóm có nơi làm việc riêng.",
+          "url": "https://www.notion.com/help/intro-to-teamspaces",
+          "icon": "users"
+        },
+        {
+          "title": "Trang đã xác minh",
+          "description": "Gắn người phụ trách và hạn xác minh.",
+          "value": "Biết nội dung nào cần rà soát lại.",
+          "url": "https://www.notion.com/help/wikis-and-verified-pages",
+          "icon": "check"
+        },
+        {
+          "title": "Biểu đồ & bảng tổng quan",
+          "description": "Trực quan hóa dữ liệu cơ sở dữ liệu.",
+          "value": "Theo dõi chỉ số và tiến độ tập trung.",
+          "url": "https://www.notion.com/help/charts",
+          "icon": "chart"
+        },
+        {
+          "title": "Kanban & Gantt",
+          "description": "Xem cùng dữ liệu bằng board, timeline.",
+          "value": "Theo dõi trạng thái và lịch triển khai.",
+          "url": "https://www.notion.com/help/views-filters-and-sorts",
+          "icon": "board"
+        },
+        {
+          "title": "Lịch sử phiên bản",
+          "description": "Xem và khôi phục nội dung trước đó.",
+          "value": "Truy vết thay đổi, sửa nhầm có đường lui.",
+          "url": "https://www.notion.com/help/duplicate-delete-and-restore-content",
+          "icon": "clock"
+        },
+        {
+          "title": "Liên kết ngược",
+          "description": "Xem các trang đang nhắc đến trang này.",
+          "value": "Lần theo bối cảnh tài liệu liên quan.",
+          "url": "https://www.notion.com/help/create-links-and-backlinks",
+          "icon": "link"
+        },
+        {
+          "title": "Xem trước liên kết",
+          "description": "Hiển thị nội dung từ ứng dụng khác.",
+          "value": "Xem ngữ cảnh ngay trong trang.",
+          "url": "https://www.notion.com/help/link-previews",
+          "icon": "preview"
+        }
+      ],
+      "image": "images/slide-04/find.jpg",
+      "value": "Từ tìm một trang sang tìm thông tin cần dùng, có nguồn và người chịu trách nhiệm.",
+      "urls": [
+        "https://www.notion.com/vi/product/features",
+        "https://www.notion.com/help/enterprise-search",
+        "https://www.notion.com/help/wikis-and-verified-pages",
+        "https://www.notion.com/help/intro-to-teamspaces",
+        "https://www.notion.com/help/wikis-and-verified-pages",
+        "https://www.notion.com/help/charts",
+        "https://www.notion.com/help/views-filters-and-sorts",
+        "https://www.notion.com/help/duplicate-delete-and-restore-content",
+        "https://www.notion.com/help/create-links-and-backlinks",
+        "https://www.notion.com/help/link-previews"
+      ],
+      "notes": "Giữ chín tính năng Find. Bảng tổng quan có thể tập hợp biểu đồ và các chế độ xem cơ sở dữ liệu. Gantt tương ứng góc nhìn timeline; không khẳng định một sản phẩm Gantt độc lập. Lịch sử phiên bản và khả năng khôi phục phụ thuộc điều kiện tài khoản; ghi trong tài liệu thay vì đưa bảng giá."
+    },
+    {
+      "group": "FIND",
+      "title": "Enterprise Search — Hỏi một lần, tìm trên nhiều nguồn",
+      "subtitle": "Notion AI tìm trong workspace và các ứng dụng đã kết nối.",
+      "points": [
+        [
+          "Hỏi theo ngôn ngữ tự nhiên",
+          "Mở Home, nhập câu hỏi; thêm trang hoặc người làm ngữ cảnh."
+        ],
+        [
+          "Khoanh vùng nguồn",
+          "Chọn Notion, Slack, Jira… theo kết nối đã thiết lập."
+        ],
+        [
+          "Câu trả lời có căn cứ",
+          "Tổng hợp và dẫn về nguồn; chỉ khai thác nội dung người hỏi được phép xem."
+        ]
+      ],
+      "example": "“Các quyết định mới nhất của dự án A là gì?” → tìm tài liệu và trao đổi được cấp quyền, trả lời kèm trích dẫn.",
+      "value": "Giảm mở từng ứng dụng và dò từng đoạn trao đổi; có đường dẫn để kiểm tra kết luận.",
+      "steps": [
+        "Nhập câu hỏi",
+        "Chọn phạm vi",
+        "AI tổng hợp",
+        "Mở nguồn kiểm tra"
+      ],
+      "urls": [
+        "https://www.notion.com/help/enterprise-search",
+        "https://www.notion.com/help/notion-ai-connectors"
+      ],
+      "notes": "Đây là ví dụ minh họa nghiệp vụ; ảnh là ví dụ gốc của Notion, không chỉnh thành dự án A. AI Connectors cần thiết lập và có thời gian nạp dữ liệu; kết quả bị giới hạn bởi quyền của nguồn. Có thể tắt web để tập trung thông tin nội bộ. Không dùng kết quả tìm kiếm như bằng chứng bao phủ đầy đủ hoặc thay cho tính toán dữ liệu phức tạp.",
+      "images": [
+        "images/slide-05/question-crop.png",
+        "images/slide-05/answer-crop.png"
+      ]
+    },
+    {
+      "group": "FIND",
+      "title": "Wiki & Verified Pages — Kho tri thức có người chăm sóc",
+      "subtitle": "Kết hợp tổ chức tài liệu với trách nhiệm cập nhật.",
+      "points": [
+        [
+          "Tạo Wiki & sắp xếp trang",
+          "Chuyển trang thành wiki; nhóm chính sách và liên kết các trang liên quan."
+        ],
+        [
+          "Giao Page Owner",
+          "Chỉ rõ người phụ trách; xem All pages hoặc Pages I own."
+        ],
+        [
+          "Xác minh có thời hạn",
+          "Đặt Verification; dấu xác minh giúp nhận biết, hết hạn nhắc người phụ trách rà soát."
+        ]
+      ],
+      "example": "Nhân sự xây kho chính sách: gán người sở hữu → xác minh → rà soát định kỳ → cập nhật và xác minh lại.",
+      "value": "Giảm hỏi “bản nào còn hiệu lực?”; việc cập nhật có đầu mối và nhắc hạn rõ ràng.",
+      "steps": [
+        "Tạo Wiki",
+        "Gán Owner",
+        "Xác minh",
+        "Rà soát & cập nhật"
+      ],
+      "urls": [
+        "https://www.notion.com/help/wikis-and-verified-pages"
+      ],
+      "notes": "Wiki có Home, All pages và Pages I own. Có thể đặt thời hạn hoặc vô thời hạn; hết hạn, chủ trang nhận thông báo trong Inbox và email. Dấu xác minh cũng hiện trong tìm kiếm và khi nhắc trang. Đó là tín hiệu người quản lý nội dung đã xác nhận, không phải AI bảo đảm sự đúng đắn. Trang phải đáp ứng quyền và điều kiện tài khoản phù hợp. Ví dụ HR là tình huống phân tích, không phải ảnh quy trình được sửa giả.",
+      "images": [
+        "images/slide-06/wiki-verification.png"
+      ]
+    },
+    {
+      "group": "AUTOMATE",
+      "title": "Notion Automate — AI và tự động hóa quy trình",
+      "subtitle": "Tự động hóa công việc: kết nối chỉ dẫn, dữ liệu và hành động.",
+      "cards": [
+        {
+          "title": "Notion Agent",
+          "description": "Nhận yêu cầu và thao tác trong workspace.",
+          "value": "Từ hỏi đáp sang tạo, cập nhật kết quả.",
+          "url": "https://www.notion.com/help/notion-agent",
+          "icon": "spark"
+        },
+        {
+          "title": "Custom Agents",
+          "description": "Thiết lập trợ lý chạy nền cho nhóm.",
+          "value": "Xử lý việc lặp lại theo chỉ dẫn.",
+          "url": "https://www.notion.com/help/custom-agents",
+          "icon": "bot"
+        },
+        {
+          "title": "Soạn & sửa với AI",
+          "description": "Viết nháp, tóm tắt, chỉnh văn phong.",
+          "value": "Giảm biên soạn lại nội dung.",
+          "url": "https://www.notion.com/help/notion-ai-faqs",
+          "icon": "pen"
+        },
+        {
+          "title": "Kỹ năng trợ lý",
+          "description": "Lưu chỉ dẫn thành kỹ năng tái sử dụng.",
+          "value": "Lặp lại cách làm việc nhất quán.",
+          "url": "https://www.notion.com/help/create-and-manage-skills",
+          "icon": "book"
+        },
+        {
+          "title": "Điều kiện kích hoạt động",
+          "description": "Chạy theo sự kiện đã cấu hình.",
+          "value": "Phản hồi khi dữ liệu thay đổi.",
+          "url": "https://www.notion.com/help/custom-agents",
+          "icon": "bolt"
+        },
+        {
+          "title": "Điều phối trợ lý",
+          "description": "Làm việc với trợ lý ngoài trong Notion.",
+          "value": "Giao việc, nhận kết quả tại workspace.",
+          "url": "https://www.notion.com/help/use-claude-agents-in-notion",
+          "icon": "users"
+        },
+        {
+          "title": "API",
+          "description": "Kết nối Notion với hệ thống riêng.",
+          "value": "Đọc, ghi dữ liệu qua tích hợp.",
+          "url": "https://www.notion.com/help/guides/connect-tools-to-notion-api",
+          "icon": "code"
+        },
+        {
+          "title": "MCP",
+          "description": "Cho công cụ AI truy cập Notion.",
+          "value": "AI dùng ngữ cảnh và cập nhật trang.",
+          "url": "https://www.notion.com/help/notion-mcp",
+          "icon": "link"
+        },
+        {
+          "title": "Tự động hóa Database",
+          "description": "Kích hoạt → hành động trên dữ liệu.",
+          "value": "Đổi trạng thái, phân việc, gửi thông báo.",
+          "url": "https://www.notion.com/help/database-automations",
+          "icon": "sync"
+        }
+      ],
+      "image": "images/slide-07/automate.jpg",
+      "value": "Từ hỗ trợ soạn nội dung đến xử lý việc lặp lại theo chỉ dẫn và điều kiện kích hoạt.",
+      "urls": [
+        "https://www.notion.com/vi/product/features",
+        "https://www.notion.com/help/notion-agent",
+        "https://www.notion.com/help/custom-agents",
+        "https://www.notion.com/help/notion-ai-faqs",
+        "https://www.notion.com/help/create-and-manage-skills",
+        "https://www.notion.com/help/custom-agents",
+        "https://www.notion.com/help/use-claude-agents-in-notion",
+        "https://www.notion.com/help/guides/connect-tools-to-notion-api",
+        "https://www.notion.com/help/notion-mcp",
+        "https://www.notion.com/help/database-automations"
+      ],
+      "notes": "Giữ chín mục Automate của Features. Notion Agent do người dùng yêu cầu; Custom Agents được cấu hình chạy nền. Database automations là quy tắc trigger–action, khác suy luận của AI. MCP là giao thức kết nối công cụ AI với Notion. Mục điều phối trợ lý được minh họa bằng tài liệu Claude agents hiện hành; khả năng beta và triển khai dần cần được kiểm tra theo workspace."
+    },
+    {
+      "group": "AUTOMATE",
+      "title": "Notion Agent — AI thực hiện công việc trong workspace",
+      "subtitle": "Một yêu cầu có thể dẫn đến nhiều hành động và kết quả được lưu.",
+      "points": [
+        [
+          "Yêu cầu & chọn ngữ cảnh",
+          "Nhập nhiệm vụ; dùng trang hiện tại, @trang hoặc ứng dụng kết nối."
+        ],
+        [
+          "Tạo và cập nhật kết quả",
+          "Tạo, sửa trang và cơ sở dữ liệu; đọc thuộc tính để xử lý công việc nhiều bước."
+        ],
+        [
+          "Giữ quyền của người dùng",
+          "Agent không được xem hoặc sửa nội dung vượt quyền người yêu cầu."
+        ]
+      ],
+      "example": "“Tổng hợp việc chưa hoàn thành, tạo báo cáo tuần và đề xuất ưu tiên.” → người dùng kiểm tra báo cáo đã tạo.",
+      "value": "AI hỏi đáp trả về thông tin; Agent còn thao tác trên trang và dữ liệu, giảm chép kết quả rồi cập nhật thủ công.",
+      "steps": [
+        "Nêu nhiệm vụ",
+        "Chọn dữ liệu",
+        "Agent thực hiện",
+        "Kiểm tra kết quả"
+      ],
+      "urls": [
+        "https://www.notion.com/help/notion-agent",
+        "https://www.notion.com/help/notion-ai-connectors",
+        "https://www.notion.com/help/guides/get-started-with-your-personal-agent-in-notion"
+      ],
+      "notes": "Ví dụ là yêu cầu nghiệp vụ có thể thực hiện từ khả năng đã nêu; không cam kết luôn hoàn tất mọi bước. Agent tạo/sửa trang và database nhưng không tự thay quyền chia sẻ hoặc khởi động AI Meeting Notes. “Đề xuất ưu tiên” là đầu ra để người dùng đánh giá, không phải Agent tự quyết định thay nhóm. Ngữ cảnh nguồn và quyền chỉnh sửa quyết định những gì Agent có thể làm.",
+      "images": [
+        "images/slide-08/agent-creates-database.png"
+      ]
+    },
+    {
+      "group": "AUTOMATE",
+      "title": "Custom Agents — Thiết lập một lần, xử lý việc lặp lại",
+      "subtitle": "Chỉ dẫn + nguồn tri thức + công cụ + điều kiện kích hoạt.",
+      "points": [
+        [
+          "Tạo và cấu hình",
+          "Agents → +; viết Instructions, chọn nguồn và công cụ được phép."
+        ],
+        [
+          "Chọn khi nào chạy",
+          "Theo lịch định kỳ hoặc sự kiện: thêm trang, đổi thuộc tính, có bình luận…"
+        ],
+        [
+          "Xuất bản & kiểm tra",
+          "Thử trong Chat, bật trigger; theo dõi Activity và rà soát kết quả."
+        ]
+      ],
+      "example": "Phản hồi khách hàng: Forms → Database → Agent phân loại → báo cáo → người phụ trách kiểm tra.",
+      "value": "Giảm phân loại và gom báo cáo bằng tay; quy trình có chỉ dẫn chung và nhật ký để rà soát.",
+      "steps": [
+        "Forms",
+        "Database",
+        "Agent phân loại",
+        "Báo cáo",
+        "Người kiểm tra"
+      ],
+      "urls": [
+        "https://www.notion.com/help/custom-agents",
+        "https://www.notion.com/help/forms",
+        "https://www.notion.com/help/guides/automate-project-updates-and-reporting-with-custom-agents",
+        "https://www.notion.com/help/guides/build-your-first-custom-agent"
+      ],
+      "notes": "Quy trình Forms là thiết kế minh họa kết hợp khả năng được xác nhận: Form ghi phản hồi vào database, sự kiện thêm trang kích hoạt Custom Agent, chỉ dẫn yêu cầu phân loại và tổng hợp. Cần tự cấu hình, cấp quyền, thử và xuất bản; không phải mẫu tích hợp sẵn mặc định. Có thể dùng trigger theo lịch cho báo cáo định kỳ. Người phụ trách rà soát trước sử dụng. Không khẳng định ảnh gốc mô tả chính xác ví dụ Forms này.",
+      "images": [
+        "images/slide-09/trigger-crop.png",
+        "images/slide-09/create-crop.png"
+      ]
+    }
+  ]
+}

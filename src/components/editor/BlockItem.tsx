@@ -46,7 +46,7 @@ interface BlockItemProps {
   onUpdate: (blockId: string, content: string, properties?: any) => void;
   onDelete: (blockId: string) => void;
   onMergeWithPrevious?: (blockId: string) => void;
-  onExitListStart?: (blockId: string) => void;
+  onExitListItem?: (blockId: string, itemIndex: number) => void;
   onDuplicate: (blockId: string) => void;
   onMoveUp: (blockId: string) => void;
   onMoveDown: (blockId: string) => void;
@@ -74,7 +74,7 @@ export const BlockItem: React.FC<BlockItemProps> = ({
   onUpdate,
   onDelete,
   onMergeWithPrevious,
-  onExitListStart,
+  onExitListItem,
   onDuplicate,
   onMoveUp,
   onMoveDown,
@@ -233,7 +233,7 @@ export const BlockItem: React.FC<BlockItemProps> = ({
       case 'numbered':
       case 'checklist':
         return <ListBlock block={block} readOnly={isReadOnly} autoFocus={autoFocus}
-          onBackspaceFirstItem={onExitListStart ? () => onExitListStart(block.id) : undefined}
+          onExitItem={onExitListItem ? (itemIndex) => onExitListItem(block.id, itemIndex) : undefined}
           onChange={(content, properties) => onUpdate(block.id, content, properties)} />;
 
       case 'toggle':

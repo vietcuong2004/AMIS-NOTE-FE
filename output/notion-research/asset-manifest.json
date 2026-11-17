@@ -1,0 +1,276 @@
+[
+  {
+    "slide": 1,
+    "page": "https://www.notion.com/vi/product/features",
+    "asset_url": "https://images.ctfassets.net/spoqsaf9291f/4JCunUCrwfjm0S4oLtZSpX/22f4e3fdc9d983a64cf58ce7d2ba7390/feature_capture_viVN.jpg",
+    "file": "images/slide-01/capture.jpg",
+    "method": "Tải ảnh trực tiếp",
+    "size": [
+      2400,
+      1600
+    ],
+    "frames": 1
+  },
+  {
+    "slide": 4,
+    "page": "https://www.notion.com/vi/product/features",
+    "asset_url": "https://images.ctfassets.net/spoqsaf9291f/3nNyDlP1raDf0UN6uiabKf/f78c3f696840e9c6256f7cf65072203e/feature_find_viVN.jpg",
+    "file": "images/slide-04/find.jpg",
+    "method": "Tải ảnh trực tiếp",
+    "size": [
+      2400,
+      1600
+    ],
+    "frames": 1
+  },
+  {
+    "slide": 7,
+    "page": "https://www.notion.com/vi/product/features",
+    "asset_url": "https://images.ctfassets.net/spoqsaf9291f/67wSHXLlWn1tCixlSqy6a2/5505ae9fd483790ba47665cfd3e21471/feature_automate_viVN.jpg",
+    "file": "images/slide-07/automate.jpg",
+    "method": "Tải ảnh trực tiếp",
+    "size": [
+      2400,
+      1600
+    ],
+    "frames": 1
+  },
+  {
+    "slide": 2,
+    "page": "https://www.notion.com/help/writing-and-editing-basics",
+    "asset_url": "https://images.ctfassets.net/spoqsaf9291f/7iZetywx1jnTCDBuDgH1vG/d599277643dbf9d948d135bd2e2e41e9/block_menu.gif",
+    "file": "images/slide-02/block-menu.gif",
+    "method": "Tải ảnh trực tiếp",
+    "size": [
+      1728,
+      1080
+    ],
+    "frames": 45
+  },
+  {
+    "slide": 3,
+    "page": "https://www.notion.com/help/ai-meeting-notes",
+    "asset_url": "https://images.ctfassets.net/spoqsaf9291f/2wIymhTp0123btQpVbApgK/0f53efa6d85cc0f62eec706533f025c1/Random_Image_1__1_.png",
+    "file": "images/slide-03/meeting-notes.png",
+    "method": "Tải ảnh trực tiếp",
+    "size": [
+      1800,
+      1222
+    ],
+    "frames": 1
+  },
+  {
+    "slide": 5,
+    "page": "https://www.notion.com/help/enterprise-search",
+    "asset_url": "https://images.ctfassets.net/spoqsaf9291f/5rgmjK4UvSurTUJcZS3BlI/ca0956c62cb13901e89ebda4860d9a10/Reference_Visuals_Group_165.png",
+    "file": "images/slide-05/search-scope.png",
+    "method": "Tải ảnh trực tiếp",
+    "size": [
+      3840,
+      2506
+    ],
+    "frames": 1
+  },
+  {
+    "slide": 6,
+    "page": "https://www.notion.com/help/wikis-and-verified-pages",
+    "asset_url": "https://images.ctfassets.net/spoqsaf9291f/1EenAHebFOpMqvbvQYqVyu/f09a1677006d6b3a083f7655001e8aff/verified_pages.png",
+    "file": "images/slide-06/wiki-verification.png",
+    "method": "Tải ảnh trực tiếp",
+    "size": [
+      1920,
+      1200
+    ],
+    "frames": 1
+  },
+  {
+    "slide": 8,
+    "page": "https://www.notion.com/help/notion-agent",
+    "asset_url": "https://images.ctfassets.net/spoqsaf9291f/5nzOWLKeT1C8AQpaoSSNYO/a38ddcd94fcb09e1aedfacb4daf6bd1f/Reference_Visuals_Group_166.png",
+    "file": "images/slide-08/agent-ui.png",
+    "method": "Tải ảnh trực tiếp",
+    "size": [
+      3840,
+      2398
+    ],
+    "frames": 1
+  },
+  {
+    "slide": 5,
+    "page": "https://www.notion.com/help/enterprise-search",
+    "asset_url": "https://videos.ctfassets.net/spoqsaf9291f/6ladtuyn4dwC2xLLdEOLhc/50d68d718a77dae275f284e83627da54/Personal_Agent_Enterprise_Search.mp4",
+    "method": "Trích khung video chính thức, không sửa nội dung UI",
+    "file": "images/slide-05/enterprise-search-frame.png",
+    "timestamp_seconds": 7.65,
+    "size": [
+      1728,
+      1080
+    ]
+  },
+  {
+    "slide": 9,
+    "page": "https://www.notion.com/help/custom-agents",
+    "asset_url": "https://videos.ctfassets.net/spoqsaf9291f/4Tw3jRMhrmbB3nG4ceSMsR/8a7c8e6565d5786e2cb667d1e22fd7de/Create_a_new_Custom_Agent.mp4",
+    "method": "Trích khung video chính thức, không sửa nội dung UI",
+    "file": "images/slide-09/custom-agents-frame.png",
+    "timestamp_seconds": 4.5,
+    "size": [
+      1176,
+      720
+    ]
+  },
+  {
+    "slide": 3,
+    "page": "https://www.notion.com/help/guides/preserve-perfect-meeting-memory-with-ai-meeting-notes",
+    "asset_url": "https://images.ctfassets.net/spoqsaf9291f/6TT4QyftXTI5XWJBGc5Gbg/c6c4368f9318fd48dba47efa961fa154/Tagged_team_members_in_summary.png",
+    "file": "images/slide-03/summary-actions.png",
+    "method": "Tải ảnh trực tiếp",
+    "size": [
+      960,
+      600
+    ]
+  },
+  {
+    "slide": 9,
+    "page": "https://www.notion.com/help/guides/build-your-first-custom-agent",
+    "asset_url": "https://images.ctfassets.net/spoqsaf9291f/2bFAAqatVBnbahZjxOQcou/b6a5b0d90033d366090c5eea9215d3e1/Image_1_mainpage.png",
+    "file": "images/slide-09/setup-0.png",
+    "method": "Tải ảnh trực tiếp",
+    "alt": "You can build a Custom Agent from scratch, describe what you want in chat, or start with pre-built templates.",
+    "size": [
+      1920,
+      1200
+    ]
+  },
+  {
+    "slide": 9,
+    "page": "https://www.notion.com/help/guides/build-your-first-custom-agent",
+    "asset_url": "https://images.ctfassets.net/spoqsaf9291f/2kvMGbODFdqgnjwrNTSfAd/3354b2c821802b1b8408e0d622b439ae/VIZ_GUIDE_AGENT_eventbasedtrigger.png",
+    "file": "images/slide-09/setup-1.png",
+    "method": "Tải ảnh trực tiếp",
+    "alt": "Event-based triggers run your agent when specific actions happen.",
+    "size": [
+      960,
+      600
+    ]
+  },
+  {
+    "slide": 9,
+    "page": "https://www.notion.com/help/guides/build-your-first-custom-agent",
+    "asset_url": "https://images.ctfassets.net/spoqsaf9291f/18SSqX4e7MIdXps1yjo1Pd/9c16e45d99f4795f2866848753cc11c9/VIZ_GUIDE_AGENT_Schedule_trigger.png",
+    "file": "images/slide-09/setup-2.png",
+    "method": "Tải ảnh trực tiếp",
+    "alt": "Schedule-based triggers run your agent at set times.",
+    "size": [
+      960,
+      600
+    ]
+  },
+  {
+    "slide": 9,
+    "page": "https://www.notion.com/help/guides/build-your-first-custom-agent",
+    "asset_url": "https://images.ctfassets.net/spoqsaf9291f/GR5jnyd303hrl0EvwqLMc/caa51bb96e1ab1431d996729a3dbae96/VIZ_GUIDE_AGENT_activity.png",
+    "file": "images/slide-09/setup-3.png",
+    "method": "Tải ảnh trực tiếp",
+    "alt": "Use the Activity tab to see what your agent has done.",
+    "size": [
+      960,
+      600
+    ]
+  },
+  {
+    "slide": 2,
+    "page": "https://www.notion.com/help/writing-and-editing-basics",
+    "asset_url": "https://images.ctfassets.net/spoqsaf9291f/7iZetywx1jnTCDBuDgH1vG/d599277643dbf9d948d135bd2e2e41e9/block_menu.gif",
+    "file": "images/slide-02/block-menu-frame32.png",
+    "method": "Trích khung GIF gốc, frame 32; không sửa UI",
+    "size": [
+      1728,
+      1080
+    ]
+  },
+  {
+    "slide": 9,
+    "page": "https://www.notion.com/help/guides/build-your-first-custom-agent",
+    "asset_url": "https://images.ctfassets.net/spoqsaf9291f/2kvMGbODFdqgnjwrNTSfAd/3354b2c821802b1b8408e0d622b439ae/VIZ_GUIDE_AGENT_eventbasedtrigger.png",
+    "file": "images/slide-09/trigger-crop.png",
+    "method": "Tải ảnh trực tiếp; chỉ crop viền ngoài, giữ nguyên UI",
+    "alt": "Event-based triggers run your agent when specific actions happen.",
+    "crop_box": [
+      115,
+      70,
+      845,
+      565
+    ],
+    "size": [
+      730,
+      495
+    ]
+  },
+  {
+    "slide": 9,
+    "page": "https://www.notion.com/help/guides/build-your-first-custom-agent",
+    "asset_url": "https://images.ctfassets.net/spoqsaf9291f/2bFAAqatVBnbahZjxOQcou/b6a5b0d90033d366090c5eea9215d3e1/Image_1_mainpage.png",
+    "file": "images/slide-09/create-crop.png",
+    "method": "Tải ảnh trực tiếp; chỉ crop viền ngoài, giữ nguyên UI",
+    "alt": "You can build a Custom Agent from scratch, describe what you want in chat, or start with pre-built templates.",
+    "crop_box": [
+      430,
+      490,
+      1470,
+      880
+    ],
+    "size": [
+      1040,
+      390
+    ]
+  },
+  {
+    "slide": 5,
+    "page": "https://www.notion.com/help/enterprise-search",
+    "asset_url": "https://videos.ctfassets.net/spoqsaf9291f/6ladtuyn4dwC2xLLdEOLhc/50d68d718a77dae275f284e83627da54/Personal_Agent_Enterprise_Search.mp4",
+    "method": "Khung video chính thức; chỉ crop vùng UI liên quan",
+    "file": "images/slide-05/question-crop.png",
+    "timestamp_seconds": 6.6,
+    "size": [
+      1465,
+      350
+    ],
+    "crop_box": [
+      185,
+      220,
+      1650,
+      570
+    ]
+  },
+  {
+    "slide": 5,
+    "page": "https://www.notion.com/help/enterprise-search",
+    "asset_url": "https://videos.ctfassets.net/spoqsaf9291f/6ladtuyn4dwC2xLLdEOLhc/50d68d718a77dae275f284e83627da54/Personal_Agent_Enterprise_Search.mp4",
+    "method": "Khung video chính thức; chỉ crop vùng UI liên quan",
+    "file": "images/slide-05/answer-crop.png",
+    "timestamp_seconds": 7.65,
+    "size": [
+      1465,
+      635
+    ],
+    "crop_box": [
+      185,
+      145,
+      1650,
+      780
+    ]
+  },
+  {
+    "slide": 8,
+    "page": "https://www.notion.com/help/guides/get-started-with-your-personal-agent-in-notion",
+    "asset_url": "https://videos.ctfassets.net/spoqsaf9291f/Rk0MdA4wodbfqpgER26iT/03c4c67321ce989ff1e88e23b33c454d/Agent_guide_2_CreateDB.mp4",
+    "file": "images/slide-08/agent-creates-database.png",
+    "method": "Trích khung video chính thức, không sửa UI",
+    "timestamp_seconds": 12.6,
+    "size": [
+      1728,
+      1080
+    ]
+  }
+]
