@@ -37,6 +37,12 @@ export function FolderPage({ folderId, rootSpace, favoritesOnly = false, documen
     const notes = activeDocs.filter(doc => (rootSpace && parentId === folder.id ? !doc.folderId : doc.folderId === parentId));
     return sort === 'sidebar' ? notes.sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)) : sortItems(notes, doc => doc.title);
   };
+  const folderDocumentCount = (folderId: string, seen = new Set<string>()): number => {
+    if (seen.has(folderId)) return 0;
+    const nextSeen = new Set(seen).add(folderId);
+    const children = folders.filter(item => item.parentId === folderId && item.space === folder.space);
+    return folderDocs(folderId).length + children.reduce((total, child) => total + folderDocumentCount(child.id, nextSeen), 0);
+  };
   const children = childFolders(folder.id);
   const notes = folderDocs(folder.id);
   const menuDocument = documents.find(doc => doc.id === documentMenu?.id && !doc.isTrash);
@@ -151,7 +157,7 @@ export function FolderPage({ folderId, rootSpace, favoritesOnly = false, documen
               className={`group relative rounded-xl border border-[var(--ui-border)] ${dragOver === item.id ? 'bg-[var(--ui-selected)] ring-2 ring-[var(--ui-primary)]' : 'hover:bg-[var(--ui-hover)]'} ${mode === 'grid' ? 'p-5' : 'flex items-center gap-3 p-3'}`}>
               <button type="button" onClick={() => onNavigate({ type: 'folder', folderId: item.id })} className={`flex min-w-0 flex-1 text-left ${mode === 'grid' ? 'w-full flex-col items-start gap-3' : 'items-center gap-3'}`}>
                 <FolderIcon className={`${mode === 'grid' ? 'h-14 w-14' : 'h-8 w-8'} shrink-0 text-[var(--ui-text)]`} strokeWidth={1.2} />
-                <span className="min-w-0"><span className="block truncate text-sm font-semibold">{item.name}</span><span className="mt-1 block text-xs text-[var(--ui-muted)]">Cập nhật {date(item.updatedAt)}</span></span>
+                <span className="min-w-0"><span className="block truncate text-sm font-semibold">{item.name}</span><span className="mt-1 block text-xs text-[var(--ui-muted)]">{folderDocumentCount(item.id)} mục · Cập nhật {date(item.updatedAt)}</span></span>
               </button>
               <div className={mode === 'grid' ? 'absolute right-2 top-2' : ''}>{folderMenu(item)}</div>
             </article>)}
