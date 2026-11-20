@@ -25,7 +25,7 @@ const workspace: Omit<AppPagesProps, 'view'> = {
   actions: { onOpenDocument: noop, onToggleFavorite: noop, onSoftDeleteDocument: noop },
   onNavigate: noop, onUseTemplate: noop,
   editor: { folders: INITIAL_FOLDERS, onUpdateDocument: noop,
-    onSoftDeleteDocument: noop, onToggleFavorite: noop, onMoveDocument: noop, onToast: noop },
+    onSoftDeleteDocument: noop, onToggleFavorite: noop, onMoveDocumentRequest: noop, onToast: noop },
   trash: { onRestore: noop, onPermanentDelete: noop, onEmptyTrash: noop },
 };
 const render = (path: string) => renderToStaticMarkup(<AppPages {...workspace} view={viewForLocation(path)} />);

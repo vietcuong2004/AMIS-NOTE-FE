@@ -154,7 +154,10 @@ export default function App() {
   const handleUpdateDocument = (updatedDoc: Document) => {
     const latest = getStoredDocuments().find(doc => doc.id === updatedDoc.id);
     if (!latest || latest.isTrash) return;
-    const newDocs = upsertDocument({ ...updatedDoc, space: latest.space, folderId: latest.folderId, isFavorite: latest.isFavorite });
+    const newDocs = upsertDocument({
+      ...updatedDoc, space: latest.space, folderId: latest.folderId, isFavorite: latest.isFavorite,
+      isPrivate: updatedDoc.space === latest.space ? updatedDoc.isPrivate : latest.isPrivate,
+    });
     setDocuments(newDocs);
   };
 
@@ -196,8 +199,14 @@ export default function App() {
     targetFolderId: string | null,
     targetSpace: SpaceType
   ) => {
+    const storedDoc = getStoredDocuments().find(doc => doc.id === docId && !doc.isTrash);
+    const target = targetFolderId ? getStoredFolders().find(folder => folder.id === targetFolderId && folder.space === targetSpace) : undefined;
+    if (!storedDoc || (targetFolderId && !target)) return false;
+    if (storedDoc.space === targetSpace && storedDoc.folderId === targetFolderId) return false;
     const newDocs = moveDocumentToFolderOrSpace(docId, targetFolderId, targetSpace);
+    if (!getStoredDocuments().some(doc => doc.id === docId && doc.folderId === targetFolderId && doc.space === targetSpace)) return false;
     setDocuments(newDocs);
+    return true;
   };
 
   const handleMoveFolder = (
@@ -448,6 +457,19 @@ export default function App() {
   };
 
   // Folder CRUD
+  const createNamedFolder = (space: SpaceType, parentId: string | null, name: string): Folder => {
+    const title = name.trim();
+    if (!title) throw new Error('Nhập tên thư mục.');
+    const siblings = getStoredFolders().filter(folder => folder.space === space && (folder.parentId || null) === parentId);
+    if (siblings.some(folder => folder.name.localeCompare(title, 'vi', { sensitivity: 'accent' }) === 0)) {
+      throw new Error('Tên thư mục đã tồn tại ở vị trí này.');
+    }
+    const now = new Date().toISOString();
+    const folder: Folder = { id: `fld_${crypto.randomUUID()}`, name: title, parentId, space, icon: '📁', createdAt: now, updatedAt: now };
+    handleSaveFolder(folder);
+    return folder;
+  };
+
   const handleCreateFolder = (space: SpaceType, parentId?: string | null) => {
     const storedFolders = getStoredFolders();
     const parentFolder = parentId ? storedFolders.find(folder => folder.id === parentId) : null;
@@ -455,11 +477,9 @@ export default function App() {
     const siblings = storedFolders.filter(folder => folder.space === space && (folder.parentId || null) === (parentId || null));
     let name = 'Thư mục mới';
     let suffix = 2;
-    while (siblings.some(folder => folder.name === name)) name = `Thư mục mới ${suffix++}`;
-    const now = new Date().toISOString();
-    const folder: Folder = { id: `fld_${crypto.randomUUID()}`, name, parentId: parentId || null, space, icon: '📁', createdAt: now, updatedAt: now };
+    while (siblings.some(folder => folder.name.localeCompare(name, 'vi', { sensitivity: 'accent' }) === 0)) name = `Thư mục mới ${suffix++}`;
     try {
-      handleSaveFolder(folder);
+      const folder = createNamedFolder(space, parentId || null, name);
       setSidebarCollapsed(false);
       setNewFolderId(folder.id);
     } catch (error) { addToast(error instanceof Error ? error.message : 'Không tạo được thư mục.', 'error'); }
@@ -467,7 +487,7 @@ export default function App() {
 
   useEffect(() => {
     const createWithShortcut = (event: KeyboardEvent) => {
-      if (!event.ctrlKey || !event.altKey || event.metaKey || event.getModifierState('AltGraph') || event.isComposing || event.repeat || event.shiftKey || !['n', 'f'].includes(event.key.toLowerCase())) return;
+      if (moveModalDoc || !event.ctrlKey || !event.altKey || event.metaKey || event.getModifierState('AltGraph') || event.isComposing || event.repeat || event.shiftKey || !['n', 'f'].includes(event.key.toLowerCase())) return;
       event.preventDefault();
       event.stopPropagation();
       const currentFolder = viewState.type === 'folder' ? folders.find(folder => folder.id === viewState.folderId) : undefined;
@@ -481,7 +501,7 @@ export default function App() {
     };
     window.addEventListener('keydown', createWithShortcut, true);
     return () => window.removeEventListener('keydown', createWithShortcut, true);
-  }, [viewState, folders, documents, handleCreateDocument, handleCreateFolder]);
+  }, [viewState, folders, documents, moveModalDoc, handleCreateDocument, handleCreateFolder]);
 
   const handleOpenEditFolder = (folder: Folder) => {
     setFolderModalState({ isOpen: true, defaultSpace: folder.space, folderToEdit: folder });
@@ -604,7 +624,7 @@ export default function App() {
           }}
           editor={{ folders, onUpdateDocument: handleUpdateDocument, onNavigate: navigate,
             onSoftDeleteDocument: handleSoftDeleteDocument, onToggleFavorite: handleToggleFavorite,
-            onMoveDocument: handleMoveDocument, onToast: addToast,
+            onMoveDocumentRequest: setMoveModalDoc, onToast: addToast,
             autoFocusTitle: viewState.type === 'document' && newDocumentId === viewState.documentId,
             onAutoFocusTitleHandled: () => setNewDocumentId(null) }}
           trash={{ onRestore: handleRestoreDocument, onPermanentDelete: handlePermanentDelete, onEmptyTrash: handleEmptyTrash }}
@@ -700,15 +720,19 @@ export default function App() {
 
       {moveModalDoc && (
         <MoveModal
+          key={moveModalDoc.id}
           document={moveModalDoc}
+          documents={documents}
           folders={folders}
-          isOpen={!!moveModalDoc}
           onClose={() => setMoveModalDoc(null)}
+          onCreateFolder={createNamedFolder}
           onMove={(docId, folderId, space) => {
-            handleMoveDocument(docId, folderId, space);
-            setMoveModalDoc(null);
+            if (!handleMoveDocument(docId, folderId, space)) return false;
+            const folderName = folders.find(folder => folder.id === folderId)?.name;
+            const destination = folderName ?? (space === 'company' ? 'Tài liệu công ty' : 'Ghi chép của tôi');
+            addToast(`Đã di chuyển tài liệu vào “${destination}”.`);
+            return true;
           }}
-          onToast={addToast}
         />
       )}
 

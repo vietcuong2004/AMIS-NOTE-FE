@@ -967,6 +967,148 @@ test('Tab and Shift+Tab change list indentation within four levels and Enter kee
   assert.equal(document.querySelector<HTMLLIElement>('[data-block-id="level-bullet"] li')?.style.marginLeft, '48px');
 });
 
+test('move document dialog browses, searches, creates a destination and moves across spaces', async () => {
+  const { getStoredFolders, saveStoredFolders, saveStoredDocuments } = await import('../utils/storage');
+  const companyFolder = getStoredFolders().find(folder => folder.id === 'fld_product_docs')!;
+  saveStoredFolders([...getStoredFolders(),
+    { ...companyFolder, id: 'move-project', name: 'Dự án nội bộ', parentId: companyFolder.id },
+    { ...companyFolder, id: 'move-records', name: 'Hồ sơ', parentId: 'move-project' },
+  ]);
+  const source = getStoredDocuments().find(doc => doc.id === 'doc_personal_production_meeting')!;
+  saveStoredDocuments([...getStoredDocuments(),
+    { ...source, id: 'move-preview-excel', title: 'Kế hoạch triển khai.xlsx', folderId: 'move-project', space: 'company' },
+    { ...source, id: 'move-preview-word', title: 'Biên bản hiện trường.docx', folderId: 'move-project', space: 'company' },
+    { ...source, id: 'move-preview-trash', title: 'Bản nháp đã xóa', folderId: 'move-project', space: 'company', isTrash: true },
+  ]);
+  await mount(`/documents/${source.id}`);
+  const more = document.querySelector<HTMLButtonElement>('main [title="Tùy chọn khác"]')!;
+  const moveDialog = () => document.querySelector<HTMLElement>('[role="dialog"][aria-labelledby]');
+  const open = async () => {
+    await click(more);
+    await click(button('Di chuyển đến', document.querySelector('[aria-label="Thao tác tài liệu"]')!));
+    const dialog = moveDialog()!;
+    assert.equal(dialog.querySelector('h2')?.textContent, 'Di chuyển tài liệu');
+    return dialog;
+  };
+  const fill = (input: HTMLInputElement, value: string) => act(async () => {
+    Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!.call(input, value);
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+  });
+  const escape = (element: HTMLElement) => act(async () => {
+    element.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  });
+
+  const dialog = await open();
+  assert.equal(button('Di chuyển', dialog)?.disabled, true);
+  const search = dialog.querySelector<HTMLInputElement>('[aria-label="Tìm thư mục"]')!;
+  assert.equal(document.activeElement, search);
+  const spaces = dialog.querySelector('[aria-label="Chuyển đến"]')!;
+  await click(button('Tài liệu công ty', spaces));
+  assert.equal(button('Tài liệu công ty', spaces)?.getAttribute('aria-pressed'), 'true');
+  const tree = dialog.querySelector('[aria-label="Cây thư mục đích"]')!;
+  await click(tree.querySelector('[aria-label="Mở rộng Tài liệu chung"]'));
+  assert(button('Dự án nội bộ', tree));
+  await click(tree.querySelector('[aria-label="Thu gọn Tài liệu chung"]'));
+  assert.equal(button('Dự án nội bộ', tree), undefined);
+  await fill(search, 'khong ton tai');
+  assert(tree.textContent?.includes('Không tìm thấy thư mục.'));
+  await fill(search, 'du an noi bo');
+  const matches = tree.querySelector('[aria-label="Kết quả tìm thư mục"]')!;
+  await click(Array.from(matches.querySelectorAll('button')).find(item => item.textContent?.startsWith('Dự án nội bộ')));
+  const content = dialog.querySelector('[aria-label="Nội dung thư mục đích"]')!;
+  const breadcrumb = content.querySelector('nav')!;
+  assert.deepEqual(Array.from(breadcrumb.querySelectorAll('button'), item => item.textContent),
+    ['Tài liệu công ty', 'Tài liệu chung', 'Dự án nội bộ']);
+  assert(content.textContent?.includes('Kế hoạch triển khai.xlsx'));
+  assert(content.querySelector('.lucide-file-spreadsheet'));
+  assert(content.textContent?.includes('Biên bản hiện trường.docx'));
+  assert(content.querySelector('.lucide-file-type'));
+  assert(!content.textContent?.includes('Bản nháp đã xóa'));
+  assert(content.textContent?.includes('0 tài liệu'));
+  await click(content.querySelector('[aria-label="Dạng danh sách"]'));
+  assert.equal(content.querySelector('[aria-label="Dạng danh sách"]')?.getAttribute('aria-pressed'), 'true');
+  const recordCard = Array.from(content.querySelectorAll('li button')).find(item => item.textContent?.includes('Hồ sơ'));
+  await click(recordCard);
+  assert(content.textContent?.includes('Thư mục này chưa có nội dung.'));
+  await click(button('Dự án nội bộ', breadcrumb));
+  assert.equal(dialog.querySelector('[aria-live="polite"]')?.textContent, 'Tài liệu công ty / Tài liệu chung / Dự án nội bộ');
+  await click(content.querySelector('[aria-label="Dạng lưới"]'));
+  assert.equal(content.querySelector('[aria-label="Dạng lưới"]')?.getAttribute('aria-pressed'), 'true');
+  assert.equal(button('Thay đổi', dialog), undefined);
+  const destinationRow = dialog.querySelector('[aria-live="polite"]')?.parentElement?.parentElement;
+  assert(destinationRow?.contains(button('Hủy', dialog) ?? null));
+  assert(destinationRow?.contains(button('Di chuyển', dialog) ?? null));
+
+  await click(button('Tạo thư mục mới', tree));
+  let folderName = dialog.querySelector<HTMLInputElement>('[aria-label="Tên thư mục mới"]')!;
+  assert.equal(button('Tạo thư mục', tree)?.disabled, true);
+  await fill(folderName, 'hồ sơ');
+  await click(button('Tạo thư mục', tree));
+  assert(tree.querySelector('[role="alert"]')?.textContent?.includes('đã tồn tại'));
+  await escape(folderName);
+  assert(moveDialog());
+  assert.equal(dialog.querySelector('[aria-label="Tên thư mục mới"]'), null);
+  await click(button('Tạo thư mục mới', tree));
+  folderName = dialog.querySelector<HTMLInputElement>('[aria-label="Tên thư mục mới"]')!;
+  await fill(folderName, '  Báo cáo mới  ');
+  await click(button('Tạo thư mục', tree));
+  const destination = getStoredFolders().find(folder => folder.name === 'Báo cáo mới')!;
+  assert.equal(destination.parentId, 'move-project');
+  assert.equal(destination.space, 'company');
+  assert.equal(dialog.querySelector('[aria-live="polite"]')?.textContent, 'Tài liệu công ty / Tài liệu chung / Dự án nội bộ / Báo cáo mới');
+  await click(button('Di chuyển', dialog));
+  assert.equal(moveDialog(), null);
+  assert.equal(window.location.pathname, `/documents/${source.id}`);
+  assert.equal(document.activeElement, more);
+  const moved = getStoredDocuments().find(doc => doc.id === source.id)!;
+  assert.equal(moved.folderId, destination.id);
+  assert.equal(moved.space, 'company');
+  assert.equal(moved.isPrivate, false);
+  assert.deepEqual(moved.blocks, source.blocks);
+  assert(document.querySelector('main')?.textContent?.includes('Báo cáo mới'));
+
+  const reopened = await open();
+  assert.equal(button('Di chuyển', reopened)?.disabled, true);
+  await click(button('Ghi chép của tôi', reopened.querySelector('[aria-label="Chuyển đến"]')!));
+  await click(button('Hủy', reopened));
+  assert.equal(moveDialog(), null);
+  assert.equal(getStoredDocuments().find(doc => doc.id === source.id)?.folderId, destination.id);
+
+  const reverse = await open();
+  await click(reverse.querySelector('[aria-label="Đóng"]'));
+  assert.equal(moveDialog(), null);
+  const returnDialog = await open();
+  await click(button('Ghi chép của tôi', returnDialog.querySelector('[aria-label="Chuyển đến"]')!));
+  assert.equal(returnDialog.querySelector('[aria-live="polite"]')?.textContent, 'Ghi chép của tôi');
+  await click(button('Di chuyển', returnDialog));
+  assert.equal(moveDialog(), null);
+  const returned = getStoredDocuments().find(doc => doc.id === source.id)!;
+  assert.equal(returned.space, 'personal');
+  assert.equal(returned.folderId, null);
+  assert.equal(returned.isPrivate, true);
+});
+
+test('move document dialog opens from folder rows and can move to the current workspace root', async () => {
+  const { saveStoredDocuments } = await import('../utils/storage');
+  const id = 'doc_personal_production_meeting';
+  saveStoredDocuments(getStoredDocuments().map(doc => doc.id === id ? { ...doc, isPrivate: false } : doc));
+  await mount('/folders/fld_work');
+  const row = document.querySelector(`[data-folder-document="${id}"]`)!;
+  await click(row.querySelector('button[aria-label^="Tùy chọn tài liệu"]'));
+  await click(button('Di chuyển đến', document.querySelector('[aria-label="Thao tác tài liệu"]')!));
+  const dialog = document.querySelector('[role="dialog"][aria-labelledby]')!;
+  await click(button('Ghi chép của tôi', dialog.querySelector('nav[aria-label="Đường dẫn thư mục đích"]')!));
+  await click(button('Di chuyển', dialog));
+  assert.equal(document.querySelector('[role="dialog"][aria-labelledby]'), null);
+  assert.equal(document.querySelector(`[data-folder-document="${id}"]`), null);
+  const moved = getStoredDocuments().find(doc => doc.id === id)!;
+  assert.equal(moved.folderId, null);
+  assert.equal(moved.space, 'personal');
+  assert.equal(moved.isPrivate, false);
+  await mount('/private');
+  assert(document.querySelector(`[data-folder-document="${id}"]`));
+});
+
 test('folder explorer shows access roles for documents in the structure and list views', async () => {
   const { saveStoredDocuments } = await import('../utils/storage');
   const base = getStoredDocuments().find(doc => !doc.isTrash)!;
@@ -1374,6 +1516,142 @@ test('AI meeting command is visible but cannot be selected with mouse or keyboar
   assert.equal(getStoredDocuments().find(doc => doc.id === 'disabled-slash')?.blocks[0].type, 'paragraph');
 });
 
+test('the at menu groups suggestions and search actions, and inserts people without replacing surrounding text', async () => {
+  const { saveStoredDocuments } = await import('../utils/storage');
+  const base = getStoredDocuments().find(doc => !doc.isTrash)!;
+  saveStoredDocuments([{ ...base, id: 'mention-menu-groups', blocks: [
+    { id: 'mention-menu-line', type: 'paragraph', content: '' },
+    { id: 'mention-menu-list', type: 'bullet', content: 'Phối hợp' },
+  ] }]);
+  await mount('/documents/mention-menu-groups');
+  const field = (blockId: string) => document.querySelector<HTMLTextAreaElement>(`[data-block-id="${blockId}"] textarea`)!;
+  const fill = (input: HTMLTextAreaElement | HTMLInputElement, value: string, offset = value.length) => act(async () => {
+    const prototype = input instanceof window.HTMLTextAreaElement ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+    Object.getOwnPropertyDescriptor(prototype, 'value')!.set!.call(input, value);
+    input.setSelectionRange(offset, offset);
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+  });
+  const section = (label: string) => document.querySelector(`[role="group"][aria-label="${label}"]`)!;
+  const options = (group: Element) => Array.from(group.querySelectorAll('[role="option"]'), item => item.getAttribute('aria-label'));
+  const paragraph = field('mention-menu-line');
+  await fill(paragraph, 'Nhờ @ kiểm tra.', 'Nhờ @'.length);
+  const people = section('Nhắc đến 1 người');
+  const groups = section('Nhắc đến 1 nhóm');
+  assert.deepEqual(options(people), ['Nhắc đến 1 người', 'Việt Cường', 'Minh Anh', 'Hoàng Nam', 'Tìm 1 người']);
+  assert.deepEqual(options(groups), ['Nhắc đến 1 nhóm', 'Nhóm dự án', 'Nhóm triển khai', 'Tìm 1 nhóm']);
+  assert(people.querySelector('[aria-label="Việt Cường"] svg.lucide-user'));
+  assert(groups.querySelector('[aria-label="Nhóm dự án"] svg.lucide-users'));
+  const key = (value: string) => act(async () => {
+    paragraph.dispatchEvent(new window.KeyboardEvent('keydown', { key: value, bubbles: true, cancelable: true }));
+  });
+  await key('ArrowDown');
+  await key('ArrowDown');
+  assert.equal(people.querySelector('[aria-selected="true"]')?.getAttribute('aria-label'), 'Minh Anh');
+  await key('Enter');
+  assert.equal(field('mention-menu-line').value, 'Nhờ @Nguyễn Minh Anh kiểm tra.');
+  assert.equal(field('mention-menu-line').selectionStart, 'Nhờ @Nguyễn Minh Anh'.length);
+  const inlinePerson = document.querySelector('[data-person-mention="minhanh.nguyen@congty.vn"]')!;
+  assert.equal(inlinePerson.textContent, '@Nguyễn Minh Anh');
+  assert(inlinePerson.classList.contains('bg-blue-500/15'));
+  assert(inlinePerson.classList.contains('text-[var(--ui-accent)]'));
+
+  await fill(field('mention-menu-list'), 'Phối hợp @hoang');
+  assert.deepEqual(options(section('Nhắc đến 1 người')), ['Nhắc đến 1 người', 'Hoàng Nam', 'Tìm 1 người']);
+  assert.equal(section('Nhắc đến 1 người').querySelector('[aria-selected="true"]')?.getAttribute('aria-label'), 'Hoàng Nam');
+  await click(section('Nhắc đến 1 người').querySelector('[aria-label="Tìm 1 người"]'));
+  const peopleDialog = document.querySelector('[aria-label="Mời và phân quyền"]')!;
+  await fill(peopleDialog.querySelector<HTMLInputElement>('[aria-label="Tìm nhân viên"]')!, 'nam.le');
+  await click(document.querySelector('[aria-label="Danh sách nhân viên"] [role="option"]'));
+  await click(button('Thêm', peopleDialog));
+  await click(button('Gửi lời mời (1)', peopleDialog));
+  assert.equal(field('mention-menu-list').value, 'Phối hợp @Lê Hoàng Nam ');
+  assert.equal(field('mention-menu-list').selectionStart, 'Phối hợp @Lê Hoàng Nam '.length);
+  assert(document.querySelector('[data-person-mention="nam.le@congty.vn"]'));
+  await mount('/documents/mention-menu-groups');
+  assert(document.querySelector('[data-person-mention="nam.le@congty.vn"]'));
+});
+
+test('typing @ opens the person-first mention menu after punctuation, after a pill, and during editor scrolling', async () => {
+  const { saveStoredDocuments } = await import('../utils/storage');
+  const base = getStoredDocuments().find(doc => !doc.isTrash)!;
+  saveStoredDocuments([{ ...base, id: 'mention-trigger', blocks: [
+    { id: 'mention-after-punctuation', type: 'paragraph', content: '' },
+    { id: 'mention-after-pill', type: 'utility', content: '@Việt Cường xem:', properties: {
+      utilityKind: 'Nhắc đến một người',
+      mention: { kind: 'person', emails: ['cuong.viet@congty.vn'], permission: 'view', message: '', scope: 'page' },
+      mentionTrailingText: 'xem:',
+    } },
+    { id: 'mention-in-list', type: 'numbered', content: '' },
+  ] }]);
+  await mount('/documents/mention-trigger');
+  const fill = (input: HTMLTextAreaElement, value: string, cursor = value.length) => act(async () => {
+    input.focus();
+    Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')!.set!.call(input, value);
+    input.setSelectionRange(cursor, cursor);
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+  });
+  const field = (id: string) => document.querySelector<HTMLTextAreaElement>(`[data-block-id="${id}"] textarea`)!;
+  const menu = () => document.querySelector<HTMLElement>('[role="dialog"][aria-label="Chèn tiện ích nhanh"]');
+  const assertPersonFirst = () => assert.equal(menu()?.querySelector('[aria-selected="true"]')?.getAttribute('aria-label'), 'Nhắc đến 1 người');
+  const paragraph = field('mention-after-punctuation');
+  let top = 120;
+  paragraph.getBoundingClientRect = () => new window.DOMRect(40, top, 500, 24);
+  await fill(paragraph, 'Gửi:@ ngay nhé', 'Gửi:@'.length);
+  assertPersonFirst();
+  const previousTop = menu()!.style.top;
+  top = 155;
+  await act(async () => { document.querySelector('main')!.dispatchEvent(new window.Event('scroll')); });
+  assertPersonFirst();
+  assert.notEqual(menu()!.style.top, previousTop);
+  await act(async () => paragraph.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+  assert.equal(menu(), null);
+
+  await fill(field('mention-after-pill'), 'xem:@ giúp mình', 'xem:@'.length);
+  assertPersonFirst();
+  await click(menu()!.querySelector('[aria-label="Hoàng Nam"]'));
+  const continuation = field('mention-after-pill');
+  assert.equal(continuation.value, 'xem: @Lê Hoàng Nam giúp mình');
+  assert.equal(continuation.selectionStart, 'xem: @Lê Hoàng Nam'.length);
+  assert(document.querySelector('[data-person-mention="nam.le@congty.vn"]'));
+  assert(button('@Việt Cường', document.querySelector('[data-block-id="mention-after-pill"]')!));
+  await fill(continuation, 'xem: @Lê Hoàng Nam giúp mình!');
+  assert.equal(menu(), null, 'Editing after a saved pill must not reopen the previous mention');
+  const listItem = field('mention-in-list');
+  await fill(listItem, 'Việc:@');
+  assertPersonFirst();
+  await act(async () => listItem.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })));
+  assert(document.querySelector('[role="dialog"][aria-label="Mời và phân quyền"]'));
+});
+
+test('Quick Note opens the group picker from the at menu', async () => {
+  await mount('/private');
+  await click(document.querySelector('aside button[aria-label="Quick Note"]'));
+  const quickNote = document.querySelector('[data-quick-note-modal]')!;
+  const input = quickNote.querySelector<HTMLTextAreaElement>('[data-block-id] textarea')!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')!.set!.call(input, '@');
+    input.setSelectionRange(1, 1);
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+  });
+  const menu = document.querySelector('[aria-label="Chèn tiện ích nhanh"]')!;
+  assert(menu.querySelector('[aria-label="Nhóm dự án"]'));
+  await click(menu.querySelector('[aria-label="Tìm 1 nhóm"]'));
+  const picker = document.querySelector('[aria-label="Chọn nhóm"]')!;
+  await click(button('Nhóm dự án', picker));
+  assert.equal(document.querySelector('[aria-label="Chọn nhóm"]'), null);
+  assert(quickNote.querySelector('[data-mention-row]')?.textContent?.includes('@Nhóm dự án'));
+  const continuation = quickNote.querySelector<HTMLTextAreaElement>('[aria-label="Nội dung sau thẻ nhắc đến"]')!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')!.set!.call(continuation, 'Gửi:@');
+    continuation.setSelectionRange(5, 5);
+    continuation.dispatchEvent(new window.Event('input', { bubbles: true }));
+  });
+  const reopened = document.querySelector('[aria-label="Chèn tiện ích nhanh"]')!;
+  assert.equal(reopened.querySelector('[aria-selected="true"]')?.getAttribute('aria-label'), 'Nhắc đến 1 người');
+  await click(reopened.querySelector('[aria-label="Việt Cường"]'));
+  assert.equal(quickNote.querySelector<HTMLTextAreaElement>('[aria-label="Nội dung sau thẻ nhắc đến"]')?.value, 'Gửi: @Việt Cường ');
+});
+
 test('invitations save individual permissions, create groups and reuse simple mentions', async () => {
   const { saveStoredDocuments } = await import('../utils/storage');
   const base = getStoredDocuments().find(doc => !doc.isTrash)!;
@@ -1391,7 +1669,7 @@ test('invitations save individual permissions, create groups and reuse simple me
     });
   };
   await fill(document.querySelector('[data-block-id="mention-person"] textarea')!, '@');
-  await click(document.querySelector('button[data-slash-command-title="Nhắc đến 1 người"]'));
+  await click(document.querySelector('button[data-slash-command-title="Tìm 1 người"]'));
   let dialog = document.querySelector('[aria-label="Mời và phân quyền"]')!;
   assert(dialog);
   assert(!dialog.textContent?.includes('Các mức quyền'));
@@ -1431,6 +1709,10 @@ test('invitations save individual permissions, create groups and reuse simple me
   assert(!person.textContent?.includes('Có thể bình luận'));
   assert(!person.textContent?.includes('Bạn kiểm tra giúp mình nhé'));
   const mentionRow = person.querySelector('[data-mention-row]')!;
+  const personPill = button('@Việt Cường', mentionRow);
+  assert(personPill);
+  assert(personPill.classList.contains('bg-blue-500/15'));
+  assert(personPill.classList.contains('text-[var(--ui-accent)]'));
   const continuation = person.querySelector<HTMLTextAreaElement>('[aria-label="Nội dung sau thẻ nhắc đến"]')!;
   await click(mentionRow);
   assert.equal(document.activeElement, continuation);
@@ -1454,7 +1736,8 @@ test('invitations save individual permissions, create groups and reuse simple me
   assert.equal(saved.blocks[0].properties?.mention?.scope, 'page');
   assert.equal(saved.blocks[0].content, '@Trần Thị Thu Hà, Việt Cường xem giúp mình nhé');
   assert.equal(saved.blocks[1].content.trim(), '@Nhóm sản phẩm');
-  const groupId = saved.blocks[1].properties?.inlineGroupMentions?.[0]?.groupId;
+  const mentionRange = saved.blocks[1].properties?.inlineGroupMentions?.[0];
+  const groupId = mentionRange && 'groupId' in mentionRange ? mentionRange.groupId : undefined;
   const { getEmployeeGroups, getShareSettings } = await import('../utils/documentSharing');
   assert.equal(getEmployeeGroups().find(group => group.id === groupId)?.name, 'Nhóm sản phẩm');
   assert.equal(getShareSettings(saved).groups[0].permission, 'edit');
@@ -1493,7 +1776,7 @@ test('group mentions insert immediately from the at menu and the group picker', 
     });
   };
   const chooseGroup = async () => {
-    await click(document.querySelector('[data-slash-command-title="Nhắc đến 1 nhóm"]'));
+    await click(document.querySelector('[data-slash-command-title="Tìm 1 nhóm"]'));
     const picker = document.querySelector('[aria-label="Chọn nhóm"]')!;
     const search = picker.querySelector<HTMLInputElement>('[aria-label="Tìm nhóm"]')!;
     assert.equal(document.activeElement, search);
@@ -1517,7 +1800,10 @@ test('group mentions insert immediately from the at menu and the group picker', 
   assert.equal(textarea('group-paragraph').value, 'Đề nghị @Nhóm dự án phối hợp.');
   assert(document.querySelector('[data-group-mention="group-project"]'));
   assert(document.body.textContent?.includes('Đã cấp quyền chỉnh sửa cho nhóm'));
-  await click(document.querySelector('[aria-label="Quyền truy cập (1)"]'));
+  const headerActions = document.querySelector('[data-doc-header-actions]')!;
+  assert.equal(headerActions.querySelector('[aria-label^="Quyền truy cập ("]'), null);
+  assert(headerActions.querySelector('[data-document-role="owner"]'));
+  await click(button('Chia sẻ', headerActions));
   const share = document.querySelector('[aria-label="Chia sẻ tài liệu"]')!;
   assert.equal(share.querySelector('[aria-label="Quyền của nhóm Nhóm dự án"]')?.getAttribute('data-value'), 'editor');
   await click(button('Xong', share));

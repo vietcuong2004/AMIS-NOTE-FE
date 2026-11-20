@@ -1,5 +1,7 @@
 import React, { forwardRef } from 'react';
-import { InlineGroupMention, InlineLink } from '../../types';
+import { InlineMention, InlineLink } from '../../types';
+
+export const mentionPillClassName = 'rounded bg-blue-500/15 text-[var(--ui-accent)] enabled:hover:bg-blue-500/25';
 
 export function replaceInlineRanges<T extends { start: number; end: number }>(ranges: T[] | undefined, start: number, end: number, length: number): T[] {
   const delta = length - (end - start);
@@ -15,11 +17,12 @@ export function shiftInlineRanges<T extends { start: number; end: number }>(rang
   return replaceInlineRanges(ranges, start, oldEnd, newEnd - start);
 }
 
-export function getMentionTrigger(text: string, end: number, existing?: InlineGroupMention[]) {
-  const query = text.slice(0, end).match(/(?:^|[\s([{])(@[^@\n]*)$/)?.[1];
-  if (!query) return;
-  const start = end - query.length;
-  if (!existing?.some(mention => mention.start === start)) return { query, start, end };
+export function getMentionTrigger(text: string, end: number, existing?: InlineMention[]) {
+  const before = text.slice(0, end);
+  const start = before.lastIndexOf('@');
+  if (start < 0 || start < before.lastIndexOf('\n')) return;
+  if (existing?.some(mention => mention.start <= start && start < mention.end)) return;
+  return { query: before.slice(start), start, end };
 }
 
 function formatMirrorText(text: string): string {
@@ -28,7 +31,7 @@ function formatMirrorText(text: string): string {
 }
 
 export const LinkedTextarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
-  links?: InlineLink[]; groupMentions?: InlineGroupMention[]; onGroupMentionClick?: (groupId: string) => void;
+  links?: InlineLink[]; groupMentions?: InlineMention[]; onGroupMentionClick?: (groupId: string) => void;
 }>(function LinkedTextarea({ links, groupMentions, onGroupMentionClick, ...props }, ref) {
   const text = String(props.value || '');
   const ranges = [...(links || []).filter(link => /^https?:\/\//i.test(link.url)), ...(groupMentions || [])]
@@ -59,12 +62,14 @@ export const LinkedTextarea = forwardRef<HTMLTextAreaElement, React.TextareaHTML
       ? <a key={key} href={range.url} target="_blank" rel="noopener noreferrer" title={range.url}
           onMouseDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}
           className="pointer-events-auto text-[#0563c1] underline decoration-1 underline-offset-2 hover:text-blue-800">{label}</a>
+      : 'email' in range
+        ? <span key={key} data-person-mention={range.email} className={mentionPillClassName}>{label}</span>
       : onGroupMentionClick && !props.disabled
         ? <button key={key} type="button" data-group-mention={range.groupId} title="Mời và phân quyền nhóm"
             onMouseDown={event => { event.preventDefault(); event.stopPropagation(); }}
             onClick={event => { event.stopPropagation(); onGroupMentionClick(range.groupId); }}
-            className="pointer-events-auto inline rounded bg-blue-500/15 p-0 align-baseline text-[var(--ui-accent)] hover:bg-blue-500/25 [font:inherit]">{label}</button>
-        : <span key={key} data-group-mention={range.groupId} className="rounded bg-blue-500/15 text-[var(--ui-accent)]">{label}</span>);
+            className={`pointer-events-auto inline p-0 align-baseline [font:inherit] ${mentionPillClassName}`}>{label}</button>
+        : <span key={key} data-group-mention={range.groupId} className={mentionPillClassName}>{label}</span>);
     cursor = range.end;
   }
   parts.push(text.slice(cursor));

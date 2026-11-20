@@ -7,8 +7,8 @@ import { EmptyBlockRow } from './EmptyBlockRow';
 import { navigateEditorArrow } from '../../utils/editorArrowNavigation';
 import { RenameDialog } from '../modals/RenameDialog';
 import { employeeName } from './EmployeePicker';
-import { GroupInvitationDialog, GroupMentionFlow } from './MentionBlock';
-import { replaceInlineRanges } from './LinkedTextarea';
+import { GroupInvitationDialog, GroupMentionFlow, MentionDialog } from './MentionBlock';
+import { inlineMentionTextTypes, insertMentionInBlocks, personMentionEntries, type MentionEntry, type MentionTarget, type MentionRange } from './inlineMentions';
 import { getEmployeeGroups, getShareSettings, grantGroupAccess } from '../../utils/documentSharing';
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import {
@@ -25,7 +25,6 @@ import {
   Plus,
   Maximize2,
   Minimize2,
-  Users,
 } from 'lucide-react';
 import { Block, BlockProperties, BlockType, Document, EmployeeGroup, Folder, GroupAccess, ViewState } from '../../types';
 import { BlockItem } from './BlockItem';
@@ -35,7 +34,6 @@ import { downloadSpreadsheet } from '../../utils/exportSpreadsheet';
 import { SlashMenu } from './SlashMenu';
 import { EditTextDialog } from './EditTextDialog';
 import { ShareModal } from '../modals/ShareModal';
-import { MoveModal } from '../modals/MoveModal';
 import { ExportModal } from '../modals/ExportModal';
 import { DocumentActionMenu } from '../modals/DocumentActionMenu';
 import { documentUrl } from '../../app/router/routes';
@@ -57,16 +55,14 @@ interface BlockEditorProps {
   onUpdateDocument: (doc: Document) => void;
   onSoftDeleteDocument: (docId: string) => void;
   onToggleFavorite: (docId: string) => void;
-  onMoveDocument: (docId: string, folderId: string | null, space: any) => void;
+  onMoveDocumentRequest: (doc: Document) => void;
   onToast: (msg: string, type?: 'success' | 'info' | 'error') => void;
   onNavigate?: (view: ViewState) => void;
   autoFocusTitle?: boolean;
   onAutoFocusTitleHandled?: () => void;
 }
 
-type TextRange = { start: number; end: number; itemId?: string };
-type GroupMentionTarget = { blockId: string; range: TextRange };
-const groupMentionTextTypes = ['paragraph', 'h1', 'h2', 'h3', 'h4', 'quote', 'callout', 'toggle'];
+type PersonMention = NonNullable<BlockProperties['mention']>;
 
 export const BlockEditor: React.FC<BlockEditorProps> = ({
   document,
@@ -74,7 +70,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   onUpdateDocument,
   onSoftDeleteDocument,
   onToggleFavorite,
-  onMoveDocument,
+  onMoveDocumentRequest,
   onToast,
   onNavigate,
   autoFocusTitle = false,
@@ -99,9 +95,9 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
   // Modals state
   const [shareOpen, setShareOpen] = useState(false);
-  const [groupMentionTarget, setGroupMentionTarget] = useState<GroupMentionTarget | null>(null);
+  const [groupMentionTarget, setGroupMentionTarget] = useState<MentionTarget | null>(null);
+  const [personMentionTarget, setPersonMentionTarget] = useState<MentionTarget | null>(null);
   const [groupToInvite, setGroupToInvite] = useState<EmployeeGroup | null>(null);
-  const [moveOpen, setMoveOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
 
@@ -114,7 +110,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     isOpen: boolean;
     blockId: string | null;
     query: string;
-    mentionRange?: TextRange;
+    mentionRange?: MentionRange;
     position?: { top: number; left: number; lineTop?: number };
   }>({
     isOpen: false,
@@ -170,6 +166,12 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       saveCallbackRef.current(pending);
     }
   }, []);
+
+  const openMoveDialog = () => {
+    flushPendingSave();
+    moreButtonRef.current?.focus();
+    onMoveDocumentRequest(doc);
+  };
 
   // Commit pending edits before navigating away or refreshing a document URL.
   useEffect(() => {
@@ -394,7 +396,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   };
 
   // Slash trigger
-  const handleTriggerSlash = (blockId: string, query: string, rect: DOMRect | null, mentionRange?: TextRange) => {
+  const handleTriggerSlash = (blockId: string, query: string, rect: DOMRect | null, mentionRange?: MentionRange) => {
     if (!rect) {
       setSlashState({ isOpen: false, blockId: null, query: '' });
       return;
@@ -412,7 +414,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     });
   };
 
-  const openGroupMention = (blockId: string, range?: TextRange) => {
+  const openGroupMention = (blockId: string, range?: MentionRange) => {
     const block = doc.blocks.find(item => item.id === blockId);
     if (!block) return;
     const end = block.content.length;
@@ -440,45 +442,26 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     if (group) setGroupToInvite(group);
   };
 
-  const insertGroupMention = ({ blockId, range }: GroupMentionTarget, group: EmployeeGroup, access?: GroupAccess) => {
-    if (isReadOnly) return;
-    const source = doc.blocks.find(block => block.id === blockId);
-    if (!source) { setGroupMentionTarget(null); return; }
-    const listItems = range.itemId ? source.properties?.listItems ?? [
-      { id: `${source.id}-item`, content: source.content, checked: source.properties?.checked,
-        inlineLinks: source.properties?.inlineLinks, inlineGroupMentions: source.properties?.inlineGroupMentions },
-    ] : [];
-    const listItem = listItems.find(item => item.id === range.itemId);
-    if (range.itemId && !listItem) { setGroupMentionTarget(null); return; }
-    const inline = !!listItem || groupMentionTextTypes.includes(source.type);
-    const block: Block = inline ? source : { id: `blk_${crypto.randomUUID()}`, type: 'paragraph', content: '' };
-    const { start, end } = inline ? range : { start: 0, end: 0 };
-    const original = listItem ?? { content: block.content, inlineLinks: block.properties?.inlineLinks,
-      inlineGroupMentions: block.properties?.inlineGroupMentions };
-    const label = `@${group.name}`;
-    const before = original.content.slice(0, start);
-    const after = original.content.slice(end);
-    const prefix = before && !/\s$/.test(before) && !/[([{]$/.test(before) ? ' ' : '';
-    const suffix = /^[\s.,!?;:)}\]]/.test(after) ? '' : ' ';
-    const replacement = `${prefix}${label}${suffix}`;
-    const content = `${before}${replacement}${after}`;
-    const mentionStart = start + prefix.length;
-    const mentionEnd = mentionStart + label.length;
-    const inlineLinks = replaceInlineRanges(original.inlineLinks, start, end, replacement.length);
-    const inlineGroupMentions = [...replaceInlineRanges(original.inlineGroupMentions, start, end, replacement.length),
-      { start: mentionStart, end: mentionEnd, groupId: group.id }];
-    const updatedItems = listItems.map(item => item.id === range.itemId ? { ...item, content, inlineLinks, inlineGroupMentions } : item);
-    const inserted = listItem ? { ...block, content: updatedItems.map(item => item.content).join('\n'),
-      properties: { ...block.properties, listItems: updatedItems } }
-      : { ...block, content, properties: { ...block.properties, inlineLinks, inlineGroupMentions } };
-    const blocks = doc.blocks.flatMap(item => item.id !== blockId ? [item] : inline ? [inserted] : [item, inserted]);
-    const updated = { ...doc, blocks, updatedAt: new Date().toISOString() };
-    pendingBlockFocusRef.current = { blockId: inserted.id, offset: mentionEnd + suffix.length, itemId: range.itemId };
+  const insertInlineMentions = (target: MentionTarget, entries: MentionEntry[]) => {
+    if (isReadOnly) return false;
+    const result = insertMentionInBlocks(doc.blocks, target, entries);
+    if (!result) return false;
+    const updated = { ...doc, blocks: result.blocks, updatedAt: new Date().toISOString() };
+    pendingBlockFocusRef.current = result.focus;
     setGroupMentionTarget(null);
+    setPersonMentionTarget(null);
     setSlashState({ isOpen: false, blockId: null, query: '' });
     setDoc(updated);
     commitSaveNow(updated);
-    if (access) saveGroupAccess(access);
+    return true;
+  };
+
+  const insertGroupMention = (target: MentionTarget, group: EmployeeGroup, access?: GroupAccess) => {
+    if (insertInlineMentions(target, [{ name: group.name, data: { groupId: group.id } }]) && access) saveGroupAccess(access);
+  };
+
+  const insertPersonMention = (target: MentionTarget, mention: PersonMention) => {
+    insertInlineMentions(target, personMentionEntries(mention));
   };
 
   const handleSlashColor = (color: string, isBackground: boolean) => {
@@ -533,6 +516,18 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       openGroupMention(targetId, slashState.blockId === targetId ? slashState.mentionRange : undefined);
       return;
     }
+    const range = slashState.blockId === targetId ? slashState.mentionRange : undefined;
+    const targetBlock = doc.blocks.find(block => block.id === targetId);
+    if (extraProps?.utilityKind === 'Nhắc đến một người' && range && targetBlock &&
+      (range.itemId || targetBlock.type !== 'paragraph' || range.start > 0 || range.end < targetBlock.content.length)) {
+      const target = { blockId: targetId, range };
+      if (extraProps.mention) insertPersonMention(target, extraProps.mention);
+      else {
+        setPersonMentionTarget(target);
+        setSlashState({ isOpen: false, blockId: null, query: '' });
+      }
+      return;
+    }
     let focusId = targetId;
 
     const updatedBlocks = doc.blocks.flatMap((b) => {
@@ -540,7 +535,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
         const textType = ['paragraph', 'h1', 'h2', 'h3', 'h4', 'bullet', 'numbered', 'checklist', 'callout'].includes(type);
         const sourceText = b.properties?.listItems?.map(item => item.content).join('\n') ?? b.content;
         const content = preserveText && textType ? sourceText : '';
-        let props: BlockProperties = preserveText && textType ? { textColor: b.properties?.textColor, backgroundColor: b.properties?.backgroundColor, bold: b.properties?.bold, italic: b.properties?.italic, underline: b.properties?.underline, fontFamily: b.properties?.fontFamily, fontSize: b.properties?.fontSize, inlineLinks: b.properties?.inlineLinks, inlineGroupMentions: groupMentionTextTypes.includes(type) ? b.properties?.inlineGroupMentions : undefined } : {};
+        let props: BlockProperties = preserveText && textType ? { textColor: b.properties?.textColor, backgroundColor: b.properties?.backgroundColor, bold: b.properties?.bold, italic: b.properties?.italic, underline: b.properties?.underline, fontFamily: b.properties?.fontFamily, fontSize: b.properties?.fontSize, inlineLinks: b.properties?.inlineLinks, inlineGroupMentions: inlineMentionTextTypes.includes(type) ? b.properties?.inlineGroupMentions : undefined } : {};
         if (['bullet', 'numbered', 'checklist'].includes(type)) props = {
           ...props, listItems: preserveText && b.properties?.listItems?.length ? b.properties.listItems : [{ id: `list_${crypto.randomUUID()}`, content, checked: false, inlineLinks: props.inlineLinks,
             ...(preserveText && b.properties?.inlineGroupMentions ? { inlineGroupMentions: b.properties.inlineGroupMentions } : {}) }],
@@ -961,7 +956,6 @@ function getTextareaSelectionCoords(
     }
   };
 
-  const groupAccess = getShareSettings(doc).groups;
   const contentBlocks = doc.blocks.filter(block => block.type !== 'paragraph' || block.content.trim());
   const mindMap = contentBlocks.length === 1 && contentBlocks[0].type === 'mind_map' && contentBlocks[0].properties?.mindMap
     ? contentBlocks[0] : undefined;
@@ -998,12 +992,6 @@ function getTextareaSelectionCoords(
 
         {/* Action Buttons Toolbar: [Xem toàn màn hình] [Chia sẻ] [In] [•••] */}
         <div data-doc-header-actions className="flex items-center gap-2 shrink-0">
-          {groupAccess.length > 0 && <button type="button" onClick={() => setShareOpen(true)}
-            aria-label={`Quyền truy cập (${groupAccess.length})`} title="Quyền truy cập của nhóm"
-            className="flex items-center gap-1.5 rounded-xl border border-[var(--ui-border)] px-3 py-1.5 text-xs font-medium text-[var(--ui-text)] hover:bg-[var(--ui-hover)]">
-            <Users aria-hidden="true" className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Quyền truy cập ({groupAccess.length})</span>
-          </button>}
           <DocumentRolePill role={currentRole} />
           {!mindMap && !spreadsheet && <button type="button" aria-label="Xem toàn màn hình" aria-pressed={wideContent}
             onClick={() => setWideContent(previous => !previous)}
@@ -1062,7 +1050,7 @@ function getTextareaSelectionCoords(
               } : undefined}
               onShare={() => setShareOpen(true)}
               onRename={!isReadOnly ? () => setRenameOpen(true) : undefined}
-              onMove={!isReadOnly ? () => setMoveOpen(true) : undefined}
+              onMove={!isReadOnly ? openMoveDialog : undefined}
               onDelete={!isReadOnly ? () => onSoftDeleteDocument(doc.id) : undefined}
             />
           </div>
@@ -1211,7 +1199,6 @@ function getTextareaSelectionCoords(
                 index={idx}
                 totalBlocks={doc.blocks.length}
                 userRole={currentRole}
-                enableInlineGroupMentions
                 onGroupMentionClick={handleGroupMentionClick}
                 isBlockSelected={selectedBlockIdSet.has(block.id)}
                 autoFocus={focusedBlockId === block.id}
@@ -1255,8 +1242,6 @@ function getTextareaSelectionCoords(
                   const { blockId, mentionRange } = slashState;
                   if (blockId && mentionRange) insertGroupMention({ blockId, range: mentionRange }, group);
                 }}
-                groupsOnly={!!slashState.mentionRange && (!!slashState.mentionRange.itemId || slashState.mentionRange.start > 0 ||
-                  slashState.mentionRange.end < (doc.blocks.find(block => block.id === slashState.blockId)?.content.length ?? 0))}
                 mentions={doc.blocks.flatMap(block => block.properties?.mention ? [block.properties.mention] : [])}
                 onClose={() => setSlashState({ isOpen: false, blockId: null, query: '' })}
               />
@@ -1298,6 +1283,12 @@ function getTextareaSelectionCoords(
         onClose={() => setRenameOpen(false)} onSave={name => updateDocField('title', name)} />}
       {groupMentionTarget && !isReadOnly && <GroupMentionFlow
         onConfirm={(group, access) => insertGroupMention(groupMentionTarget, group, access)} onClose={closeGroupMention} />}
+      {personMentionTarget && !isReadOnly && <MentionDialog kind="person"
+        onSave={mention => insertPersonMention(personMentionTarget, mention)} onClose={() => {
+          const { blockId, range } = personMentionTarget;
+          focusBlockAtOffset(blocksContainerRef.current, blockId, range.end, range.itemId);
+          setPersonMentionTarget(null);
+        }} />}
       {groupToInvite && !isReadOnly && <GroupInvitationDialog group={groupToInvite}
         onSave={saveGroupAccess} onClose={() => setGroupToInvite(null)} />}
       <ShareModal
@@ -1307,18 +1298,6 @@ function getTextareaSelectionCoords(
         onUpdatePermission={(role, isPrivate) => {
           updateDocField('permission', role);
           updateDocField('isPrivate', isPrivate);
-        }}
-        onToast={onToast}
-      />
-
-      <MoveModal
-        document={doc}
-        folders={folders}
-        isOpen={moveOpen}
-        onClose={() => setMoveOpen(false)}
-        onMove={(docId, folderId, space) => {
-          onMoveDocument(docId, folderId, space);
-          setDoc((prev) => ({ ...prev, folderId, space }));
         }}
         onToast={onToast}
       />
@@ -1352,7 +1331,7 @@ function getTextareaSelectionCoords(
         }}
         onCopyLink={handleCopyBlockLink}
         onDuplicate={handleDuplicateBlockOrText}
-        onMoveTo={() => setMoveOpen(true)}
+        onMoveTo={!isReadOnly ? openMoveDialog : undefined}
         onDelete={handleDeleteSelection}
         onComment={handleCommentSelection}
         onSuggestEdit={handleSuggestEdit}

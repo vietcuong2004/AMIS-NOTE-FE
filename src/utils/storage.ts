@@ -121,7 +121,7 @@ export const moveDocumentToFolderOrSpace = (
           folderId: targetFolderId,
           space: targetSpace,
           // If moved to personal, default to private; if company, default to public within org
-          isPrivate: targetSpace === 'personal',
+          isPrivate: doc.space === targetSpace ? doc.isPrivate : targetSpace === 'personal',
           updatedAt: new Date().toISOString(),
         }
       : doc

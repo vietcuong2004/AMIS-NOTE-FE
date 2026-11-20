@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Type, Heading1, Heading2, Heading3, Heading4, List, ListOrdered, CheckSquare,
   Table, Lightbulb, Image, Video, Music, File,
-  Link, AtSign, Sparkles, FileText, Users, Target, Calendar, BookOpen } from 'lucide-react';
+  Link, AtSign, Sparkles, FileText, User, Users, Search, Target, Calendar, BookOpen } from 'lucide-react';
 import { BlockProperties, BlockType, EmployeeGroup } from '../../types';
 import { SLASH_COMMANDS, SlashCommand } from './slashCommands';
 import { employeeName } from './EmployeePicker';
@@ -18,7 +18,6 @@ interface SlashMenuProps {
   onSelectTemplate?: (templateId: string) => void;
   onApplyColor?: (color: string, isBackground: boolean) => void;
   mentions?: NonNullable<BlockProperties['mention']>[];
-  groupsOnly?: boolean;
   groups?: EmployeeGroup[];
   onSelectGroup?: (group: EmployeeGroup) => void;
   position?: { top: number; left: number; lineTop?: number };
@@ -32,8 +31,9 @@ function matchCommand(item: SlashCommand, query: string): number {
   const title = normalizeCommandQuery(item.title);
   const type = normalizeCommandQuery(item.type);
   const words = title.split(/\s+/);
+  const people = item.properties?.mention?.kind === 'person' ? item.properties.mention.emails.map(employeeName).join(' ') : '';
   const haystack = normalizeCommandQuery([item.title, item.subtitle, item.shortcut, item.type, item.category,
-    item.properties?.provider, item.properties?.mention?.emails.join(' ')].join(' '));
+    item.properties?.provider, item.properties?.mention?.emails.join(' '), people].join(' '));
   if (query === 'ai' && !haystack.split(/\s+/).includes('ai')) return -1;
   if (title === query) return 0;
   if (title.startsWith(query)) return 1;
@@ -51,7 +51,13 @@ const icons: Partial<Record<BlockType, typeof Type>> = {
   meeting_info: Sparkles,
 };
 
-export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, onSelectTemplate, onApplyColor, mentions = [], groupsOnly = false, groups = [], onSelectGroup, position }) => {
+const suggestedPeople = [
+  { title: 'Việt Cường', email: 'cuong.viet@congty.vn' },
+  { title: 'Minh Anh', email: 'minhanh.nguyen@congty.vn' },
+  { title: 'Hoàng Nam', email: 'nam.le@congty.vn' },
+];
+
+export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, onSelectTemplate, onApplyColor, mentions = [], groups = [], onSelectGroup, position }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [recentIds, setRecentIds] = useState(readSlashHistory);
@@ -101,19 +107,39 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, 
     return item ? [{ ...item, id: `recent-${id}`, sourceId: id, category: 'Được đề xuất' }] : [];
   });
   const showRecent = !cleanQuery && !mentionsOnly;
-  const groupItems: MenuItem[] = mentionsOnly ? groups.map(group => ({ id: `group-${group.id}`, type: 'utility', category: 'Nội tuyến',
-    title: group.name, properties: { utilityKind: 'Nhắc đến một nhóm' }, group })) : [];
-  const menuItems: MenuItem[] = showRecent ? [...commands.filter(item => item.category === 'Được đề xuất'), ...recentItems, ...commands.filter(item => item.category !== 'Được đề xuất')] : [...groupItems, ...commands];
-  const filteredItems = menuItems
-    .filter(item => !groupsOnly || item.group || item.id === 'mention_group')
-    .filter(item => !mentionsOnly || item.category === 'Nội tuyến')
+  const rankItems = (items: MenuItem[]) => items
     .map(item => ({ item, rank: matchCommand(item, cleanQuery) }))
     .filter(result => result.rank >= 0)
     .sort((a, b) => a.rank - b.rank)
     .map(result => result.item);
+  const mentionSections = mentionsOnly ? (['person', 'group'] as const).map(kind => {
+    const isPerson = kind === 'person';
+    const command = SLASH_COMMANDS.find(item => item.id === (isPerson ? 'command_57' : 'mention_group'))!;
+    const saved = Array.from(mentionedCommands.values()).filter(item => item.properties?.mention?.kind === kind);
+    const suggestions: MenuItem[] = isPerson ? [
+      ...suggestedPeople.map(({ title, email }): MenuItem => {
+        const previous = mentionedCommands.get(`person:${email}`);
+        return previous ? { ...previous, title, subtitle: undefined } : {
+          id: `mention-person-${email}`, type: 'utility', category: 'Nội tuyến', title,
+          properties: { utilityKind: 'Nhắc đến một người', mention: { kind, emails: [email], permission: 'view', scope: 'page', message: '' } },
+        };
+      }),
+      ...saved.filter(item => !suggestedPeople.some(person => person.email === item.properties?.mention?.emails[0])),
+    ] : [
+      ...groups.map((group): MenuItem => ({ id: `group-${group.id}`, type: 'utility', category: 'Nội tuyến',
+        title: group.name, properties: { utilityKind: 'Nhắc đến một nhóm' }, group })),
+      ...saved,
+    ];
+    const search = { ...command, id: `search-${kind}`, sourceId: command.id, title: isPerson ? 'Tìm 1 người' : 'Tìm 1 nhóm', subtitle: undefined, shortcut: undefined };
+    return { command, suggestions: rankItems(suggestions), search };
+  }) : [];
+  const menuItems: MenuItem[] = showRecent ? [...commands.filter(item => item.category === 'Được đề xuất'), ...recentItems, ...commands.filter(item => item.category !== 'Được đề xuất')] : commands;
+  const filteredItems: MenuItem[] = mentionsOnly
+    ? mentionSections.flatMap(({ command, suggestions, search }) => [command, ...suggestions, search])
+    : rankItems(menuItems);
   const categories = [...new Set(filteredItems.map(item => item.category))];
   const selectableItems = filteredItems.filter(item => !item.disabled);
-  const previewItem = selectableItems.find(item => item.id === hoveredItemId);
+  const previewItem = mentionsOnly ? undefined : selectableItems.find(item => item.id === hoveredItemId);
 
   useLayoutEffect(() => {
     if (!previewItem) { setPreviewLayout(null); return; }
@@ -152,19 +178,25 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, 
     else onSelect(item.type, item.properties);
   };
 
-  useEffect(() => { setSelectedIndex(0); }, [query]);
+  useEffect(() => {
+    const match = mentionsOnly && cleanQuery ? selectableItems.findIndex(item => item.group || item.properties?.mention) : -1;
+    setSelectedIndex(Math.max(0, match));
+  }, [query]);
   useLayoutEffect(() => {
+    const anchor = mentionsOnly && document.activeElement instanceof HTMLTextAreaElement ? document.activeElement : null;
     const placeMenu = () => {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
       const pad = 12;
-      const preferredMaxH = Math.max(120, Math.min(440, Math.round(vh * 0.58), vh - pad * 2));
+      const preferredMaxH = Math.max(120, Math.min(mentionsOnly ? 475 : 440, Math.round(vh * (mentionsOnly ? 0.65 : 0.58)), vh - pad * 2));
       const listEl = containerRef.current?.querySelector<HTMLElement>('[role="listbox"]');
       const footerEl = containerRef.current?.lastElementChild as HTMLElement | null;
       const listScrollH = listEl?.scrollHeight || 0;
       const naturalH = listScrollH > 0 ? listScrollH + (footerEl?.offsetHeight || 34) + 6 : preferredMaxH;
-      const anchorBelow = position?.top ?? 160;
-      const anchorAbove = position?.lineTop != null ? position.lineTop - 6 : anchorBelow - 32;
+      const rect = anchor?.isConnected ? anchor.getBoundingClientRect() : undefined;
+      const anchorBelow = rect ? rect.bottom + 6 : position?.top ?? 160;
+      const lineTop = rect?.top ?? position?.lineTop;
+      const anchorAbove = lineTop != null ? lineTop - 6 : anchorBelow - 32;
 
       const spaceBelow = Math.max(0, vh - anchorBelow - pad);
       const spaceAbove = Math.max(0, anchorAbove - pad);
@@ -178,13 +210,17 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, 
       const top = Math.max(pad, Math.min(rawTop, vh - renderedHeight - pad));
 
       const menuWidth = containerRef.current?.offsetWidth || Math.min(384, vw - pad * 2);
-      const left = Math.max(pad, Math.min(position?.left ?? 320, vw - menuWidth - pad));
+      const left = Math.max(pad, Math.min(rect?.left ?? position?.left ?? 320, vw - menuWidth - pad));
       setLayout({ top, left, maxHeight });
     };
     placeMenu();
     window.addEventListener('resize', placeMenu);
-    return () => window.removeEventListener('resize', placeMenu);
-  }, [position?.top, position?.left, position?.lineTop, query, filteredItems.length]);
+    if (anchor) document.addEventListener('scroll', placeMenu, true);
+    return () => {
+      window.removeEventListener('resize', placeMenu);
+      if (anchor) document.removeEventListener('scroll', placeMenu, true);
+    };
+  }, [position?.top, position?.left, position?.lineTop, query, filteredItems.length, mentionsOnly]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -218,6 +254,7 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, 
       if (!containerRef.current?.contains(event.target as Node) && !previewRef.current?.contains(event.target as Node)) onClose();
     };
     const handleScroll = (event: Event) => {
+      if (mentionsOnly && document.activeElement instanceof HTMLTextAreaElement) return;
       if (event.target instanceof Node && !containerRef.current?.contains(event.target) && !previewRef.current?.contains(event.target)) onClose();
     };
     document.addEventListener('mousedown', handleClick);
@@ -226,28 +263,29 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, 
       document.removeEventListener('mousedown', handleClick);
       document.removeEventListener('scroll', handleScroll, true);
     };
-  }, [onClose]);
+  }, [onClose, mentionsOnly]);
 
-  const renderItem = (item: MenuItem) => {
+  const renderItem = (item: MenuItem, variant?: 'suggestion' | 'search') => {
     const index = selectableItems.indexOf(item);
     const templateIcons: Record<string, typeof Type> = { tpl_personal_note: FileText, tpl_meeting_minutes: Users, tpl_work_plan: Target, tpl_weekly_plan: Calendar, tpl_internal_doc: BookOpen };
-    const Icon = item.properties?.utilityKind === 'Nhắc đến một nhóm' ? Users : item.templateId ? templateIcons[item.templateId] || FileText : item.category === 'Nội tuyến' || item.properties?.mention || item.properties?.utilityKind?.startsWith('Nhắc đến') ? AtSign : icons[item.type] || Type;
+    const Icon = variant === 'search' ? Search : item.properties?.utilityKind === 'Nhắc đến một nhóm' ? Users
+      : variant === 'suggestion' ? User : item.templateId ? templateIcons[item.templateId] || FileText : item.category === 'Nội tuyến' || item.properties?.mention || item.properties?.utilityKind?.startsWith('Nhắc đến') ? AtSign : icons[item.type] || Type;
     return <button key={item.id} type="button" role="option" aria-selected={index === selectedIndex}
       id={`slash-${item.id}`} tabIndex={-1} aria-label={item.title} data-slash-command-title={item.title} aria-keyshortcuts={item.shortcut} disabled={item.disabled} aria-disabled={!!item.disabled}
       onMouseDown={event => event.preventDefault()} onClick={() => selectItem(item)}
       onMouseMove={() => { if (!item.disabled) { keepPreviewOpen(); setHoveredItemId(item.id); if (index !== selectedIndex) setSelectedIndex(index); } }}
       onMouseLeave={leavePreviewArea}
-      className={`w-full min-h-14 flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm ${item.disabled
+      className={`flex w-full items-center gap-3 rounded-lg px-3 text-left text-sm ${variant ? 'min-h-8 py-1' : 'min-h-14 py-2.5'} ${item.disabled
         ? 'opacity-50 cursor-not-allowed'
-        : `cursor-pointer ${index === selectedIndex ? 'bg-[var(--ui-hover)] ring-1 ring-inset ring-[var(--ui-accent)]' : 'hover:bg-[var(--ui-hover)]'}`}`}>
+        : `cursor-pointer ${index === selectedIndex ? `${mentionsOnly ? 'bg-blue-500/10' : 'bg-[var(--ui-hover)]'} ring-1 ring-inset ring-[var(--ui-accent)]` : 'hover:bg-[var(--ui-hover)]'}`}`}>
       {item.color ? <span aria-hidden="true" className="w-5 h-5 shrink-0 rounded-md border flex items-center justify-center text-xs"
         style={{
           color: item.color.target === 'textColor' ? item.color.value || 'var(--ui-text)' : undefined,
           backgroundColor: item.color.target === 'backgroundColor' ? item.color.swatch || item.color.value || 'transparent' : undefined,
           borderColor: item.color.border || item.color.value || 'var(--ui-border)',
         }}>{item.color.target === 'textColor' ? 'A' : ''}</span>
-        : <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[var(--ui-hover)]"><Icon className="h-5 w-5 text-[var(--ui-muted)]" strokeWidth={1.6} /></span>}
-      <span className="flex-1 min-w-0 leading-5"><span className="block text-sm font-medium">{item.title}</span>
+        : <span aria-hidden="true" className={`flex shrink-0 items-center justify-center rounded-md bg-[var(--ui-hover)] ${variant ? 'h-7 w-7' : 'h-9 w-9'}`}><Icon className={`text-[var(--ui-muted)] ${variant ? 'h-4 w-4' : 'h-5 w-5'}`} strokeWidth={1.6} /></span>}
+      <span className="flex-1 min-w-0 leading-5"><span className={`block text-sm ${mentionsOnly && !variant ? 'font-semibold' : 'font-medium'} ${variant === 'search' ? 'text-[var(--ui-accent)]' : ''}`}>{item.title}</span>
         {item.subtitle && <span className="mt-0.5 block text-[11px] leading-4 text-[var(--ui-muted)]">{item.subtitle}</span>}</span>
       {item.badge && <span className="text-[11px] px-1.5 rounded-full bg-[#EBF5FF] text-[var(--ui-accent)] shrink-0">{item.badge}</span>}
       {item.shortcut && <kbd className="shrink-0 whitespace-nowrap rounded-full bg-[var(--ui-hover)] px-1.5 py-0.5 font-sans text-[9px] font-semibold uppercase tracking-wide text-[var(--ui-muted)]">{item.shortcut}</kbd>}
@@ -259,12 +297,26 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, 
     style={{ top: layout.top, left: layout.left, maxHeight: layout.maxHeight }}>
     <div role="listbox" aria-label="Tiện ích nhanh" aria-activedescendant={selectableItems[selectedIndex] ? `slash-${selectableItems[selectedIndex].id}` : undefined}
       className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5">
-      {!filteredItems.length ? <p className="px-3 py-4 text-sm text-[var(--ui-tertiary)]">Không tìm thấy thành phần nào</p> :
-        cleanQuery ? <><p className="px-2 py-2 text-xs text-[var(--ui-tertiary)]">Kết quả đã lọc ({filteredItems.length})</p>{filteredItems.map(renderItem)}</> :
+      {mentionsOnly ? <>
+        <p className="px-3 pt-2 pb-1 text-xs text-[var(--ui-tertiary)]">Nội tuyến</p>
+        {mentionSections.map(({ command, suggestions, search }) => <div key={command.id} role="group" aria-label={command.title}
+          className="mb-1.5 border-b border-[var(--ui-border)] pb-1.5 last:mb-0 last:border-b-0">
+          {renderItem(command)}
+          <div className="ml-6">
+            {suggestions.length > 0 && <div>
+              {suggestions.map(item => <div key={item.id} className="relative pl-3 before:absolute before:inset-y-0 before:left-0 before:border-l before:border-[var(--ui-border-strong)] last:before:bottom-1/2 after:absolute after:top-1/2 after:left-0 after:w-3 after:border-t after:border-[var(--ui-border-strong)]">
+                {renderItem(item, 'suggestion')}
+              </div>)}
+            </div>}
+            <div className="mt-0.5 pl-3">{renderItem(search, 'search')}</div>
+          </div>
+        </div>)}
+      </> : !filteredItems.length ? <p className="px-3 py-4 text-sm text-[var(--ui-tertiary)]">Không tìm thấy thành phần nào</p> :
+        cleanQuery ? <><p className="px-2 py-2 text-xs text-[var(--ui-tertiary)]">Kết quả đã lọc ({filteredItems.length})</p>{filteredItems.map(item => renderItem(item))}</> :
           categories.map(category => <div key={category} role="group" aria-label={category}
             className={`mb-2 ${category === 'Màu chữ' || category === 'Màu nền' ? 'border-t border-[var(--ui-border)] pt-1' : ''}`}>
             <p className="px-2 pt-2 pb-1 text-xs text-[var(--ui-tertiary)]">{category}</p>
-            {filteredItems.filter(item => item.category === category).map(renderItem)}</div>)}
+            {filteredItems.filter(item => item.category === category).map(item => renderItem(item))}</div>)}
     </div>
     <button type="button" onClick={onClose} className="shrink-0 flex items-center justify-between border-t border-[var(--ui-border)] px-3 py-2 text-xs bg-[var(--ui-surface)] cursor-pointer">
       <span>Đóng menu</span><span className="text-[var(--ui-tertiary)]">esc</span></button>

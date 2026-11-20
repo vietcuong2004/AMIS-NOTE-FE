@@ -4,7 +4,8 @@ import { Info, Plus, Search, Trash2, Users, X } from 'lucide-react';
 import { Block, BlockProperties, EmployeeGroup, GroupAccess } from '../../types';
 import { getEmployeeGroups } from '../../utils/documentSharing';
 import { EmployeePicker, employeeName } from './EmployeePicker';
-import { LinkedTextarea } from './LinkedTextarea';
+import { getMentionTrigger, LinkedTextarea, mentionPillClassName, shiftInlineRanges } from './LinkedTextarea';
+import { mentionBlockContent } from './inlineMentions';
 
 const permissions = [
   { id: 'full', label: 'Truy cập đầy đủ' },
@@ -23,7 +24,7 @@ function dialogKeys(event: React.KeyboardEvent<HTMLDivElement>, onClose: () => v
   if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
 }
 
-function MentionDialog({ kind, value, group, onSave, onClose }: {
+export function MentionDialog({ kind, value, group, onSave, onClose }: {
   kind: Mention['kind']; value?: Mention; group?: EmployeeGroup | null; onSave: (value: Mention) => void; onClose: () => void;
 }) {
   const [emails, setEmails] = useState<string[]>(value?.emails || group?.emails || []);
@@ -184,18 +185,21 @@ export function GroupMentionFlow({ onConfirm, onClose }: {
   </div>, document.body);
 }
 
-export function MentionBlock({ block, readOnly, onChange }: {
+export function MentionBlock({ block, readOnly, onChange, onMentionTrigger, onGroupMentionClick }: {
   block: Block; readOnly: boolean; onChange: (content: string, properties: BlockProperties) => void;
+  onMentionTrigger?: (mention: ReturnType<typeof getMentionTrigger>, rect: DOMRect | null) => void;
+  onGroupMentionClick?: (groupId: string) => void;
 }) {
   const value = block.properties?.mention;
   const kind = value?.kind || (block.properties?.utilityKind === 'Nhắc đến một nhóm' ? 'group' : 'person');
   const [open, setOpen] = useState(!value && !readOnly);
   const continuation = useRef<HTMLTextAreaElement>(null);
   const trailingText = block.properties?.mentionTrailingText ?? '';
+  const trailingMentions = block.properties?.inlineGroupMentions;
   const labels = value ? (value.groupName ? [value.groupName] : value.emails.map(employeeName)) : [];
-  const updateMention = (mention: Mention, text: string) => {
-    const prefix = `@${mention.groupName || mention.emails.map(employeeName).join(', ')}`;
-    onChange(text ? `${prefix} ${text}` : prefix, { ...block.properties, mention, mentionTrailingText: text || undefined });
+  const updateMention = (mention: Mention, text: string, ranges = trailingMentions) => {
+    onChange(mentionBlockContent(mention, text), { ...block.properties, mention, mentionTrailingText: text || undefined,
+      inlineGroupMentions: ranges?.length ? ranges : undefined });
   };
   return <div data-mention-row className="flex min-h-6 flex-wrap items-start gap-x-1 gap-y-0"
     onMouseDown={event => {
@@ -207,15 +211,23 @@ export function MentionBlock({ block, readOnly, onChange }: {
       continuation.current.setSelectionRange(trailingText.length, trailingText.length);
     }}>
     {labels.map(label => <button key={label} type="button" disabled={readOnly} onClick={() => setOpen(true)}
-      className="inline-flex max-w-full items-center rounded bg-[var(--ui-hover)] px-1 text-sm leading-6 text-[var(--ui-text)] disabled:cursor-default">
+      className={`inline-flex max-w-full items-center px-1 text-sm leading-6 disabled:cursor-default ${mentionPillClassName}`}>
       <span className="break-words min-w-0">@{label}</span>
     </button>)}
     {!value && !open && !readOnly && <button type="button" aria-label="Mời và đề cập" onClick={() => setOpen(true)}
       className="rounded bg-[var(--ui-hover)] px-1 text-sm leading-6">@</button>}
-    {value && (readOnly
+    {value && (readOnly && !trailingMentions?.length
       ? trailingText && <span className="whitespace-pre-wrap break-words text-sm leading-6">{trailingText}</span>
-      : <LinkedTextarea ref={continuation} aria-label="Nội dung sau thẻ nhắc đến" rows={1} value={trailingText}
-          onChange={event => updateMention(value, event.currentTarget.value)}
+      : <LinkedTextarea ref={continuation} aria-label="Nội dung sau thẻ nhắc đến" rows={1} value={trailingText} disabled={readOnly}
+          groupMentions={trailingMentions} onGroupMentionClick={onGroupMentionClick}
+          onChange={event => {
+            const input = event.currentTarget;
+            const text = input.value;
+            const ranges = shiftInlineRanges(trailingMentions, trailingText, text);
+            updateMention(value, text, ranges);
+            const mention = getMentionTrigger(text, input.selectionStart, ranges);
+            onMentionTrigger?.(mention, mention ? input.getBoundingClientRect() : null);
+          }}
           className="min-h-6 min-w-12 flex-1 resize-none bg-transparent p-0 text-sm leading-6 text-[var(--ui-text)] outline-none [field-sizing:content]" />)}
     {open && !readOnly && <MentionDialog kind={kind} value={value} onClose={() => setOpen(false)}
       onSave={mention => updateMention(mention, trailingText)} />}

@@ -1,15 +1,18 @@
 import React from 'react';
 import { Block, BlockProperties } from '../../types';
 import { MentionBlock } from './MentionBlock';
+import type { getMentionTrigger } from './LinkedTextarea';
 
 interface Props {
   block: Block;
   readOnly: boolean;
   onChange: (content: string, properties: BlockProperties) => void;
+  onMentionTrigger?: (mention: ReturnType<typeof getMentionTrigger>, rect: DOMRect | null) => void;
+  onGroupMentionClick?: (groupId: string) => void;
 }
 
 // Keep each command's configuration with the block so it survives saving and reopening.
-export const UtilityBlock: React.FC<Props> = ({ block, readOnly, onChange }) => {
+export const UtilityBlock: React.FC<Props> = ({ block, readOnly, onChange, onMentionTrigger, onGroupMentionClick }) => {
   const props = block.properties || {};
   const title = props.commandTitle || props.provider || block.type;
   const inputClass = 'w-full rounded-md border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm focus:outline-none focus:border-[#86868B]';
@@ -18,7 +21,8 @@ export const UtilityBlock: React.FC<Props> = ({ block, readOnly, onChange }) => 
   const safeUrl = /^https?:\/\//i.test(url) ? url : '';
 
   if (props.mention || ['Nhắc đến một người', 'Nhắc đến một nhóm'].includes(props.utilityKind || '')) {
-    return <MentionBlock block={block} readOnly={readOnly} onChange={onChange} />;
+    return <MentionBlock block={block} readOnly={readOnly} onChange={onChange}
+      onMentionTrigger={onMentionTrigger} onGroupMentionClick={onGroupMentionClick} />;
   }
 
   if (props.utilityKind === 'columns') {

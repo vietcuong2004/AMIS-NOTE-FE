@@ -47,11 +47,15 @@ export function saveShareSettings(documentId: string, settings: ShareSettings) {
   memoryStorage.setItem(`misa_share_${documentId}`, JSON.stringify(settings));
 }
 
+export function saveEmployeeGroup(group: EmployeeGroup) {
+  const directory = getEmployeeGroups();
+  if (!directory.some(item => item.id === group.id)) {
+    memoryStorage.setItem(groupDirectoryKey, JSON.stringify([...directory, group]));
+  }
+}
+
 export function grantGroupAccess(doc: Document, access: GroupAccess) {
   const settings = getShareSettings(doc);
-  const directory = getEmployeeGroups();
-  if (!directory.some(group => group.id === access.group.id)) {
-    memoryStorage.setItem(groupDirectoryKey, JSON.stringify([...directory, access.group]));
-  }
+  saveEmployeeGroup(access.group);
   saveShareSettings(doc.id, { ...settings, groups: [...settings.groups.filter(item => item.group.id !== access.group.id), access] });
 }

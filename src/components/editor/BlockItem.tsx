@@ -41,7 +41,6 @@ interface BlockItemProps {
   isDragOver?: boolean;
   isBlockSelected?: boolean;
   compactGutter?: boolean;
-  enableInlineGroupMentions?: boolean;
   onGroupMentionClick?: (groupId: string) => void;
   autoFocus?: boolean;
   autoFocusPosition?: 'start' | 'end';
@@ -71,7 +70,6 @@ export const BlockItem: React.FC<BlockItemProps> = ({
   isDragOver = false,
   isBlockSelected = false,
   compactGutter = false,
-  enableInlineGroupMentions = false,
   onGroupMentionClick,
   autoFocus = false,
   autoFocusPosition = 'start',
@@ -146,13 +144,13 @@ export const BlockItem: React.FC<BlockItemProps> = ({
     onUpdate(block.id, val, { ...block.properties, inlineGroupMentions: inlineGroupMentions.length ? inlineGroupMentions : undefined,
       inlineLinks: shiftInlineRanges(block.properties?.inlineLinks, block.content, val) });
 
-    const mention = enableInlineGroupMentions ? getMentionTrigger(val, e.currentTarget.selectionStart, inlineGroupMentions) : undefined;
-    const rect = textRef.current?.getBoundingClientRect();
-    if (rect && mention) {
+    const mention = getMentionTrigger(val, e.currentTarget.selectionStart, inlineGroupMentions);
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (mention) {
       onTriggerSlash(block.id, mention.query, rect, mention);
       return;
-    } else if (rect && (val.startsWith('/') || (!enableInlineGroupMentions && val.startsWith('@')))) {
-      onTriggerSlash(block.id, val.startsWith('/') ? val.slice(1) : val, rect);
+    } else if (val.startsWith('/')) {
+      onTriggerSlash(block.id, val.slice(1), rect);
       return;
     }
     onTriggerSlash(block.id, '', null);
@@ -200,6 +198,8 @@ export const BlockItem: React.FC<BlockItemProps> = ({
       case 'embed':
       case 'utility':
         return <UtilityBlock block={block} readOnly={isReadOnly}
+          onMentionTrigger={(mention, rect) => onTriggerSlash(block.id, mention?.query ?? '', rect, mention)}
+          onGroupMentionClick={onGroupMentionClick}
           onChange={(content, properties) => onUpdate(block.id, content, properties)} />;
       case 'h4':
         return <LinkedTextarea links={block.properties?.inlineLinks} groupMentions={block.properties?.inlineGroupMentions} onGroupMentionClick={onGroupMentionClick} ref={textRef} rows={1} disabled={isReadOnly}
@@ -254,7 +254,7 @@ export const BlockItem: React.FC<BlockItemProps> = ({
         return <ListBlock block={block} readOnly={isReadOnly} autoFocus={autoFocus}
           onGroupMentionClick={onGroupMentionClick}
           onExitItem={onExitListItem ? (itemIndex) => onExitListItem(block.id, itemIndex) : undefined}
-          onMentionTrigger={enableInlineGroupMentions ? (mention, rect) => onTriggerSlash(block.id, mention?.query ?? '', rect, mention ?? undefined) : undefined}
+          onMentionTrigger={(mention, rect) => onTriggerSlash(block.id, mention?.query ?? '', rect, mention ?? undefined)}
           onChange={(content, properties) => onUpdate(block.id, content, properties)} />;
 
       case 'toggle':

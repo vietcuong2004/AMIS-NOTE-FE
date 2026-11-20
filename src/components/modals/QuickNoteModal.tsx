@@ -22,7 +22,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { Block, BlockProperties, BlockType, QuickNote } from '../../types';
+import { Block, BlockProperties, BlockType, EmployeeGroup, GroupAccess, QuickNote } from '../../types';
 import {
   BlockFocusTarget,
   computeBlocksAfterDelete,
@@ -41,6 +41,7 @@ import { formatDateTime } from '../../utils/dateTime';
 import { navigateEditorArrow } from '../../utils/editorArrowNavigation';
 import { useMultiBlockSelection } from '../../utils/multiBlockSelection';
 import { recordSlashCommand } from '../../utils/slashHistory';
+import { getEmployeeGroups, saveEmployeeGroup } from '../../utils/documentSharing';
 import {
   convertQuickNoteBlock,
   createEmptyQuickNoteBlock,
@@ -57,6 +58,8 @@ import {
 } from '../../utils/quickNotes';
 import { BlockItem } from '../editor/BlockItem';
 import { EmptyBlockRow } from '../editor/EmptyBlockRow';
+import { GroupMentionFlow, MentionDialog } from '../editor/MentionBlock';
+import { insertMentionInBlocks, personMentionEntries, type MentionEntry, type MentionRange, type MentionTarget } from '../editor/inlineMentions';
 import { SlashMenu } from '../editor/SlashMenu';
 import { commandForShortcut, SLASH_COMMANDS } from '../editor/slashCommands';
 import { RenameDialog } from './RenameDialog';
@@ -346,8 +349,11 @@ export const QuickNoteModal: React.FC<QuickNoteModalProps> = ({
     isOpen: boolean;
     blockId: string | null;
     query: string;
+    mentionRange?: MentionRange;
     position?: { top: number; left: number; lineTop?: number };
   }>({ isOpen: false, blockId: null, query: '' });
+  const [groupSearch, setGroupSearch] = useState<{ blockId: string; range?: MentionRange } | null>(null);
+  const [personSearch, setPersonSearch] = useState<MentionTarget | null>(null);
 
   const activeNoteIdRef = useRef<string | null>(activeNoteId);
   activeNoteIdRef.current = activeNoteId;
@@ -636,6 +642,8 @@ export const QuickNoteModal: React.FC<QuickNoteModalProps> = ({
       setListMenuState(null);
       setRenamingNote(null);
       setSlashState({ isOpen: false, blockId: null, query: '' });
+      setGroupSearch(null);
+      setPersonSearch(null);
       initializeNotesOnOpen();
     } else if (!isOpen && wasOpenRef.current) {
       wasOpenRef.current = false;
@@ -764,6 +772,8 @@ export const QuickNoteModal: React.FC<QuickNoteModalProps> = ({
     setOpenPopover(null);
     setListMenuState(null);
     setSlashState({ isOpen: false, blockId: null, query: '' });
+    setGroupSearch(null);
+    setPersonSearch(null);
     if (viewRef.current === 'editor' && (dirtyRef.current || inFlightSavesRef.current.size > 0)) {
       const flushResult = flushActiveSave();
       const ok = isThenable<boolean>(flushResult) ? await flushResult : flushResult;
@@ -1253,8 +1263,41 @@ export const QuickNoteModal: React.FC<QuickNoteModalProps> = ({
     handleAddBlockBelow(index);
   };
 
+  const insertQuickNoteMentions = (target: MentionTarget, entries: MentionEntry[]) => {
+    const result = insertMentionInBlocks(draftRef.current.blocks, target, entries);
+    if (!result) return;
+    pendingBackspaceFocusRef.current = result.focus;
+    setActiveBlockId(result.focus.blockId);
+    setFocusedBlockId(result.focus.blockId);
+    setSlashState({ isOpen: false, blockId: null, query: '' });
+    setPersonSearch(null);
+    setGroupSearch(null);
+    updateDraftAndAutosave(previous => ({ ...previous, blocks: result.blocks, updatedAt: new Date().toISOString() }));
+  };
+
+  const getInlineRange = (blockId: string) => {
+    if (slashState.blockId !== blockId || !slashState.mentionRange) return;
+    const range = slashState.mentionRange;
+    const block = draftRef.current.blocks.find(item => item.id === blockId);
+    if (block && (range.itemId || block.type !== 'paragraph' || range.start > 0 || range.end < block.content.length)) return range;
+  };
+
   const handleSelectSlashItem = (type: BlockType, extraProps?: BlockProperties, targetId = slashState.blockId, preserveText = false) => {
     if (!targetId) return;
+    const range = getInlineRange(targetId);
+    if (extraProps?.utilityKind === 'Nhắc đến một nhóm' && !extraProps.mention) {
+      setGroupSearch({ blockId: targetId, range });
+      setSlashState({ isOpen: false, blockId: null, query: '' });
+      return;
+    }
+    if (extraProps?.utilityKind === 'Nhắc đến một người' && range) {
+      if (extraProps.mention) insertQuickNoteMentions({ blockId: targetId, range }, personMentionEntries(extraProps.mention));
+      else {
+        setPersonSearch({ blockId: targetId, range });
+        setSlashState({ isOpen: false, blockId: null, query: '' });
+      }
+      return;
+    }
     let nextFocusId = targetId;
     updateDraftAndAutosave((prev) => ({
       ...prev,
@@ -1270,6 +1313,21 @@ export const QuickNoteModal: React.FC<QuickNoteModalProps> = ({
     setActiveBlockId(nextFocusId);
     setFocusedBlockId(nextFocusId);
     setSlashState({ isOpen: false, blockId: null, query: '' });
+  };
+
+  const selectQuickNoteGroup = (group: EmployeeGroup, blockId: string | null, range?: MentionRange, access?: GroupAccess) => {
+    if (!blockId) return;
+    if (access) saveEmployeeGroup(group);
+    if (range) {
+      insertQuickNoteMentions({ blockId, range }, [{ name: group.name, data: { groupId: group.id } }]);
+      return;
+    }
+    handleSelectSlashItem('utility', {
+      utilityKind: 'Nhắc đến một nhóm',
+      mention: { kind: 'group', groupName: group.name, emails: group.emails, permission: access?.permission ?? 'view',
+        permissions: access?.permissions, message: access?.message ?? '', scope: 'page' },
+    }, blockId);
+    setGroupSearch(null);
   };
 
   const handleSlashColor = (color: string, isBackground: boolean) => {
@@ -1964,7 +2022,7 @@ export const QuickNoteModal: React.FC<QuickNoteModalProps> = ({
                       onMoveUp={(id) => handleMoveBlock(id, -1)}
                       onMoveDown={(id) => handleMoveBlock(id, 1)}
                       onAddBelow={handleAddBlockBelow}
-                      onTriggerSlash={(blockId, query, rect) => {
+                      onTriggerSlash={(blockId, query, rect, mentionRange) => {
                         if (!rect) {
                           setSlashState({ isOpen: false, blockId: null, query: '' });
                           return;
@@ -1973,6 +2031,7 @@ export const QuickNoteModal: React.FC<QuickNoteModalProps> = ({
                           isOpen: true,
                           blockId,
                           query,
+                          mentionRange,
                           position: { top: rect.bottom + 6, left: rect.left, lineTop: rect.top },
                         });
                       }}
@@ -1990,6 +2049,8 @@ export const QuickNoteModal: React.FC<QuickNoteModalProps> = ({
                     position={slashState.position}
                     onSelect={handleSelectSlashItem}
                     onApplyColor={handleSlashColor}
+                    groups={slashState.query.startsWith('@') ? getEmployeeGroups() : undefined}
+                    onSelectGroup={group => selectQuickNoteGroup(group, slashState.blockId, slashState.blockId ? getInlineRange(slashState.blockId) : undefined)}
                     onClose={() => setSlashState({ isOpen: false, blockId: null, query: '' })}
                   />
                 )}
@@ -2049,6 +2110,17 @@ export const QuickNoteModal: React.FC<QuickNoteModalProps> = ({
         </div>
       )}
 
+      {groupSearch && <GroupMentionFlow onConfirm={(group, access) => selectQuickNoteGroup(group, groupSearch.blockId, groupSearch.range, access)}
+        onClose={() => {
+          focusBlockAtOffset(blocksContainerRef.current, groupSearch.blockId, groupSearch.range?.end, groupSearch.range?.itemId);
+          setGroupSearch(null);
+        }} />}
+      {personSearch && <MentionDialog kind="person"
+        onSave={mention => insertQuickNoteMentions(personSearch, personMentionEntries(mention))}
+        onClose={() => {
+          focusBlockAtOffset(blocksContainerRef.current, personSearch.blockId, personSearch.range.end, personSearch.range.itemId);
+          setPersonSearch(null);
+        }} />}
       {renamingNote && (
         <RenameDialog
           kind="document"

@@ -97,8 +97,9 @@ export interface MindMapNode {
 }
 
 export interface InlineLink { start: number; end: number; url: string }
-export interface InlineGroupMention { start: number; end: number; groupId: string }
 export type DocumentPermission = 'full' | 'edit' | 'comment' | 'view';
+export type InlineMentionData = { groupId: string } | { email: string; permission: DocumentPermission; message: string };
+export type InlineMention = { start: number; end: number } & InlineMentionData;
 
 export interface EmployeeGroup {
   id: string;
@@ -115,13 +116,14 @@ export interface GroupAccess {
 
 export interface BlockProperties {
   inlineLinks?: InlineLink[];
-  inlineGroupMentions?: InlineGroupMention[];
+  /** Stored under the existing key so previously saved group mentions still load. */
+  inlineGroupMentions?: InlineMention[];
   bold?: boolean;
   italic?: boolean;
   underline?: boolean;
   fontFamily?: string;
   fontSize?: number;
-  listItems?: { id: string; content: string; checked?: boolean; level?: number; inlineLinks?: InlineLink[]; inlineGroupMentions?: InlineGroupMention[] }[];
+  listItems?: { id: string; content: string; checked?: boolean; level?: number; inlineLinks?: InlineLink[]; inlineGroupMentions?: InlineMention[] }[];
   textColor?: string;
   backgroundColor?: string;
   mention?: {
