@@ -1571,6 +1571,72 @@ test('the at menu groups suggestions and search actions, and inserts people with
   assert(document.querySelector('[data-person-mention="nam.le@congty.vn"]'));
 });
 
+test('typing @ on empty line focuses continuation cursor immediately for editing without creating extra block', async () => {
+  const { saveStoredDocuments } = await import('../utils/storage');
+  const base = getStoredDocuments().find(doc => !doc.isTrash)!;
+  saveStoredDocuments([{ ...base, id: 'mention-cursor-test', blocks: [
+    { id: 'mention-cursor-line', type: 'paragraph', content: '' },
+  ] }]);
+  await mount('/documents/mention-cursor-test');
+  const field = document.querySelector<HTMLTextAreaElement>('[data-block-id="mention-cursor-line"] textarea')!;
+  await act(async () => {
+    field.focus();
+    Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')!.set!.call(field, '@');
+    field.setSelectionRange(1, 1);
+    field.dispatchEvent(new window.Event('input', { bubbles: true }));
+  });
+  const menu = document.querySelector('[aria-label="Chèn tiện ích nhanh"]')!;
+  assert(menu);
+  const vcItem = menu.querySelector('[aria-label="Việt Cường"]')!;
+  assert(vcItem);
+  await click(vcItem);
+  const allBlocks = document.querySelectorAll('[data-block-id]');
+  assert.equal(allBlocks.length, 1);
+  const continuation = document.querySelector<HTMLTextAreaElement>('[aria-label="Nội dung sau thẻ nhắc đến"]')!;
+  assert(continuation);
+  assert.equal(document.activeElement, continuation);
+  assert.equal(continuation.selectionStart, 0);
+  assert.equal(continuation.selectionEnd, 0);
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')!.set!.call(continuation, 'aa adad');
+    continuation.dispatchEvent(new window.Event('input', { bubbles: true }));
+  });
+  assert.equal(continuation.value, 'aa adad');
+  await act(async () => {
+    continuation.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  });
+  const blocksAfterEnter = document.querySelectorAll('[data-block-id]');
+  assert.equal(blocksAfterEnter.length, 2);
+});
+
+test('typing @ on empty line and pressing Enter to select mention focuses continuation immediately without extra block', async () => {
+  const { saveStoredDocuments } = await import('../utils/storage');
+  const base = getStoredDocuments().find(doc => !doc.isTrash)!;
+  saveStoredDocuments([{ ...base, id: 'mention-enter-test', blocks: [
+    { id: 'mention-enter-line', type: 'paragraph', content: '' },
+  ] }]);
+  await mount('/documents/mention-enter-test');
+  const field = document.querySelector<HTMLTextAreaElement>('[data-block-id="mention-enter-line"] textarea')!;
+  await act(async () => {
+    field.focus();
+    Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')!.set!.call(field, '@cuong');
+    field.setSelectionRange(6, 6);
+    field.dispatchEvent(new window.Event('input', { bubbles: true }));
+  });
+  const menu = document.querySelector('[aria-label="Chèn tiện ích nhanh"]')!;
+  assert(menu);
+  assert.equal(menu.querySelector('[aria-selected="true"]')?.getAttribute('aria-label'), 'Việt Cường');
+  await act(async () => {
+    window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  });
+  const allBlocks = document.querySelectorAll('[data-block-id]');
+  assert.equal(allBlocks.length, 1);
+  const continuation = document.querySelector<HTMLTextAreaElement>('[aria-label="Nội dung sau thẻ nhắc đến"]')!;
+  assert(continuation);
+  assert.equal(document.activeElement, continuation);
+  assert.equal(continuation.selectionStart, 0);
+});
+
 test('typing @ opens the person-first mention menu after punctuation, after a pill, and during editor scrolling', async () => {
   const { saveStoredDocuments } = await import('../utils/storage');
   const base = getStoredDocuments().find(doc => !doc.isTrash)!;
@@ -1750,6 +1816,8 @@ test('invitations save individual permissions, create groups and reuse simple me
   await click(button('Hủy', dialog));
   await fill(document.querySelector('[data-block-id="mention-reuse"] textarea')!, '@cuong.viet');
   await click(document.querySelector('button[data-slash-command-title="Việt Cường"]'));
+  const reusedContinuation = document.querySelector<HTMLTextAreaElement>('[data-block-id="mention-reuse"] textarea')!;
+  assert.equal(document.activeElement, reusedContinuation);
   await mount('/library/private');
   const reused = getStoredDocuments().find(doc => doc.id === 'mentions-test')!.blocks[2];
   assert.equal(reused.content, '@Việt Cường');

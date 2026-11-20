@@ -2116,10 +2116,16 @@ export const QuickNoteModal: React.FC<QuickNoteModalProps> = ({
           setGroupSearch(null);
         }} />}
       {personSearch && <MentionDialog kind="person"
-        onSave={mention => insertQuickNoteMentions(personSearch, personMentionEntries(mention))}
-        onClose={() => {
-          focusBlockAtOffset(blocksContainerRef.current, personSearch.blockId, personSearch.range.end, personSearch.range.itemId);
+        onSave={mention => {
+          const target = personSearch;
           setPersonSearch(null);
+          insertQuickNoteMentions(target, personMentionEntries(mention));
+        }}
+        onClose={() => {
+          if (personSearch) {
+            focusBlockAtOffset(blocksContainerRef.current, personSearch.blockId, personSearch.range.end, personSearch.range.itemId);
+            setPersonSearch(null);
+          }
         }} />}
       {renamingNote && (
         <RenameDialog

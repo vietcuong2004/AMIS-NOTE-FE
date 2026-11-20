@@ -159,7 +159,7 @@ export const BlockItem: React.FC<BlockItemProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.nativeEvent.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key === 'Enter' && !e.shiftKey) {
-      if (['paragraph', 'h1', 'h2', 'h3', 'h4', 'bullet', 'numbered', 'checklist'].includes(block.type)) {
+      if (['paragraph', 'h1', 'h2', 'h3', 'h4', 'bullet', 'numbered', 'checklist', 'utility'].includes(block.type)) {
         e.preventDefault();
         onAddBelow(index);
       }
@@ -198,6 +198,7 @@ export const BlockItem: React.FC<BlockItemProps> = ({
       case 'embed':
       case 'utility':
         return <UtilityBlock block={block} readOnly={isReadOnly}
+          autoFocus={autoFocus} autoFocusPosition={autoFocusPosition} onKeyDown={handleKeyDown}
           onMentionTrigger={(mention, rect) => onTriggerSlash(block.id, mention?.query ?? '', rect, mention)}
           onGroupMentionClick={onGroupMentionClick}
           onChange={(content, properties) => onUpdate(block.id, content, properties)} />;

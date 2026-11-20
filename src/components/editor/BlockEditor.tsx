@@ -611,6 +611,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     });
 
     const updatedDoc = { ...doc, blocks: updatedBlocks, updatedAt: new Date().toISOString() };
+    pendingBlockFocusRef.current = { blockId: focusId, offset: Number.MAX_SAFE_INTEGER };
     setFocusedBlockId(focusId);
     setDoc(updatedDoc);
     triggerAutoSave(updatedDoc);
@@ -1284,10 +1285,16 @@ function getTextareaSelectionCoords(
       {groupMentionTarget && !isReadOnly && <GroupMentionFlow
         onConfirm={(group, access) => insertGroupMention(groupMentionTarget, group, access)} onClose={closeGroupMention} />}
       {personMentionTarget && !isReadOnly && <MentionDialog kind="person"
-        onSave={mention => insertPersonMention(personMentionTarget, mention)} onClose={() => {
-          const { blockId, range } = personMentionTarget;
-          focusBlockAtOffset(blocksContainerRef.current, blockId, range.end, range.itemId);
+        onSave={mention => {
+          const target = personMentionTarget;
           setPersonMentionTarget(null);
+          insertPersonMention(target, mention);
+        }} onClose={() => {
+          if (personMentionTarget) {
+            const { blockId, range } = personMentionTarget;
+            focusBlockAtOffset(blocksContainerRef.current, blockId, range.end, range.itemId);
+            setPersonMentionTarget(null);
+          }
         }} />}
       {groupToInvite && !isReadOnly && <GroupInvitationDialog group={groupToInvite}
         onSave={saveGroupAccess} onClose={() => setGroupToInvite(null)} />}

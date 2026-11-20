@@ -230,6 +230,7 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, 
       if (event.key === 'Escape') { onClose(); return; }
       if (!selectableItems.length) return;
       if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
         keepPreviewOpen();
         const direction = event.key === 'ArrowDown' ? 1 : -1;
         const nextIndex = (selectedIndex + direction + selectableItems.length) % selectableItems.length;
@@ -237,6 +238,8 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, 
         setHoveredItemId(selectableItems[nextIndex].id);
       }
       if (event.key === 'Enter') {
+        event.preventDefault();
+        event.stopPropagation();
         const item = selectableItems[Math.min(selectedIndex, selectableItems.length - 1)];
         selectItem(item);
       }

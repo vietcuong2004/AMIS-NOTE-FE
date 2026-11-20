@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Info, Plus, Search, Trash2, Users, X } from 'lucide-react';
 import { Block, BlockProperties, EmployeeGroup, GroupAccess } from '../../types';
@@ -38,10 +38,11 @@ export function MentionDialog({ kind, value, group, onSave, onClose }: {
   ));
   const [error, setError] = useState('');
   const initial = useRef<HTMLInputElement>(null);
+  const savedRef = useRef(false);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     if (kind === 'group') initial.current?.focus();
-    return () => { if (previous?.isConnected) previous.focus(); };
+    return () => { if (!savedRef.current && previous?.isConnected) previous.focus(); };
   }, []);
 
   return createPortal(<div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/30 p-4"
@@ -61,6 +62,7 @@ export function MentionDialog({ kind, value, group, onSave, onClose }: {
         }
         if (!emails.length) { setError('Thêm ít nhất một nhân viên vào danh sách được mời.'); return; }
         if (pending.length) { setError('Bấm Thêm để đưa những người vừa chọn vào danh sách trước khi gửi.'); return; }
+        savedRef.current = true;
         onSave({ kind, emails, groupName: kind === 'group' ? groupName.trim() : undefined,
           message: message.trim(), permission: kind === 'group' ? groupPermission : roles[emails[0]] || defaultPermission,
           permissions: Object.fromEntries(emails.map(email => [email, roles[email] || groupPermission])), scope: 'page' });
@@ -185,8 +187,22 @@ export function GroupMentionFlow({ onConfirm, onClose }: {
   </div>, document.body);
 }
 
-export function MentionBlock({ block, readOnly, onChange, onMentionTrigger, onGroupMentionClick }: {
-  block: Block; readOnly: boolean; onChange: (content: string, properties: BlockProperties) => void;
+export function MentionBlock({
+  block,
+  readOnly,
+  autoFocus,
+  autoFocusPosition = 'start',
+  onKeyDown,
+  onChange,
+  onMentionTrigger,
+  onGroupMentionClick,
+}: {
+  block: Block;
+  readOnly: boolean;
+  autoFocus?: boolean;
+  autoFocusPosition?: 'start' | 'end';
+  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  onChange: (content: string, properties: BlockProperties) => void;
   onMentionTrigger?: (mention: ReturnType<typeof getMentionTrigger>, rect: DOMRect | null) => void;
   onGroupMentionClick?: (groupId: string) => void;
 }) {
@@ -201,6 +217,14 @@ export function MentionBlock({ block, readOnly, onChange, onMentionTrigger, onGr
     onChange(mentionBlockContent(mention, text), { ...block.properties, mention, mentionTrailingText: text || undefined,
       inlineGroupMentions: ranges?.length ? ranges : undefined });
   };
+
+  useLayoutEffect(() => {
+    if (!autoFocus || readOnly || !continuation.current) return;
+    continuation.current.focus();
+    const pos = autoFocusPosition === 'end' ? continuation.current.value.length : 0;
+    continuation.current.setSelectionRange(pos, pos);
+  }, [autoFocus, autoFocusPosition, readOnly]);
+
   return <div data-mention-row className="flex min-h-6 flex-wrap items-start gap-x-1 gap-y-0"
     onMouseDown={event => {
       if (event.target === event.currentTarget && event.button === 0 && !event.shiftKey && continuation.current) event.stopPropagation();
@@ -220,6 +244,7 @@ export function MentionBlock({ block, readOnly, onChange, onMentionTrigger, onGr
       ? trailingText && <span className="whitespace-pre-wrap break-words text-sm leading-6">{trailingText}</span>
       : <LinkedTextarea ref={continuation} aria-label="Nội dung sau thẻ nhắc đến" rows={1} value={trailingText} disabled={readOnly}
           groupMentions={trailingMentions} onGroupMentionClick={onGroupMentionClick}
+          onKeyDown={onKeyDown}
           onChange={event => {
             const input = event.currentTarget;
             const text = input.value;
@@ -230,6 +255,13 @@ export function MentionBlock({ block, readOnly, onChange, onMentionTrigger, onGr
           }}
           className="min-h-6 min-w-12 flex-1 resize-none bg-transparent p-0 text-sm leading-6 text-[var(--ui-text)] outline-none [field-sizing:content]" />)}
     {open && !readOnly && <MentionDialog kind={kind} value={value} onClose={() => setOpen(false)}
-      onSave={mention => updateMention(mention, trailingText)} />}
+      onSave={mention => {
+        updateMention(mention, trailingText);
+        setOpen(false);
+        (typeof window !== 'undefined' && window.requestAnimationFrame ? window.requestAnimationFrame : setTimeout)(() => {
+          continuation.current?.focus();
+          continuation.current?.setSelectionRange(trailingText.length, trailingText.length);
+        });
+      }} />}
   </div>;
 }
