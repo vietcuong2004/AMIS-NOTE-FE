@@ -12,16 +12,16 @@ export const CURRENT_USER: User = {
 };
 
 export const TEAM_MEMBERS = [
-  { id: 'usr_vc', name: 'Việt Cường', email: 'cuong.viet@congty.vn', role: 'Quản lý Sản phẩm' },
-  { id: 'usr_02', name: 'Trần Thị Thu Hà', email: 'ha.tran@congty.vn', role: 'Kỹ sư Trưởng (Lead Dev)' },
-  { id: 'usr_03', name: 'Lê Hoàng Nam', email: 'nam.le@congty.vn', role: 'Thiết kế Trải nghiệm UI/UX' },
-  { id: 'usr_04', name: 'Phạm Quỳnh Anh', email: 'anh.pham@congty.vn', role: 'Quản lý Dự án (PM)' },
-  { id: 'usr_05', name: 'Đặng Tuấn Kiệt', email: 'kiet.dang@congty.vn', role: 'QA & Kiểm thử Hệ thống' },
-  { id: 'usr_06', name: 'Nguyễn Minh Anh', email: 'minhanh.nguyen@congty.vn', role: 'Chuyên viên Phân tích nghiệp vụ' },
-  { id: 'usr_07', name: 'Vũ Đức Huy', email: 'huy.vu@congty.vn', role: 'Lập trình viên Backend' },
-  { id: 'usr_08', name: 'Đỗ Ngọc Linh', email: 'linh.do@congty.vn', role: 'Lập trình viên Frontend' },
-  { id: 'usr_09', name: 'Bùi Thanh Tùng', email: 'tung.bui@congty.vn', role: 'Kỹ sư DevOps' },
-  { id: 'usr_10', name: 'Lê Thu Trang', email: 'trang.le@congty.vn', role: 'Chuyên viên Nhân sự' },
+  { id: 'usr_vc', name: 'Việt Cường', email: 'cuong.viet@congty.vn', phone: '+1 202-555-0100', role: 'Quản lý Sản phẩm' },
+  { id: 'usr_02', name: 'Trần Thị Thu Hà', email: 'ha.tran@congty.vn', phone: '+1 202-555-0101', role: 'Kỹ sư Trưởng (Lead Dev)' },
+  { id: 'usr_03', name: 'Lê Hoàng Nam', email: 'nam.le@congty.vn', phone: '+1 202-555-0102', role: 'Thiết kế Trải nghiệm UI/UX' },
+  { id: 'usr_04', name: 'Phạm Quỳnh Anh', email: 'anh.pham@congty.vn', phone: '+1 202-555-0103', role: 'Quản lý Dự án (PM)' },
+  { id: 'usr_05', name: 'Đặng Tuấn Kiệt', email: 'kiet.dang@congty.vn', phone: '+1 202-555-0104', role: 'QA & Kiểm thử Hệ thống' },
+  { id: 'usr_06', name: 'Nguyễn Minh Anh', email: 'minhanh.nguyen@congty.vn', phone: '+1 202-555-0105', role: 'Chuyên viên Phân tích nghiệp vụ' },
+  { id: 'usr_07', name: 'Vũ Đức Huy', email: 'huy.vu@congty.vn', phone: '+1 202-555-0106', role: 'Lập trình viên Backend' },
+  { id: 'usr_08', name: 'Đỗ Ngọc Linh', email: 'linh.do@congty.vn', phone: '+1 202-555-0107', role: 'Lập trình viên Frontend' },
+  { id: 'usr_09', name: 'Bùi Thanh Tùng', email: 'tung.bui@congty.vn', phone: '+1 202-555-0108', role: 'Kỹ sư DevOps' },
+  { id: 'usr_10', name: 'Lê Thu Trang', email: 'trang.le@congty.vn', phone: '+1 202-555-0109', role: 'Chuyên viên Nhân sự' },
 ];
 
 export const INITIAL_FOLDERS: Folder[] = [
@@ -50,8 +50,16 @@ export const INITIAL_FOLDERS: Folder[] = [
     updatedAt: '2026-11-05T11:00:00Z',
   },
   {
+    id: 'fld_product_docs',
+    name: 'Tài liệu chung',
+    space: 'company',
+    icon: '📁',
+    createdAt: '2026-10-05T13:15:00Z',
+    updatedAt: '2026-11-03T18:00:00Z',
+  },
+  {
     id: 'fld_projects',
-    name: 'Dự án',
+    name: 'Phòng Sản xuất',
     space: 'company',
     icon: '📁',
     createdAt: '2026-09-01T08:00:00Z',
@@ -59,19 +67,27 @@ export const INITIAL_FOLDERS: Folder[] = [
   },
   {
     id: 'fld_process',
-    name: 'Quy trình',
+    name: 'Phòng Nhân sự',
     space: 'company',
     icon: '📁',
     createdAt: '2026-09-01T08:00:00Z',
     updatedAt: '2026-10-30T16:45:00Z',
   },
   {
-    id: 'fld_product_docs',
-    name: 'Tài liệu sản phẩm',
+    id: 'fld_engineering',
+    name: 'Phòng Kỹ thuật',
     space: 'company',
     icon: '📁',
-    createdAt: '2026-10-05T13:15:00Z',
-    updatedAt: '2026-11-03T18:00:00Z',
+    createdAt: '2026-09-02T08:00:00Z',
+    updatedAt: '2026-11-04T09:30:00Z',
+  },
+  {
+    id: 'fld_sales',
+    name: 'Phòng Kinh doanh',
+    space: 'company',
+    icon: '📁',
+    createdAt: '2026-09-03T08:00:00Z',
+    updatedAt: '2026-11-04T11:00:00Z',
   },
 ];
 
@@ -89,7 +105,6 @@ function createFolderMockDocument(input: {
   updatedOffsetMinutes: number;
   createdOffsetMinutes?: number;
   author?: Document['author'];
-  permission?: UserRole;
 }): Document {
   const createdOffset = input.createdOffsetMinutes ?? input.updatedOffsetMinutes + 180;
   return {
@@ -100,7 +115,7 @@ function createFolderMockDocument(input: {
     folderId: input.folderId,
     type: input.type,
     tags: input.tags,
-    permission: input.permission ?? 'owner',
+    permission: 'owner',
     isPrivate: input.space === 'personal',
     author: input.author ?? CURRENT_USER,
     isFavorite: false,
@@ -339,24 +354,12 @@ export const TEMPLATES = [
   },
 ];
 
-export const INITIAL_DOCUMENTS: Document[] = [
-  {
-    id: 'doc_odt_meeting_20261026',
-    title: 'Biên bản giao ban sản xuất',
-    icon: '📅',
-    space: 'company',
-    folderId: 'fld_projects',
-    type: 'meeting',
-    tags: ['Cuộc họp', 'Sản xuất'],
-    permission: 'owner',
-    isPrivate: false,
-    author: CURRENT_USER,
-    isFavorite: false,
-    isTrash: false,
-    createdAt: '2026-10-26T06:40:00Z',
-    updatedAt: new Date(NOW - 60 * 1000).toISOString(),
-    blocks: ODT_SAMPLE_BLOCKS,
-  },
+const productionAuthor = { id: 'usr_sp', name: 'Nguyễn Thành Phúc', avatar: 'TP', email: 'phuc.nguyen@congty.vn', department: 'Sản xuất' };
+const humanResourcesAuthor = { id: 'usr_10', name: 'Lê Thu Trang', avatar: 'TT', email: 'trang.le@congty.vn', department: 'Nhân sự' };
+const salesAuthor = { id: 'usr_kd', name: 'Trần Ngọc Mai', avatar: 'NM', email: 'mai.tran@congty.vn', department: 'Kinh doanh' };
+const productAuthor = { id: 'usr_ma', name: 'Minh Anh', avatar: 'MA', email: 'minhanh@congty.vn', department: 'Sản phẩm' };
+
+const mockDocuments: Document[] = [
   {
     id: 'doc_personal_production_meeting',
     title: 'Biên bản giao ban sản xuất',
@@ -470,22 +473,33 @@ export const INITIAL_DOCUMENTS: Document[] = [
     ],
   },
   {
-    id: 'doc_meeting_w45',
-    title: 'Họp sản phẩm tuần 45',
+    id: 'doc_odt_meeting_20261026',
+    title: 'Biên bản giao ban sản xuất',
     icon: '📅',
     space: 'company',
     folderId: 'fld_projects',
     type: 'meeting',
+    tags: ['Cuộc họp', 'Sản xuất'],
+    permission: 'editor',
+    isPrivate: false,
+    author: productionAuthor,
+    isFavorite: false,
+    isTrash: false,
+    createdAt: '2026-10-26T06:40:00Z',
+    updatedAt: new Date(NOW - 60 * 1000).toISOString(),
+    blocks: ODT_SAMPLE_BLOCKS,
+  },
+  {
+    id: 'doc_meeting_w45',
+    title: 'Họp sản phẩm tuần 45',
+    icon: '📅',
+    space: 'company',
+    folderId: 'fld_product_docs',
+    type: 'meeting',
     tags: ['Cuộc họp', 'Dự án', 'Sản phẩm'],
     permission: 'editor',
     isPrivate: false,
-    author: {
-      id: 'usr_ma',
-      name: 'Minh Anh',
-      avatar: 'MA',
-      email: 'minhanh@congty.vn',
-      department: 'Sản phẩm',
-    },
+    author: productAuthor,
     isFavorite: false,
     isTrash: false,
     createdAt: new Date(NOW - 2 * 60 * 60 * 1000).toISOString(),
@@ -635,7 +649,7 @@ export const INITIAL_DOCUMENTS: Document[] = [
     title: 'Kế hoạch triển khai MISA Note quý IV',
     icon: '🚀',
     space: 'company',
-    folderId: 'fld_projects',
+    folderId: 'fld_product_docs',
     type: 'plan',
     tags: ['Dự án', 'Kế hoạch', 'Quý IV'],
     updatedOffsetMinutes: 90,
@@ -669,6 +683,7 @@ export const INITIAL_DOCUMENTS: Document[] = [
     type: 'internal_doc',
     tags: ['Quy trình', 'Nhân sự', 'Onboarding'],
     updatedOffsetMinutes: 150,
+    author: humanResourcesAuthor,
     blocks: [
       { id: 'b_proc1_1', type: 'h2', content: '1. Tuần đầu tiên' },
       { id: 'b_proc1_2', type: 'checklist', content: 'Nhận tài khoản email công ty và quyền truy cập MISA Note', properties: { checked: true } },
@@ -689,7 +704,6 @@ export const INITIAL_DOCUMENTS: Document[] = [
     tags: ['Quy trình', 'Tài liệu công ty', 'Chuẩn hóa'],
     updatedOffsetMinutes: 300,
     author: { id: 'usr_02', name: 'Trần Thị Thu Hà', avatar: 'TH', email: 'ha.tran@congty.vn', department: 'Kỹ thuật' },
-    permission: 'editor',
     blocks: [
       { id: 'b_proc2_1', type: 'numbered', content: 'Khởi tạo bản thảo trong thư mục chuyên môn tương ứng và gắn đầy đủ thẻ phân loại' },
       { id: 'b_proc2_2', type: 'numbered', content: 'Chia sẻ quyền xem/nhận xét cho trưởng nhóm để rà soát nội dung kỹ thuật' },
@@ -702,12 +716,11 @@ export const INITIAL_DOCUMENTS: Document[] = [
     title: 'Danh mục kiểm tra trước khi phát hành sản phẩm',
     icon: '✅',
     space: 'company',
-    folderId: 'fld_process',
+    folderId: 'fld_engineering',
     type: 'internal_doc',
     tags: ['Quy trình', 'Phát hành', 'QA'],
     updatedOffsetMinutes: 540,
     author: { id: 'usr_05', name: 'Đặng Tuấn Kiệt', avatar: 'TK', email: 'kiet.dang@congty.vn', department: 'QA' },
-    permission: 'editor',
     blocks: [
       { id: 'b_proc3_1', type: 'h2', content: 'Checklist kiểm thử & vận hành' },
       { id: 'b_proc3_2', type: 'checklist', content: 'Chạy kiểm thử đơn vị và kiểm thử điều hướng đạt 100%', properties: { checked: true } },
@@ -720,7 +733,7 @@ export const INITIAL_DOCUMENTS: Document[] = [
     title: 'Tổng quan kiến trúc trình soạn thảo khối (Block Editor)',
     icon: '🧱',
     space: 'company',
-    folderId: 'fld_product_docs',
+    folderId: 'fld_engineering',
     type: 'internal_doc',
     tags: ['Sản phẩm', 'Kiến trúc', 'Editor'],
     updatedOffsetMinutes: 110,
@@ -738,12 +751,11 @@ export const INITIAL_DOCUMENTS: Document[] = [
     title: 'Đặc tả phân quyền không gian Cá nhân và Công ty',
     icon: '🔐',
     space: 'company',
-    folderId: 'fld_product_docs',
+    folderId: 'fld_engineering',
     type: 'internal_doc',
     tags: ['Sản phẩm', 'Phân quyền', 'Bảo mật'],
     updatedOffsetMinutes: 270,
     author: { id: 'usr_03', name: 'Lê Hoàng Nam', avatar: 'HN', email: 'nam.le@congty.vn', department: 'Thiết kế' },
-    permission: 'editor',
     blocks: [
       {
         id: 'b_prod2_1',
@@ -772,11 +784,102 @@ export const INITIAL_DOCUMENTS: Document[] = [
     type: 'internal_doc',
     tags: ['Sản phẩm', 'Cập nhật', 'Tháng 11'],
     updatedOffsetMinutes: 480,
+    author: productAuthor,
     blocks: [
       { id: 'b_prod3_1', type: 'h2', content: 'Điểm mới nổi bật' },
       { id: 'b_prod3_2', type: 'bullet', content: 'Bỏ thư mục Chưa phân loại trên sidebar, hiển thị tài liệu mới trực tiếp ở đầu không gian' },
       { id: 'b_prod3_3', type: 'bullet', content: 'Tối ưu bố cục phần đầu Sidebar2 gọn gàng khi thu gọn hoặc mở rộng' },
       { id: 'b_prod3_4', type: 'bullet', content: 'Tự động tạo thêm khoảng trống phía dưới khi cuộn tới cuối trang soạn thảo' },
+    ],
+  }),
+  createFolderMockDocument({
+    id: 'doc_production_weekly_plan',
+    title: 'Kế hoạch sản xuất tuần',
+    icon: '📋',
+    space: 'company',
+    folderId: 'fld_projects',
+    type: 'plan',
+    tags: ['Sản xuất', 'Kế hoạch'],
+    updatedOffsetMinutes: 120,
+    author: productionAuthor,
+    blocks: [
+      { id: 'b_sp_1', type: 'checklist', content: 'Đối chiếu tồn kho nguyên vật liệu với kế hoạch sản xuất.' },
+      { id: 'b_sp_2', type: 'checklist', content: 'Xác nhận lịch bàn giao với kho trước thứ Sáu.' },
+    ],
+  }),
+  createFolderMockDocument({
+    id: 'doc_production_shift_handover',
+    title: 'Hướng dẫn bàn giao ca sản xuất',
+    icon: '📄',
+    space: 'company',
+    folderId: 'fld_projects',
+    type: 'internal_doc',
+    tags: ['Sản xuất', 'Bàn giao'],
+    updatedOffsetMinutes: 360,
+    author: productionAuthor,
+    blocks: [
+      { id: 'b_sp_3', type: 'bullet', content: 'Ghi nhận sản lượng đạt chuẩn và các sự cố trong ca.' },
+      { id: 'b_sp_4', type: 'bullet', content: 'Thông báo tình trạng thiết bị và các việc cần theo dõi cho ca sau.' },
+    ],
+  }),
+  createFolderMockDocument({
+    id: 'doc_hr_training_plan',
+    title: 'Kế hoạch đào tạo nội bộ quý IV',
+    icon: '📋',
+    space: 'company',
+    folderId: 'fld_process',
+    type: 'plan',
+    tags: ['Nhân sự', 'Đào tạo'],
+    updatedOffsetMinutes: 420,
+    author: humanResourcesAuthor,
+    blocks: [
+      { id: 'b_hr_1', type: 'checklist', content: 'Thu thập nhu cầu đào tạo từ các phòng ban.' },
+      { id: 'b_hr_2', type: 'checklist', content: 'Chốt lịch học và gửi lời mời cho nhân viên.' },
+    ],
+  }),
+  createFolderMockDocument({
+    id: 'doc_sales_monthly_plan',
+    title: 'Kế hoạch kinh doanh tháng 11',
+    icon: '📈',
+    space: 'company',
+    folderId: 'fld_sales',
+    type: 'plan',
+    tags: ['Kinh doanh', 'Kế hoạch'],
+    updatedOffsetMinutes: 100,
+    author: salesAuthor,
+    blocks: [
+      { id: 'b_kd_1', type: 'bullet', content: 'Rà soát doanh số theo khu vực và giao chỉ tiêu cho từng nhóm.' },
+      { id: 'b_kd_2', type: 'bullet', content: 'Ưu tiên theo dõi các cơ hội dự kiến chốt trong tháng.' },
+    ],
+  }),
+  createFolderMockDocument({
+    id: 'doc_sales_handover_process',
+    title: 'Quy trình bàn giao khách hàng',
+    icon: '📄',
+    space: 'company',
+    folderId: 'fld_sales',
+    type: 'internal_doc',
+    tags: ['Kinh doanh', 'Khách hàng'],
+    updatedOffsetMinutes: 240,
+    author: salesAuthor,
+    blocks: [
+      { id: 'b_kd_3', type: 'checklist', content: 'Xác nhận thông tin liên hệ và phạm vi hợp đồng.' },
+      { id: 'b_kd_4', type: 'checklist', content: 'Bàn giao lịch triển khai và đầu mối hỗ trợ cho khách hàng.' },
+    ],
+  }),
+  createFolderMockDocument({
+    id: 'doc_sales_weekly_review',
+    title: 'Biên bản họp kinh doanh tuần',
+    icon: '📅',
+    space: 'company',
+    folderId: 'fld_sales',
+    type: 'meeting',
+    tags: ['Kinh doanh', 'Cuộc họp'],
+    updatedOffsetMinutes: 320,
+    author: salesAuthor,
+    blocks: [
+      { id: 'b_kd_5', type: 'bullet', content: 'Tổng hợp phản hồi khách hàng và các đề xuất cần gửi phòng Sản phẩm.' },
+      { id: 'b_kd_6', type: 'bullet', content: 'Xác nhận đầu mối phụ trách và hạn xử lý từng cơ hội bán hàng.' },
     ],
   }),
   {
@@ -810,6 +913,19 @@ export const INITIAL_DOCUMENTS: Document[] = [
     ],
   },
 ];
+
+const companyRolesByFolder = new Map<Document['folderId'], Exclude<UserRole, 'owner'>[]>();
+
+export const INITIAL_DOCUMENTS: Document[] = mockDocuments.map(doc => {
+  if (doc.space !== 'company') return doc;
+  let roles = companyRolesByFolder.get(doc.folderId);
+  if (!roles?.length) {
+    roles = ['viewer', 'commenter', 'editor'];
+    companyRolesByFolder.set(doc.folderId, roles);
+  }
+  const [permission] = roles.splice(Math.floor(Math.random() * roles.length), 1);
+  return { ...doc, permission };
+});
 
 export interface SlashMenuItem {
   type: BlockType;

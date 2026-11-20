@@ -207,5 +207,3 @@ MISA-Note/
 ├── vite.config.ts          # Cấu hình Vite & Tailwind v4
 └── README.md               # Tài liệu giới thiệu dự án
 ```
-
----

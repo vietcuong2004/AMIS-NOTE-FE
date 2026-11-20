@@ -24,7 +24,7 @@ const workspace: Omit<AppPagesProps, 'view'> = {
   documents, folders: INITIAL_FOLDERS,
   actions: { onOpenDocument: noop, onToggleFavorite: noop, onSoftDeleteDocument: noop },
   onNavigate: noop, onUseTemplate: noop,
-  editor: { folders: INITIAL_FOLDERS, currentRole: 'owner', onUpdateDocument: noop,
+  editor: { folders: INITIAL_FOLDERS, onUpdateDocument: noop,
     onSoftDeleteDocument: noop, onToggleFavorite: noop, onMoveDocument: noop, onToast: noop },
   trash: { onRestore: noop, onPermanentDelete: noop, onEmptyTrash: noop },
 };
@@ -105,10 +105,12 @@ test('folder, favorites, unclassified, meetings and trash URLs select the correc
   const trash = render('/trash'); assert(trash.includes('TRASHED_NOTE')); assert(!trash.includes('PERSONAL_ROOT_NOTE'));
 });
 
-test('template URLs render five cards and direct-use actions', () => {
+test('template URLs render note, mind map and Excel cards with direct-use actions', () => {
   const html = render('/templates');
-  assert.equal((html.match(/<article/g) || []).length, 5);
-  assert.equal((html.match(/aria-label="Sử dụng mẫu /g) || []).length, 5);
+  assert.equal((html.match(/<article/g) || []).length, 14);
+  assert.equal((html.match(/aria-label="Sử dụng mẫu /g) || []).length, 14);
+  assert.equal((html.match(/mind-map-template-thumbnail/g) || []).length, 3);
+  assert.equal((html.match(/spreadsheet-grid--compact/g) || []).length, 6);
 });
 
 test('document links open the specified editor; missing entities render a recovery page', () => {
@@ -123,11 +125,19 @@ test('every default folder in personal and company spaces starts with three mock
   assert.equal(new Set(INITIAL_DOCUMENTS.map(doc => doc.id)).size, INITIAL_DOCUMENTS.length);
   for (const space of ['personal', 'company'] as const) {
     const spaceFolders = INITIAL_FOLDERS.filter(folder => folder.space === space);
-    assert.equal(spaceFolders.length, 3);
+    assert.equal(spaceFolders.length, space === 'personal' ? 3 : 5);
+    if (space === 'company') {
+      assert(spaceFolders.every(folder => !folder.parentId));
+      assert.deepEqual(spaceFolders.map(folder => folder.name), [
+        'Tài liệu chung', 'Phòng Sản xuất', 'Phòng Nhân sự', 'Phòng Kỹ thuật', 'Phòng Kinh doanh',
+      ]);
+    }
     const spaceHtml = renderToStaticMarkup(<AppPages {...workspace} documents={INITIAL_DOCUMENTS} view={viewForLocation(space === 'personal' ? '/private' : '/company')} />);
     for (const folder of spaceFolders) {
       const folderDocs = INITIAL_DOCUMENTS.filter(doc => !doc.isTrash && doc.folderId === folder.id && doc.space === space);
       assert.equal(folderDocs.length, 3, `Expected 3 active mock docs in ${folder.id}`);
+      assert.deepEqual(folderDocs.map(doc => doc.permission).sort(), space === 'personal'
+        ? ['owner', 'owner', 'owner'] : ['commenter', 'editor', 'viewer']);
       const folderHtml = renderToStaticMarkup(<AppPages {...workspace} documents={INITIAL_DOCUMENTS} view={viewForLocation(`/folders/${folder.id}`)} />);
       for (const doc of folderDocs) {
         assert(spaceHtml.includes(`data-folder-document="${doc.id}"`), `Expected ${doc.id} in ${space} root structure`);

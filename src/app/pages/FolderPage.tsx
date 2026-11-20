@@ -7,6 +7,7 @@ import { DocumentPageProps } from './pageTypes';
 import { NotFoundPage } from './NotFoundPage';
 import { Folder, Document, ViewState, SpaceType } from '../../types';
 import { getFolderAncestors } from '../../utils/folders';
+import { DocumentRolePill } from '../../components/DocumentRolePill';
 import { canDropFolderInto, clearActiveDrag, getDragPayload, setDragFolder, setDragDocument } from '../../utils/dnd';
 import { DocumentActionMenu } from '../../components/modals/DocumentActionMenu';
 import { DocumentLinkShare } from '../../components/modals/DocumentLinkShare';
@@ -83,35 +84,45 @@ export function FolderPage({ folderId, rootSpace, favoritesOnly = false, documen
     onDragStart: (event: React.DragEvent) => { event.stopPropagation(); setDragFolder(event, item.id); },
     onDragEnd: () => { clearActiveDrag(); setDragOver(null); },
   });
-  const documentRow = (doc: Document, depth = 0) => <div key={doc.id} data-folder-document={doc.id}
+  const documentRow = (doc: Document, depth = 0) => <tr key={doc.id} data-folder-document={doc.id}
     draggable onDragStart={event => { event.stopPropagation(); setDragDocument(event, doc.id); }} onDragEnd={clearActiveDrag}
-    className="flex items-center gap-1.5 border-b border-[var(--ui-border)]/50 px-4 py-2 hover:bg-[var(--ui-selected)]" style={{ paddingLeft: `${16 + depth * 26}px` }}>
-    <span aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />
-    <FileText className="h-3.5 w-3.5 shrink-0 text-[var(--ui-text)]" strokeWidth={1.75} />
-    <button type="button" onClick={() => actions.onOpenDocument(doc.id)} className="min-w-0 flex-1 truncate text-left text-xs">{doc.title || 'Không có tiêu đề'}</button>
-    <span className="hidden w-52 shrink-0 whitespace-nowrap text-right text-xs tabular-nums text-[var(--ui-tertiary)] sm:block">Cập nhật {date(doc.updatedAt)}</span>
-    <div className="flex w-14 shrink-0 justify-end">
-    <button type="button" aria-label={`Tùy chọn tài liệu ${doc.title}`} onClick={event => {
-      const rect = event.currentTarget.getBoundingClientRect();
-      setDocumentMenu({ id: doc.id, top: Math.max(8, Math.min(rect.bottom + 4, window.innerHeight - 260)), left: Math.max(8, Math.min(rect.right - 256, window.innerWidth - 264)) });
-    }} className="rounded-lg p-1.5 text-[var(--ui-tertiary)] hover:bg-[var(--ui-hover)]"><MoreHorizontal className="h-4 w-4" /></button>
-    </div>
-  </div>;
+    className="hover:bg-[var(--ui-selected)]">
+    <td className="py-2 pr-2">
+      <div className="flex items-center gap-1.5" style={{ paddingLeft: `min(${40 + depth * 26}px, 42%)` }}>
+        <FileText aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[var(--ui-text)]" strokeWidth={1.75} />
+        <button type="button" onClick={() => actions.onOpenDocument(doc.id)} className="min-w-0 flex-1 truncate text-left">{doc.title || 'Không có tiêu đề'}</button>
+      </div>
+    </td>
+    <td className="py-2">
+      <DocumentRolePill role={doc.permission ?? 'owner'} />
+    </td>
+    <td className="hidden whitespace-nowrap text-right tabular-nums text-[var(--ui-tertiary)] @lg:table-cell">{date(doc.updatedAt)}</td>
+    <td className="py-2 pr-3 text-right">
+      <button type="button" aria-label={`Tùy chọn tài liệu ${doc.title}`} onClick={event => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        setDocumentMenu({ id: doc.id, top: Math.max(8, Math.min(rect.bottom + 4, window.innerHeight - 260)), left: Math.max(8, Math.min(rect.right - 256, window.innerWidth - 264)) });
+      }} className="rounded-lg p-1.5 align-middle text-[var(--ui-tertiary)] hover:bg-[var(--ui-hover)]"><MoreHorizontal className="h-4 w-4" /></button>
+    </td>
+  </tr>;
   const tree = (parentId: string, depth = 0, seen = new Set<string>()): React.ReactNode => <>
     {childFolders(parentId).filter(item => !seen.has(item.id)).map(item => <React.Fragment key={item.id}>
-      <div data-folder-entry={item.id} {...dragFolder(item)} {...dropProps(item.id)}
-        className={`group flex items-center gap-1.5 border-b border-[var(--ui-border)]/50 px-4 py-2 ${dragOver === item.id ? 'bg-[var(--ui-selected)] ring-2 ring-inset ring-[var(--ui-primary)]' : 'hover:bg-[var(--ui-selected)]'}`}
-        style={{ paddingLeft: `${16 + depth * 26}px` }}>
-        <button type="button" aria-label={`${collapsed.has(item.id) ? 'Mở rộng' : 'Thu gọn'} ${item.name}`} aria-expanded={!collapsed.has(item.id)}
-          onClick={() => setCollapsed(previous => { const next = new Set(previous); if (next.has(item.id)) next.delete(item.id); else next.add(item.id); return next; })}
-          className="rounded p-0.5 text-[var(--ui-tertiary)] hover:bg-[var(--ui-border)]">{collapsed.has(item.id) ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}</button>
-        {collapsed.has(item.id)
-          ? <FolderIcon className="h-3.5 w-3.5 shrink-0 text-[var(--ui-text)]" strokeWidth={1.75} />
-          : <FolderOpen className="h-3.5 w-3.5 shrink-0 text-[var(--ui-text)]" strokeWidth={1.75} />}
-        <button type="button" onClick={() => onNavigate({ type: 'folder', folderId: item.id })} className="min-w-0 flex-1 truncate text-left text-xs font-medium">{item.name}</button>
-        <span className="hidden w-52 shrink-0 whitespace-nowrap text-right text-xs tabular-nums text-[var(--ui-tertiary)] sm:block">Cập nhật {date(item.updatedAt)}</span>
-        <div className="flex w-14 shrink-0 justify-end">{folderMenu(item)}</div>
-      </div>
+      <tr data-folder-entry={item.id} {...dragFolder(item)} {...dropProps(item.id)}
+        className={`group ${dragOver === item.id ? 'bg-[var(--ui-selected)] ring-2 ring-inset ring-[var(--ui-primary)]' : 'hover:bg-[var(--ui-selected)]'}`}>
+        <td className="py-2 pr-2">
+          <div className="flex items-center gap-1.5" style={{ paddingLeft: `min(${16 + depth * 26}px, 42%)` }}>
+            <button type="button" aria-label={`${collapsed.has(item.id) ? 'Mở rộng' : 'Thu gọn'} ${item.name}`} aria-expanded={!collapsed.has(item.id)}
+              onClick={() => setCollapsed(previous => { const next = new Set(previous); if (next.has(item.id)) next.delete(item.id); else next.add(item.id); return next; })}
+              className="shrink-0 rounded p-0.5 text-[var(--ui-tertiary)] hover:bg-[var(--ui-border)]">{collapsed.has(item.id) ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}</button>
+            {collapsed.has(item.id)
+              ? <FolderIcon className="h-3.5 w-3.5 shrink-0 text-[var(--ui-text)]" strokeWidth={1.75} />
+              : <FolderOpen className="h-3.5 w-3.5 shrink-0 text-[var(--ui-text)]" strokeWidth={1.75} />}
+            <button type="button" onClick={() => onNavigate({ type: 'folder', folderId: item.id })} className="min-w-0 flex-1 truncate text-left font-medium">{item.name}</button>
+          </div>
+        </td>
+        <td className="text-[var(--ui-tertiary)]">—</td>
+        <td className="hidden whitespace-nowrap text-right tabular-nums text-[var(--ui-tertiary)] @lg:table-cell">{date(item.updatedAt)}</td>
+        <td className="pr-3"><div className="flex justify-end">{folderMenu(item)}</div></td>
+      </tr>
       {!collapsed.has(item.id) && tree(item.id, depth + 1, new Set([...seen, parentId, item.id]))}
     </React.Fragment>)}
     {folderDocs(parentId).map(doc => documentRow(doc, depth))}
@@ -150,8 +161,8 @@ export function FolderPage({ folderId, rootSpace, favoritesOnly = false, documen
             onMove={actions.onMoveFolderRequest} onDelete={actions.onDeleteFolder} onDuplicate={actions.onDuplicateFolder} />)}
         </div>
       </header>
-      <section aria-label="Nội dung thư mục" data-folder-mode={mode} {...dropProps(folder.id)} className="min-h-36">
-        {mode === 'structure' ? <div className="rounded-xl border border-[var(--ui-border)]">{tree(folder.id)}</div> : <>
+      <section aria-label="Nội dung thư mục" data-folder-mode={mode} {...dropProps(folder.id)} className="@container min-h-36">
+        {mode !== 'structure' &&
           <div className={mode === 'grid' ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'space-y-2'}>
             {children.map(item => <article key={item.id} data-folder-entry={item.id} {...dragFolder(item)} {...dropProps(item.id)}
               className={`group relative rounded-xl border border-[var(--ui-border)] ${dragOver === item.id ? 'bg-[var(--ui-selected)] ring-2 ring-[var(--ui-primary)]' : 'hover:bg-[var(--ui-hover)]'} ${mode === 'grid' ? 'p-5' : 'flex items-center gap-3 p-3'}`}>
@@ -161,9 +172,23 @@ export function FolderPage({ folderId, rootSpace, favoritesOnly = false, documen
               </button>
               <div className={mode === 'grid' ? 'absolute right-2 top-2' : ''}>{folderMenu(item)}</div>
             </article>)}
-          </div>
-          {notes.length > 0 && <div className="mt-5 rounded-xl border border-[var(--ui-border)]">{notes.map(doc => documentRow(doc))}</div>}
-        </>}
+          </div>}
+        {(notes.length > 0 || (mode === 'structure' && children.length > 0)) &&
+          <div className={`rounded-xl border border-[var(--ui-border)] ${mode === 'structure' || !children.length ? '' : 'mt-5'}`}>
+            <table aria-label="Danh sách tài liệu" className="w-full table-fixed border-separate border-spacing-0 text-xs">
+              <thead className="text-[var(--ui-muted)] [&_th]:border-b [&_th]:border-[var(--ui-border)] [&_th]:bg-[var(--ui-subtle)] [&_th]:py-2.5 [&_th]:font-medium">
+                <tr>
+                  <th scope="col" className="rounded-tl-xl pl-4 text-left">Tên</th>
+                  <th scope="col" className="w-36 text-left">Quyền truy cập</th>
+                  <th scope="col" className="hidden w-40 text-right @lg:table-cell @2xl:w-52">Cập nhật</th>
+                  <th scope="col" className="w-16 rounded-tr-xl"><span className="sr-only">Thao tác</span></th>
+                </tr>
+              </thead>
+              <tbody className="[&>tr:not(:last-child)>td]:border-b [&>tr:not(:last-child)>td]:border-[var(--ui-border)]/50">
+                {mode === 'structure' ? tree(folder.id) : notes.map(doc => documentRow(doc))}
+              </tbody>
+            </table>
+          </div>}
         {!children.length && !notes.length && <p className="py-12 text-center text-sm text-[var(--ui-tertiary)]">{favoritesOnly ? 'Chưa có tài liệu nào được gắn sao yêu thích.' : 'Thư mục trống. Tạo tài liệu hoặc thư mục con để bắt đầu.'}</p>}
       </section>
     </div>

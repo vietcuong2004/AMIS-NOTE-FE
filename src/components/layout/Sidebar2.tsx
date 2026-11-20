@@ -2,6 +2,7 @@ import { SIDEBAR_HEADER_BUTTON_CLASS } from './sidebarStyles';
 import { SIDEBAR2_DEFAULT_WIDTH } from '../../app/layoutConfig';
 import { WorkspacePicker } from './WorkspacePicker';
 import { CollapsedSidebar } from './CollapsedSidebar';
+import { excelTemplatesView } from '../../app/router/routes';
 import { QuickActionMenu } from './QuickActionMenu';
 import { SidebarFooter } from './SidebarFooter';
 import { memoryStorage } from '../../utils/memoryStorage';
@@ -43,7 +44,7 @@ type SidebarProps = React.ComponentProps<typeof import('./Sidebar').Sidebar>;
 
 function workspaceForView(view: ViewState, documents: Document[], folders: FolderType[]): SpaceType | undefined {
   switch (view.type) {
-    case 'space_root': return view.space;
+    case 'space_root': case 'mind_maps': case 'excel_templates': return view.space;
     case 'unclassified': return view.space || 'personal';
     case 'recent': case 'favorite': return 'personal';
     case 'folder': return folders.find(folder => folder.id === view.folderId)?.space;
@@ -709,6 +710,8 @@ export const Sidebar2: React.FC<SidebarProps> = ({
             <QuickActionMenu
               positionClassName="right-2 top-full mt-1 max-w-[calc(100%_-_16px)]"
               onClose={closeQuickActions}
+              onOpenMindMaps={() => onNavigate({ type: 'mind_maps', space: spaceTab })}
+              onOpenExcelTemplates={() => onNavigate(excelTemplatesView(spaceTab, viewState, documents))}
               onSelectTemplate={(templateId) => {
                 if (spaceTab === 'personal') setPersonalExpanded(true);
                 else setCompanyExpanded(true);

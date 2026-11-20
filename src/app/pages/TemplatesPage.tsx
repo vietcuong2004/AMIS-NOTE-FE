@@ -1,12 +1,24 @@
 import React, { useState } from 'react';
 import { CheckSquare, FileText, Search } from 'lucide-react';
 import { TEMPLATES } from '../../data/mockData';
+import { MIND_MAP_TEMPLATES } from '../../data/mindMapTemplates';
+import { EXCEL_TEMPLATES } from '../../data/excelTemplates';
+import { MindMap } from '../../components/editor/MindMapBlock';
+import { SpreadsheetGrid } from '../../components/editor/SpreadsheetBlock';
 import { Block } from '../../types';
 
-const templates = TEMPLATES.map(template => ({ ...template, blocks: template.createBlocks() }));
+const templates = [...TEMPLATES, ...MIND_MAP_TEMPLATES, ...EXCEL_TEMPLATES].map(template => ({
+  ...template, displayTitle: 'sheet' in template ? `${template.title} (Excel)` : template.title, blocks: template.createBlocks(),
+}));
 const normalize = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
 
 function TemplatePreview({ blocks, compact = false }: { blocks: Block[]; compact?: boolean }) {
+  const mindMap = blocks[0]?.properties?.mindMap;
+  if (mindMap) return <div className={compact ? 'mind-map-template-thumbnail h-48' : undefined}><MindMap root={mindMap} preview /></div>;
+  const spreadsheet = blocks[0]?.properties?.spreadsheet;
+  if (spreadsheet) return <div className={compact ? 'flex h-48 flex-col justify-center rounded-lg bg-[var(--ui-subtle)] p-2' : undefined}>
+    <SpreadsheetGrid sheet={spreadsheet} compact={compact} minRows={compact ? 8 : 0} />
+  </div>;
   return <div className={`bg-[var(--ui-surface)] rounded-lg border border-[var(--ui-border)] text-left overflow-hidden ${compact ? 'h-48 p-3 space-y-2 text-[10px]' : 'p-5 space-y-4 text-xs'}`}>
     {blocks.slice(0, compact ? 5 : undefined).map(block => {
       if (block.type === 'divider') return <hr key={block.id} className="border-[var(--ui-border)]" />;
@@ -50,28 +62,28 @@ export const TemplatesPage: React.FC<{ onUseTemplate: (templateId: string) => vo
     {!filtered.length ? <div className="py-16 text-center space-y-3"><p className="text-sm text-[var(--ui-muted)]">Không tìm thấy mẫu phù hợp.</p><button type="button" className="text-xs underline" onClick={() => { setQuery(''); setTopic(''); }}>Xóa bộ lọc</button></div> :
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
         <div className="grid grid-cols-1 min-[700px]:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map(template => <article key={template.id} aria-label={template.title}
+          {filtered.map(template => <article key={template.id} aria-label={template.displayTitle}
             className={`flex flex-col rounded-xl border transition-colors ${selected?.id === template.id ? 'border-[#48484A] bg-[#F5F5F6]' : 'border-[var(--ui-border)] bg-[var(--ui-panel)] hover:bg-[#F5F5F6]'}`}>
             <button type="button" onClick={() => setSelectedId(template.id)} aria-pressed={selected?.id === template.id}
-              aria-label={`Xem trước ${template.title}`} className="flex-1 w-full p-3 space-y-3 text-left rounded-t-xl">
+              aria-label={`Xem trước ${template.displayTitle}`} className="flex-1 w-full p-3 space-y-3 text-left rounded-t-xl">
               <TemplatePreview blocks={template.blocks} compact />
-              <div><h2 className="text-sm font-semibold">{template.title}</h2><p className="text-xs text-[var(--ui-muted)] mt-1 leading-relaxed line-clamp-2">{template.description}</p></div>
+              <div><h2 className="text-sm font-semibold">{template.displayTitle}</h2><p className="text-xs text-[var(--ui-muted)] mt-1 leading-relaxed line-clamp-2">{template.description}</p></div>
             </button>
             <div className="px-3 pb-3">
               <button type="button" onClick={() => onUseTemplate(template.id)}
-                aria-label={`Sử dụng mẫu ${template.title}`}
+                aria-label={`Sử dụng mẫu ${template.displayTitle}`}
                 className="w-full rounded-lg theme-primary bg-[var(--ui-primary)] text-white py-2.5 text-xs font-semibold hover:bg-[var(--ui-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2">
                 Sử dụng mẫu
               </button>
             </div>
           </article>)}
         </div>
-        {selected && <aside aria-label={`Xem trước ${selected.title}`} className="lg:sticky lg:top-0 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-panel)] p-4 space-y-4">
+        {selected && <aside aria-label={`Xem trước ${selected.displayTitle}`} className="lg:sticky lg:top-0 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-panel)] p-4 space-y-4">
           <div className="max-h-80 overflow-y-auto"><TemplatePreview blocks={selected.blocks} /></div>
-          <div><h2 className="text-lg font-semibold">{selected.title}</h2><p className="text-xs text-[var(--ui-muted)] mt-1 leading-relaxed">{selected.description}</p></div>
-          <div className="space-y-2"><p className="text-xs font-medium">Bao gồm các phần:</p>
+          <div><h2 className="text-lg font-semibold">{selected.displayTitle}</h2><p className="text-xs text-[var(--ui-muted)] mt-1 leading-relaxed">{selected.description}</p></div>
+          {!selected.blocks[0]?.properties?.mindMap && !selected.blocks[0]?.properties?.spreadsheet && <div className="space-y-2"><p className="text-xs font-medium">Bao gồm các phần:</p>
             {selected.blocks.filter(block => /^h[1-4]$/.test(block.type) || block.type.startsWith('meeting_')).map(block => <p key={block.id} className="flex items-center gap-2 text-xs text-[var(--ui-muted)]"><FileText className="w-4 h-4 shrink-0" />{block.type === 'meeting_info' ? 'Thông tin cuộc họp' : block.content}</p>)}
-          </div>
+          </div>}
           <button type="button" onClick={() => onUseTemplate(selected.id)} className="w-full rounded-lg theme-primary bg-[var(--ui-primary)] text-white py-3 text-sm font-semibold hover:bg-[var(--ui-primary-hover)]">Sử dụng mẫu</button>
         </aside>}
       </div>}

@@ -1,10 +1,12 @@
 import React from 'react';
-import { BookOpen, Calendar, FileText, Target, Users, X } from 'lucide-react';
+import { BookOpen, Calendar, FileSpreadsheet, FileText, Network, Target, Users, X } from 'lucide-react';
 import { TEMPLATES } from '../../data/mockData';
 
 interface QuickActionMenuProps {
   positionClassName: string;
   onClose: () => void;
+  onOpenMindMaps: () => void;
+  onOpenExcelTemplates: () => void;
   onSelectTemplate: (templateId: string) => void;
 }
 
@@ -16,10 +18,12 @@ const TEMPLATE_ICONS: Record<string, React.ComponentType<{ className?: string }>
   tpl_internal_doc: BookOpen,
 };
 
-/** Shared sidebar "..." quick-action popover listing all 5 quick document templates. */
+/** Shared sidebar quick-action popover. */
 export const QuickActionMenu: React.FC<QuickActionMenuProps> = ({
   positionClassName,
   onClose,
+  onOpenMindMaps,
+  onOpenExcelTemplates,
   onSelectTemplate,
 }) => {
   return (
@@ -43,6 +47,11 @@ export const QuickActionMenu: React.FC<QuickActionMenuProps> = ({
         </button>
       </div>
 
+      <button type="button" onClick={() => { onOpenMindMaps(); onClose(); }}
+        className="mx-1.5 flex w-[calc(100%_-_12px)] items-center gap-2.5 rounded-lg bg-blue-500/10 px-2.5 py-2 text-sm font-semibold text-[var(--ui-accent)] hover:bg-blue-500/20">
+        <Network aria-hidden="true" className="h-4 w-4 shrink-0" />Sơ đồ tư duy
+      </button>
+
       {TEMPLATES.map((template) => {
         const Icon = TEMPLATE_ICONS[template.id] || FileText;
         return (
@@ -60,6 +69,10 @@ export const QuickActionMenu: React.FC<QuickActionMenuProps> = ({
           </button>
         );
       })}
+      <button type="button" onClick={() => { onOpenExcelTemplates(); onClose(); }}
+        className="mx-1.5 flex w-[calc(100%_-_12px)] items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-[var(--ui-text)] hover:bg-[var(--ui-hover)]">
+        <FileSpreadsheet aria-hidden="true" className="h-4 w-4 shrink-0 text-green-700" />Tạo mẫu Excel
+      </button>
     </div>
   );
 };

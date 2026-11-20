@@ -3,13 +3,13 @@ import { createPortal } from 'react-dom';
 import { Type, Heading1, Heading2, Heading3, Heading4, List, ListOrdered, CheckSquare,
   Table, Lightbulb, Image, Video, Music, File,
   Link, AtSign, Sparkles, FileText, Users, Target, Calendar, BookOpen } from 'lucide-react';
-import { BlockProperties, BlockType } from '../../types';
+import { BlockProperties, BlockType, EmployeeGroup } from '../../types';
 import { SLASH_COMMANDS, SlashCommand } from './slashCommands';
 import { employeeName } from './EmployeePicker';
 import { readSlashHistory, recordSlashCommand } from '../../utils/slashHistory';
 import { SlashCommandPreview } from './SlashCommandPreview';
 
-type MenuItem = SlashCommand & { sourceId?: string };
+type MenuItem = SlashCommand & { sourceId?: string; group?: EmployeeGroup };
 
 interface SlashMenuProps {
   query: string;
@@ -18,6 +18,9 @@ interface SlashMenuProps {
   onSelectTemplate?: (templateId: string) => void;
   onApplyColor?: (color: string, isBackground: boolean) => void;
   mentions?: NonNullable<BlockProperties['mention']>[];
+  groupsOnly?: boolean;
+  groups?: EmployeeGroup[];
+  onSelectGroup?: (group: EmployeeGroup) => void;
   position?: { top: number; left: number; lineTop?: number };
 }
 
@@ -48,7 +51,7 @@ const icons: Partial<Record<BlockType, typeof Type>> = {
   meeting_info: Sparkles,
 };
 
-export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, onSelectTemplate, onApplyColor, mentions = [], position }) => {
+export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, onSelectTemplate, onApplyColor, mentions = [], groupsOnly = false, groups = [], onSelectGroup, position }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [recentIds, setRecentIds] = useState(readSlashHistory);
@@ -78,6 +81,7 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, 
   const cleanQuery = normalizeCommandQuery(mentionsOnly ? query.slice(1) : query);
   const mentionedCommands = new Map<string, SlashCommand>();
   for (const mention of mentions) {
+    if (mentionsOnly && mention.kind === 'group' && groups.some(group => group.name === mention.groupName)) continue;
     const entries = mention.kind === 'group' ? [mention] : mention.emails.map(email => ({
       ...mention, emails: [email], permission: mention.permissions?.[email] || mention.permission,
       permissions: { [email]: mention.permissions?.[email] || mention.permission },
@@ -97,7 +101,11 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, 
     return item ? [{ ...item, id: `recent-${id}`, sourceId: id, category: 'Được đề xuất' }] : [];
   });
   const showRecent = !cleanQuery && !mentionsOnly;
-  const filteredItems: MenuItem[] = (showRecent ? [...commands.filter(item => item.category === 'Được đề xuất'), ...recentItems, ...commands.filter(item => item.category !== 'Được đề xuất')] : commands)
+  const groupItems: MenuItem[] = mentionsOnly ? groups.map(group => ({ id: `group-${group.id}`, type: 'utility', category: 'Nội tuyến',
+    title: group.name, properties: { utilityKind: 'Nhắc đến một nhóm' }, group })) : [];
+  const menuItems: MenuItem[] = showRecent ? [...commands.filter(item => item.category === 'Được đề xuất'), ...recentItems, ...commands.filter(item => item.category !== 'Được đề xuất')] : [...groupItems, ...commands];
+  const filteredItems = menuItems
+    .filter(item => !groupsOnly || item.group || item.id === 'mention_group')
     .filter(item => !mentionsOnly || item.category === 'Nội tuyến')
     .map(item => ({ item, rank: matchCommand(item, cleanQuery) }))
     .filter(result => result.rank >= 0)
@@ -135,6 +143,7 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, 
 
   const selectItem = (item: MenuItem) => {
     if (item.disabled) return;
+    if (item.group) { onSelectGroup?.(item.group); return; }
     if (item.templateId && !onSelectTemplate) return;
     if (item.color && !onApplyColor) return;
     setRecentIds(recordSlashCommand(item.sourceId || item.id));
@@ -222,7 +231,7 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, 
   const renderItem = (item: MenuItem) => {
     const index = selectableItems.indexOf(item);
     const templateIcons: Record<string, typeof Type> = { tpl_personal_note: FileText, tpl_meeting_minutes: Users, tpl_work_plan: Target, tpl_weekly_plan: Calendar, tpl_internal_doc: BookOpen };
-    const Icon = item.templateId ? templateIcons[item.templateId] || FileText : item.category === 'Nội tuyến' || item.properties?.mention || item.properties?.utilityKind?.startsWith('Nhắc đến') ? AtSign : icons[item.type] || Type;
+    const Icon = item.properties?.utilityKind === 'Nhắc đến một nhóm' ? Users : item.templateId ? templateIcons[item.templateId] || FileText : item.category === 'Nội tuyến' || item.properties?.mention || item.properties?.utilityKind?.startsWith('Nhắc đến') ? AtSign : icons[item.type] || Type;
     return <button key={item.id} type="button" role="option" aria-selected={index === selectedIndex}
       id={`slash-${item.id}`} tabIndex={-1} aria-label={item.title} data-slash-command-title={item.title} aria-keyshortcuts={item.shortcut} disabled={item.disabled} aria-disabled={!!item.disabled}
       onMouseDown={event => event.preventDefault()} onClick={() => selectItem(item)}

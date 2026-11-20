@@ -1,5 +1,5 @@
 import React, { ComponentProps } from 'react';
-import { ViewState } from '../types';
+import { SpaceType, ViewState } from '../types';
 import { BlockEditor } from '../components/editor/BlockEditor';
 import { DocumentPageProps } from './pages/pageTypes';
 import { PrivatePage } from './pages/PrivatePage';
@@ -15,11 +15,13 @@ import { FolderPage } from './pages/FolderPage';
 import { DocumentPage } from './pages/DocumentPage';
 import { TrashPage } from './pages/TrashPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { MindMapTemplatesPage } from './pages/MindMapTemplatesPage';
+import { ExcelTemplatesPage } from './pages/ExcelTemplatesPage';
 
 export interface AppPagesProps extends DocumentPageProps {
   view: ViewState;
   onNavigate: (view: ViewState) => void;
-  onUseTemplate: (id: string) => void;
+  onUseTemplate: (id: string, space?: SpaceType, folderId?: string) => void;
   editor: Omit<ComponentProps<typeof BlockEditor>, 'document'>;
   trash: Omit<ComponentProps<typeof TrashPage>, 'documents'>;
 }
@@ -27,6 +29,14 @@ export interface AppPagesProps extends DocumentPageProps {
 export function AppPages({ view, onNavigate, onUseTemplate, editor, trash, ...workspace }: AppPagesProps) {
   switch (view.type) {
     case 'space_root': return <FolderPage key={view.space} {...workspace} folderId={''} rootSpace={view.space} onNavigate={onNavigate} />;
+    case 'mind_maps': return <MindMapTemplatesPage space={view.space}
+      onBack={() => onNavigate({ type: 'space_root', space: view.space })} onUseTemplate={id => onUseTemplate(id, view.space)} />;
+    case 'excel_templates': {
+      const folder = workspace.folders.find(item => item.id === view.folderId && item.space === view.space);
+      return <ExcelTemplatesPage space={view.space} folder={folder}
+        onBack={() => onNavigate(folder ? { type: 'folder', folderId: folder.id } : { type: 'space_root', space: view.space })}
+        onUseTemplate={id => onUseTemplate(id, view.space, folder?.id)} />;
+    }
     case 'private': return <PrivatePage {...workspace} />;
     case 'company': return <CompanyPage {...workspace} />;
     case 'templates': return <TemplatesPage onUseTemplate={onUseTemplate} />;

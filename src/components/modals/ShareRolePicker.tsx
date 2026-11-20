@@ -1,13 +1,9 @@
 import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown } from 'lucide-react';
+import { DOCUMENT_ROLE_LABELS, type ShareRole } from '../../utils/documentSharing';
 
-export type ShareRole = 'viewer' | 'commenter' | 'editor';
-const options = [
-  { value: 'viewer', label: 'Người xem' },
-  { value: 'commenter', label: 'Người nhận xét' },
-  { value: 'editor', label: 'Người chỉnh sửa' },
-] as const;
+const options = ['viewer', 'commenter', 'editor'] as const;
 
 export function ShareRolePicker({ value, onChange, disabled = false, label = 'Quyền qua liên kết', onRemove }: {
   value: ShareRole; onChange: (role: ShareRole) => void; disabled?: boolean; label?: string; onRemove?: () => void;
@@ -38,10 +34,10 @@ export function ShareRolePicker({ value, onChange, disabled = false, label = 'Qu
   }, [open]);
   return <div className={onRemove ? 'w-44 shrink-0' : 'col-start-2 w-full max-w-44 justify-self-end sm:col-start-auto'}>
     <button ref={button} type="button" role="combobox" aria-label={label} aria-haspopup="listbox" aria-expanded={open} aria-controls={id}
-      aria-valuetext={options.find(option => option.value === value)!.label} data-value={value} disabled={disabled}
+      aria-valuetext={DOCUMENT_ROLE_LABELS[value]} data-value={value} disabled={disabled}
       onClick={() => setOpen(previous => !previous)} onKeyDown={event => { if (['ArrowDown', 'ArrowUp'].includes(event.key)) { event.preventDefault(); setOpen(true); } }}
       className={`flex w-full items-center justify-between gap-2 rounded-md px-2 py-2 text-left text-sm text-[var(--ui-text)] outline-none hover:bg-[var(--ui-hover-strong)] focus-visible:ring-1 focus-visible:ring-[var(--ui-accent)] disabled:opacity-40 ${onRemove ? 'bg-transparent' : 'bg-[var(--ui-hover)]'}`}>
-      <span className="whitespace-nowrap">{options.find(option => option.value === value)!.label}</span><ChevronDown className="h-3.5 w-3.5 shrink-0" />
+      <span className="whitespace-nowrap">{DOCUMENT_ROLE_LABELS[value]}</span><ChevronDown className="h-3.5 w-3.5 shrink-0" />
     </button>
     {open && createPortal(<div ref={menu} id={id} role="listbox" aria-label="Vai trò" style={position}
       className="fixed z-[120] w-[230px] max-w-[calc(100vw-16px)] rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] py-2 text-[var(--ui-text)] shadow-xl"
@@ -56,9 +52,9 @@ export function ShareRolePicker({ value, onChange, disabled = false, label = 'Qu
         }
       }}>
       <p className="px-4 pb-2 pt-1 text-[11px] font-medium uppercase tracking-wider text-[var(--ui-muted)]">Vai trò</p>
-      {options.map(option => <button key={option.value} type="button" role="option" aria-selected={value === option.value} data-value={option.value}
-        onClick={() => { onChange(option.value); close(); }} className="flex w-full items-center gap-4 px-4 py-3 text-left text-sm outline-none hover:bg-[var(--ui-hover)] focus:bg-[var(--ui-hover)]">
-        <span className="h-4 w-4 shrink-0">{value === option.value && <Check className="h-4 w-4 text-[#0866ff]" />}</span>{option.label}
+      {options.map(option => <button key={option} type="button" role="option" aria-selected={value === option} data-value={option}
+        onClick={() => { onChange(option); close(); }} className="flex w-full items-center gap-4 px-4 py-3 text-left text-sm outline-none hover:bg-[var(--ui-hover)] focus:bg-[var(--ui-hover)]">
+        <span className="h-4 w-4 shrink-0">{value === option && <Check className="h-4 w-4 text-[#0866ff]" />}</span>{DOCUMENT_ROLE_LABELS[option]}
       </button>)}
       {onRemove && <button type="button" role="option" aria-selected={false} data-value="remove" onClick={() => { close(); onRemove(); }}
         className="mt-1 w-full border-t border-[var(--ui-border)] px-4 py-3 text-left text-sm text-red-600 outline-none hover:bg-[var(--ui-hover)] focus:bg-[var(--ui-hover)]">Xóa quyền truy cập</button>}

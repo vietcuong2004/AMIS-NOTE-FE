@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, X } from 'lucide-react';
-import { Block, BlockProperties } from '../../types';
+import { Info, Plus, Search, Trash2, Users, X } from 'lucide-react';
+import { Block, BlockProperties, EmployeeGroup, GroupAccess } from '../../types';
+import { getEmployeeGroups } from '../../utils/documentSharing';
 import { EmployeePicker, employeeName } from './EmployeePicker';
+import { LinkedTextarea } from './LinkedTextarea';
 
 const permissions = [
   { id: 'full', label: 'Truy cập đầy đủ' },
@@ -12,18 +14,28 @@ const permissions = [
 ] as const;
 type Mention = NonNullable<BlockProperties['mention']>;
 
-function MentionDialog({ kind, value, onSave, onClose }: {
-  kind: Mention['kind']; value?: Mention; onSave: (value: Mention) => void; onClose: () => void;
+function dialogKeys(event: React.KeyboardEvent<HTMLDivElement>, onClose: () => void) {
+  if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onClose(); }
+  if (event.key !== 'Tab') return;
+  const items = event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled),input,textarea,select');
+  const first = items[0], last = items[items.length - 1];
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+}
+
+function MentionDialog({ kind, value, group, onSave, onClose }: {
+  kind: Mention['kind']; value?: Mention; group?: EmployeeGroup | null; onSave: (value: Mention) => void; onClose: () => void;
 }) {
-  const [emails, setEmails] = useState<string[]>(value?.emails || []);
+  const [emails, setEmails] = useState<string[]>(value?.emails || group?.emails || []);
   const [pending, setPending] = useState<string[]>([]);
-  const [groupName, setGroupName] = useState(value?.groupName || '');
+  const [groupName, setGroupName] = useState(value?.groupName || group?.name || '');
+  const defaultPermission = kind === 'group' ? 'edit' : 'full';
+  const [groupPermission, setGroupPermission] = useState<Mention['permission']>(value?.permission || defaultPermission);
   const [message, setMessage] = useState(value?.message || '');
   const [roles, setRoles] = useState<Record<string, Mention['permission']>>(() => Object.fromEntries(
-    (value?.emails || []).map(email => [email, value?.permissions?.[email] || value?.permission || 'full'])
+    emails.map(email => [email, value?.permissions?.[email] || groupPermission])
   ));
   const [error, setError] = useState('');
-  const dialog = useRef<HTMLDivElement>(null);
   const initial = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
@@ -33,36 +45,39 @@ function MentionDialog({ kind, value, onSave, onClose }: {
 
   return createPortal(<div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/30 p-4"
     onMouseDown={event => { if (event.currentTarget === event.target) onClose(); }}>
-    <div ref={dialog} role="dialog" aria-modal="true" aria-label={kind === 'group' ? 'Mời và phân quyền nhóm' : 'Mời và phân quyền'}
-      onKeyDown={event => {
-        if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onClose(); }
-        if (event.key === 'Tab') {
-          const elements = Array.from(dialog.current!.querySelectorAll<HTMLElement>('button:not(:disabled),input,textarea,select'));
-          const first = elements[0]; const last = elements[elements.length - 1];
-          if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-          if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
-        }
-      }}
+    <div role="dialog" aria-modal="true" aria-label={kind === 'group' ? 'Mời và phân quyền nhóm' : 'Mời và phân quyền'}
+      onKeyDown={event => dialogKeys(event, onClose)}
       className="flex w-full max-w-4xl max-h-[calc(100dvh-32px)] flex-col rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text)] shadow-2xl">
       <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--ui-border)] px-6 py-5">
-        <div className="flex flex-wrap items-center gap-3"><h2 className="text-2xl font-bold tracking-tight">Mời và phân quyền</h2>
-          <span className="rounded-full bg-[var(--ui-hover)] px-2 py-0.5 text-[10px] text-[var(--ui-tertiary)]">Mô phỏng</span></div>
+        <h2 className="text-2xl font-bold tracking-tight">Mời và phân quyền</h2>
         <button type="button" aria-label="Đóng hộp thoại mời" onClick={onClose} className="rounded-lg p-1.5 hover:bg-[var(--ui-hover)]"><X className="h-5 w-5" /></button>
       </header>
       <form className="flex min-h-0 flex-col" onSubmit={event => {
         event.preventDefault();
         if (kind === 'group' && !groupName.trim()) { setError('Nhập tên nhóm.'); return; }
+        if (group === null && getEmployeeGroups().some(item => normalizeGroupName(item.name) === normalizeGroupName(groupName))) {
+          setError('Tên nhóm đã có trong danh sách.'); return;
+        }
         if (!emails.length) { setError('Thêm ít nhất một nhân viên vào danh sách được mời.'); return; }
         if (pending.length) { setError('Bấm Thêm để đưa những người vừa chọn vào danh sách trước khi gửi.'); return; }
         onSave({ kind, emails, groupName: kind === 'group' ? groupName.trim() : undefined,
-          message: message.trim(), permission: roles[emails[0]] || 'full',
-          permissions: Object.fromEntries(emails.map(email => [email, roles[email] || 'full'])), scope: 'page' });
+          message: message.trim(), permission: kind === 'group' ? groupPermission : roles[emails[0]] || defaultPermission,
+          permissions: Object.fromEntries(emails.map(email => [email, roles[email] || groupPermission])), scope: 'page' });
         onClose();
       }}>
         <div className="min-h-0 overflow-y-auto px-6 py-5 space-y-5">
           {kind === 'group' && <label className="block text-sm font-semibold">Tên nhóm
-            <input ref={initial} aria-label="Tên nhóm" placeholder="Tên nhóm..." value={groupName} onChange={event => setGroupName(event.target.value)}
+            <input ref={initial} aria-label="Tên nhóm" placeholder="Tên nhóm..." value={groupName} readOnly={!!group} onChange={event => setGroupName(event.target.value)}
               className="mt-2 w-full rounded-lg border border-[var(--ui-border)] bg-transparent px-3 py-2.5 text-sm font-normal" /></label>}
+          {kind === 'group' && <label className="flex flex-wrap items-center justify-between gap-2 text-sm font-semibold">Quyền truy cập của nhóm
+            <select aria-label="Quyền truy cập của nhóm" value={groupPermission} onChange={event => {
+              const permission = event.target.value as Mention['permission'];
+              setRoles(previous => Object.fromEntries(Object.entries(previous).map(([email, role]) => [email, role === groupPermission ? permission : role])));
+              setGroupPermission(permission);
+            }} className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm font-normal">
+              {permissions.filter(item => group === undefined || item.id !== 'full').map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+            </select>
+          </label>}
           <section className="border-b border-[var(--ui-border)] pb-5 space-y-3">
             <h3 className="text-lg font-semibold">Thêm người</h3>
             <div className="flex flex-wrap items-end gap-3">
@@ -70,7 +85,7 @@ function MentionDialog({ kind, value, onSave, onClose }: {
                 onChange={next => { setPending(next); setError(''); }} />
               <button type="button" disabled={!pending.length} onClick={() => {
                 setEmails(previous => [...new Set([...previous, ...pending])]);
-                setRoles(previous => ({ ...previous, ...Object.fromEntries(pending.map(email => [email, 'full' as const])) }));
+                setRoles(previous => ({ ...previous, ...Object.fromEntries(pending.map(email => [email, groupPermission])) }));
                 setPending([]); setError('');
               }} className="rounded-lg bg-[#087cfa] px-7 py-3 text-sm font-semibold text-white hover:bg-[#066bda] disabled:opacity-40 disabled:cursor-not-allowed">Thêm</button>
             </div>
@@ -86,7 +101,7 @@ function MentionDialog({ kind, value, onSave, onClose }: {
                 return <div key={email} data-invite-email={email} className="flex flex-wrap items-center gap-3 px-4 py-3 sm:flex-nowrap">
                   <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${['bg-blue-100 text-blue-700', 'bg-green-100 text-green-700', 'bg-purple-100 text-purple-700'][index % 3]}`}>{initials}</span>
                   <div className="min-w-0 flex-1"><p className="text-sm font-semibold truncate">{name}</p><p className="text-xs text-[var(--ui-muted)] break-all mt-0.5">{email}</p></div>
-                  <select aria-label={`Quyền của ${name}`} value={roles[email] || 'full'}
+                  <select aria-label={`Quyền của ${name}`} value={roles[email] || groupPermission}
                     onChange={event => setRoles(previous => ({ ...previous, [email]: event.target.value as Mention['permission'] }))}
                     className="w-44 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2.5 text-sm">
                     {permissions.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
@@ -112,23 +127,97 @@ function MentionDialog({ kind, value, onSave, onClose }: {
   </div>, document.body);
 }
 
+const normalizeGroupName = (name: string) => name.toLowerCase().normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').trim();
+
+export function GroupInvitationDialog({ group, onSave, onClose }: {
+  group: EmployeeGroup | null; onSave: (access: GroupAccess) => void; onClose: () => void;
+}) {
+  return <MentionDialog kind="group" group={group} onClose={onClose} onSave={mention => {
+    const invitedGroup = { id: group?.id ?? crypto.randomUUID(), name: mention.groupName!, emails: mention.emails };
+    onSave({ group: invitedGroup, permission: mention.permission, permissions: mention.permissions ?? {}, message: mention.message });
+  }} />;
+}
+
+export function GroupMentionFlow({ onConfirm, onClose }: {
+  onConfirm: (group: EmployeeGroup, grant?: GroupAccess) => void; onClose: () => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [creating, setCreating] = useState(false);
+  const search = useRef<HTMLInputElement>(null);
+  useEffect(() => { search.current?.focus(); }, []);
+  if (creating) {
+    return <GroupInvitationDialog group={null} onClose={onClose} onSave={access => onConfirm(access.group, access)} />;
+  }
+
+  const matches = getEmployeeGroups().filter(group => normalizeGroupName(group.name).includes(normalizeGroupName(query)));
+  return createPortal(<div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/30 p-4"
+    onMouseDown={event => { if (event.currentTarget === event.target) onClose(); }}>
+    <div role="dialog" aria-modal="true" aria-label="Chọn nhóm" onKeyDown={event => dialogKeys(event, onClose)}
+      className="flex max-h-[calc(100dvh-32px)] w-full max-w-md flex-col gap-3 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4 text-[var(--ui-text)] shadow-2xl">
+      <header className="flex items-center justify-between px-1">
+        <h2 className="text-lg font-semibold">Chọn nhóm</h2>
+        <button type="button" aria-label="Đóng chọn nhóm" onClick={onClose} className="rounded p-1 hover:bg-[var(--ui-hover)]"><X className="h-5 w-5" /></button>
+      </header>
+      <label className="flex items-center gap-2 rounded-lg border border-[var(--ui-border)] px-3 focus-within:border-[var(--ui-accent)]">
+        <Search aria-hidden="true" className="h-4 w-4 text-[var(--ui-muted)]" />
+        <input ref={search} type="search" aria-label="Tìm nhóm" placeholder="Tìm nhóm..." value={query}
+          onChange={event => setQuery(event.target.value)} onKeyDown={event => {
+            if (event.key === 'Enter' && !event.nativeEvent.isComposing && matches.length) { event.preventDefault(); onConfirm(matches[0]); }
+          }} className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none" />
+      </label>
+      <div className="min-h-0 overflow-y-auto" aria-label="Danh sách nhóm">
+        {matches.map(group => <button type="button" key={group.id} onClick={() => onConfirm(group)}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-[var(--ui-hover)] focus-visible:bg-[var(--ui-hover)]">
+          <span className="rounded-full bg-blue-100 p-2 text-blue-700"><Users aria-hidden="true" className="h-4 w-4" /></span>
+          <span className="font-medium">{group.name}</span>
+        </button>)}
+        {!matches.length && <p role="status" className="px-3 py-2 text-sm text-[var(--ui-muted)]">Không tìm thấy nhóm phù hợp.</p>}
+      </div>
+      <button type="button" onClick={() => setCreating(true)} className="flex items-center gap-2 border-t border-[var(--ui-border)] px-3 py-2 text-left text-sm font-semibold text-[var(--ui-accent)] hover:bg-[var(--ui-hover)]">
+        <Plus aria-hidden="true" className="h-4 w-4" />Tạo nhóm mới
+      </button>
+      <p className="flex items-start gap-2 rounded-lg bg-blue-500/10 p-3 text-xs leading-5"><Info aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[var(--ui-accent)]" />
+        Bấm vào thẻ nhóm trong tài liệu để mời và cấp quyền truy cập.
+      </p>
+    </div>
+  </div>, document.body);
+}
+
 export function MentionBlock({ block, readOnly, onChange }: {
   block: Block; readOnly: boolean; onChange: (content: string, properties: BlockProperties) => void;
 }) {
   const value = block.properties?.mention;
   const kind = value?.kind || (block.properties?.utilityKind === 'Nhắc đến một nhóm' ? 'group' : 'person');
   const [open, setOpen] = useState(!value && !readOnly);
+  const continuation = useRef<HTMLTextAreaElement>(null);
+  const trailingText = block.properties?.mentionTrailingText ?? '';
   const labels = value ? (value.groupName ? [value.groupName] : value.emails.map(employeeName)) : [];
-  return <div className="flex min-h-6 flex-wrap items-center gap-1">
+  const updateMention = (mention: Mention, text: string) => {
+    const prefix = `@${mention.groupName || mention.emails.map(employeeName).join(', ')}`;
+    onChange(text ? `${prefix} ${text}` : prefix, { ...block.properties, mention, mentionTrailingText: text || undefined });
+  };
+  return <div data-mention-row className="flex min-h-6 flex-wrap items-start gap-x-1 gap-y-0"
+    onMouseDown={event => {
+      if (event.target === event.currentTarget && event.button === 0 && !event.shiftKey && continuation.current) event.stopPropagation();
+    }}
+    onClick={event => {
+      if (event.target !== event.currentTarget || event.shiftKey || !continuation.current) return;
+      continuation.current.focus();
+      continuation.current.setSelectionRange(trailingText.length, trailingText.length);
+    }}>
     {labels.map(label => <button key={label} type="button" disabled={readOnly} onClick={() => setOpen(true)}
       className="inline-flex max-w-full items-center rounded bg-[var(--ui-hover)] px-1 text-sm leading-6 text-[var(--ui-text)] disabled:cursor-default">
       <span className="break-words min-w-0">@{label}</span>
     </button>)}
     {!value && !open && !readOnly && <button type="button" aria-label="Mời và đề cập" onClick={() => setOpen(true)}
       className="rounded bg-[var(--ui-hover)] px-1 text-sm leading-6">@</button>}
+    {value && (readOnly
+      ? trailingText && <span className="whitespace-pre-wrap break-words text-sm leading-6">{trailingText}</span>
+      : <LinkedTextarea ref={continuation} aria-label="Nội dung sau thẻ nhắc đến" rows={1} value={trailingText}
+          onChange={event => updateMention(value, event.currentTarget.value)}
+          className="min-h-6 min-w-12 flex-1 resize-none bg-transparent p-0 text-sm leading-6 text-[var(--ui-text)] outline-none [field-sizing:content]" />)}
     {open && !readOnly && <MentionDialog kind={kind} value={value} onClose={() => setOpen(false)}
-      onSave={mention => {
-        onChange(`@${mention.groupName || mention.emails.map(employeeName).join(', ')}`, { ...block.properties, mention });
-      }} />}
+      onSave={mention => updateMention(mention, trailingText)} />}
   </div>;
 }

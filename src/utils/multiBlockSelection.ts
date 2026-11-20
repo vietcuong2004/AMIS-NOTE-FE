@@ -193,18 +193,25 @@ export function useMultiBlockSelection({
   const handleContainerMouseDown = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
       if (isDisabled || event.button !== 0 || !containerRef.current) return;
-      if (isInteractiveControlTarget(event.target)) return;
+      const target = event.target as HTMLElement;
+      const insideMindMap = Boolean(target.closest?.('[data-block-type="mind_map"]'));
+      if (!insideMindMap && isInteractiveControlTarget(target)) return;
 
       const container = containerRef.current;
       // A surface handler also receives clicks in the margins around the block container.
       // Text fields outside it (such as the document title) keep their own selection.
-      const target = event.target as HTMLElement;
       const startedInText = Boolean(target.closest('textarea, [contenteditable="true"]'));
       if (startedInText && !container.contains(target)) return;
       const currentBlocks = blocksRef.current;
       if (currentBlocks.length === 0) return;
 
       const clickedIdx = resolveBlockIndexFromEvent(container, currentBlocks, event.target, event.clientY);
+      if (insideMindMap || currentBlocks[clickedIdx]?.type === 'mind_map') {
+        dragCleanupRef.current?.();
+        anchorIndexRef.current = null;
+        clearSelection();
+        return;
+      }
       if (clickedIdx === -1) return;
 
       if (event.shiftKey && anchorIndexRef.current !== null) {

@@ -6,6 +6,8 @@ import { documentUrl, pathForView, viewForLocation } from './routes';
 
 const pages: [ViewState, string][] = [
   [{ type: 'space_root', space: 'personal' }, '/private'], [{ type: 'space_root', space: 'company' }, '/company'],
+  [{ type: 'mind_maps', space: 'personal' }, '/private/mind-maps'], [{ type: 'mind_maps', space: 'company' }, '/company/mind-maps'],
+  [{ type: 'excel_templates', space: 'personal' }, '/private/excel-templates'], [{ type: 'excel_templates', space: 'company' }, '/company/excel-templates'],
   [{ type: 'private' }, '/library/private'], [{ type: 'company' }, '/library/company'],
   [{ type: 'templates' }, '/templates'], [{ type: 'library' }, '/library/all'],
   [{ type: 'favorite' }, '/favorites'], [{ type: 'recent' }, '/recent'],
@@ -17,6 +19,12 @@ const pages: [ViewState, string][] = [
   [{ type: 'document', documentId: 'doc_01' }, '/documents/doc_01'],
   [{ type: 'folder', folderId: 'fld_01' }, '/folders/fld_01'],
 ];
+
+test('Excel template routing retains its folder context', () => {
+  const view = { type: 'excel_templates', space: 'company', folderId: 'folder & sales' } as const;
+  assert.equal(pathForView(view), '/company/excel-templates?folder=folder%20%26%20sales');
+  assert.deepEqual(viewForLocation(pathForView(view)), view);
+});
 
 // EventTarget + URL-backed History adapter exercises the exact production router.
 class TestBrowser extends EventTarget {

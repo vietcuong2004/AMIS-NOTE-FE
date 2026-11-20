@@ -7,6 +7,9 @@ import { EmptyBlockRow } from './EmptyBlockRow';
 import { navigateEditorArrow } from '../../utils/editorArrowNavigation';
 import { RenameDialog } from '../modals/RenameDialog';
 import { employeeName } from './EmployeePicker';
+import { GroupInvitationDialog, GroupMentionFlow } from './MentionBlock';
+import { replaceInlineRanges } from './LinkedTextarea';
+import { getEmployeeGroups, getShareSettings, grantGroupAccess } from '../../utils/documentSharing';
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import {
   UserPlus,
@@ -22,9 +25,13 @@ import {
   Plus,
   Maximize2,
   Minimize2,
+  Users,
 } from 'lucide-react';
-import { Block, BlockProperties, BlockType, Document, Folder, UserRole, ViewState } from '../../types';
+import { Block, BlockProperties, BlockType, Document, EmployeeGroup, Folder, GroupAccess, ViewState } from '../../types';
 import { BlockItem } from './BlockItem';
+import { MindMapBlock } from './MindMapBlock';
+import { SpreadsheetWorkspace, spreadsheetTabs } from './SpreadsheetWorkspace';
+import { downloadSpreadsheet } from '../../utils/exportSpreadsheet';
 import { SlashMenu } from './SlashMenu';
 import { EditTextDialog } from './EditTextDialog';
 import { ShareModal } from '../modals/ShareModal';
@@ -42,26 +49,28 @@ import {
 } from '../../utils/blockBackspace';
 import { extractBlocksFromClipboardData, mergePastedBlocks, replaceSelectedBlocks } from '../../utils/blockClipboard';
 import { useMultiBlockSelection } from '../../utils/multiBlockSelection';
+import { DocumentRolePill } from '../DocumentRolePill';
 
 interface BlockEditorProps {
   document: Document;
   folders: Folder[];
-  currentRole: UserRole;
   onUpdateDocument: (doc: Document) => void;
   onSoftDeleteDocument: (docId: string) => void;
   onToggleFavorite: (docId: string) => void;
   onMoveDocument: (docId: string, folderId: string | null, space: any) => void;
   onToast: (msg: string, type?: 'success' | 'info' | 'error') => void;
-  onRoleChange?: (newRole: UserRole) => void;
   onNavigate?: (view: ViewState) => void;
   autoFocusTitle?: boolean;
   onAutoFocusTitleHandled?: () => void;
 }
 
+type TextRange = { start: number; end: number; itemId?: string };
+type GroupMentionTarget = { blockId: string; range: TextRange };
+const groupMentionTextTypes = ['paragraph', 'h1', 'h2', 'h3', 'h4', 'quote', 'callout', 'toggle'];
+
 export const BlockEditor: React.FC<BlockEditorProps> = ({
   document,
   folders,
-  currentRole,
   onUpdateDocument,
   onSoftDeleteDocument,
   onToggleFavorite,
@@ -90,6 +99,8 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
   // Modals state
   const [shareOpen, setShareOpen] = useState(false);
+  const [groupMentionTarget, setGroupMentionTarget] = useState<GroupMentionTarget | null>(null);
+  const [groupToInvite, setGroupToInvite] = useState<EmployeeGroup | null>(null);
   const [moveOpen, setMoveOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -103,6 +114,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     isOpen: boolean;
     blockId: string | null;
     query: string;
+    mentionRange?: TextRange;
     position?: { top: number; left: number; lineTop?: number };
   }>({
     isOpen: false,
@@ -132,7 +144,8 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0;
   }, [document.id]);
 
-  const isReadOnly = currentRole === 'viewer';
+  const currentRole = doc.permission ?? 'owner';
+  const isReadOnly = currentRole === 'viewer' || currentRole === 'commenter';
 
   useEffect(() => {
     if (!autoFocusTitle || isReadOnly) return;
@@ -267,20 +280,20 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   const docRef = useRef(doc);
   docRef.current = doc;
   const blocksContainerRef = useRef<HTMLDivElement>(null);
-  const pendingBackspaceFocusRef = useRef<BlockFocusTarget | null>(null);
+  const pendingBlockFocusRef = useRef<BlockFocusTarget | null>(null);
 
   useLayoutEffect(() => {
-    const target = pendingBackspaceFocusRef.current;
+    const target = pendingBlockFocusRef.current;
     if (!target) return;
-    pendingBackspaceFocusRef.current = null;
-    focusBlockAtOffset(blocksContainerRef.current, target.blockId, target.offset);
+    pendingBlockFocusRef.current = null;
+    focusBlockAtOffset(blocksContainerRef.current, target.blockId, target.offset, target.itemId);
   }, [doc.blocks]);
 
   const applyBlockFocusResult = (result: { blocks: Block[]; focus: BlockFocusTarget } | null) => {
     if (!result) return;
     const updatedDoc = { ...docRef.current, blocks: result.blocks, updatedAt: new Date().toISOString() };
     docRef.current = updatedDoc;
-    pendingBackspaceFocusRef.current = result.focus;
+    pendingBlockFocusRef.current = result.focus;
     setDoc(updatedDoc);
     setFocusedBlockId(result.focus.blockId);
     triggerAutoSave(updatedDoc);
@@ -381,7 +394,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   };
 
   // Slash trigger
-  const handleTriggerSlash = (blockId: string, query: string, rect: DOMRect | null) => {
+  const handleTriggerSlash = (blockId: string, query: string, rect: DOMRect | null, mentionRange?: TextRange) => {
     if (!rect) {
       setSlashState({ isOpen: false, blockId: null, query: '' });
       return;
@@ -390,12 +403,82 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       isOpen: true,
       blockId,
       query,
+      mentionRange,
       position: {
         top: rect.bottom + 6,
         left: rect.left,
         lineTop: rect.top,
       },
     });
+  };
+
+  const openGroupMention = (blockId: string, range?: TextRange) => {
+    const block = doc.blocks.find(item => item.id === blockId);
+    if (!block) return;
+    const end = block.content.length;
+    const trigger = slashState.blockId === blockId && slashState.isOpen && !slashState.query.startsWith('@');
+    setGroupMentionTarget({ blockId, range: range ?? (trigger ? { start: 0, end } : { start: end, end }) });
+    setSlashState({ isOpen: false, blockId: null, query: '' });
+  };
+
+  const closeGroupMention = () => {
+    if (groupMentionTarget) focusBlockAtOffset(blocksContainerRef.current, groupMentionTarget.blockId, groupMentionTarget.range.end, groupMentionTarget.range.itemId);
+    setGroupMentionTarget(null);
+  };
+
+  const saveGroupAccess = (access: GroupAccess) => {
+    grantGroupAccess(doc, access);
+    onToast(access.permission === 'edit' ? 'Đã cấp quyền chỉnh sửa cho nhóm' : 'Đã cấp quyền truy cập cho nhóm', 'success');
+  };
+
+  const handleGroupMentionClick = (groupId: string) => {
+    if (getShareSettings(doc).groups.some(access => access.group.id === groupId)) {
+      setShareOpen(true);
+      return;
+    }
+    const group = getEmployeeGroups().find(item => item.id === groupId);
+    if (group) setGroupToInvite(group);
+  };
+
+  const insertGroupMention = ({ blockId, range }: GroupMentionTarget, group: EmployeeGroup, access?: GroupAccess) => {
+    if (isReadOnly) return;
+    const source = doc.blocks.find(block => block.id === blockId);
+    if (!source) { setGroupMentionTarget(null); return; }
+    const listItems = range.itemId ? source.properties?.listItems ?? [
+      { id: `${source.id}-item`, content: source.content, checked: source.properties?.checked,
+        inlineLinks: source.properties?.inlineLinks, inlineGroupMentions: source.properties?.inlineGroupMentions },
+    ] : [];
+    const listItem = listItems.find(item => item.id === range.itemId);
+    if (range.itemId && !listItem) { setGroupMentionTarget(null); return; }
+    const inline = !!listItem || groupMentionTextTypes.includes(source.type);
+    const block: Block = inline ? source : { id: `blk_${crypto.randomUUID()}`, type: 'paragraph', content: '' };
+    const { start, end } = inline ? range : { start: 0, end: 0 };
+    const original = listItem ?? { content: block.content, inlineLinks: block.properties?.inlineLinks,
+      inlineGroupMentions: block.properties?.inlineGroupMentions };
+    const label = `@${group.name}`;
+    const before = original.content.slice(0, start);
+    const after = original.content.slice(end);
+    const prefix = before && !/\s$/.test(before) && !/[([{]$/.test(before) ? ' ' : '';
+    const suffix = /^[\s.,!?;:)}\]]/.test(after) ? '' : ' ';
+    const replacement = `${prefix}${label}${suffix}`;
+    const content = `${before}${replacement}${after}`;
+    const mentionStart = start + prefix.length;
+    const mentionEnd = mentionStart + label.length;
+    const inlineLinks = replaceInlineRanges(original.inlineLinks, start, end, replacement.length);
+    const inlineGroupMentions = [...replaceInlineRanges(original.inlineGroupMentions, start, end, replacement.length),
+      { start: mentionStart, end: mentionEnd, groupId: group.id }];
+    const updatedItems = listItems.map(item => item.id === range.itemId ? { ...item, content, inlineLinks, inlineGroupMentions } : item);
+    const inserted = listItem ? { ...block, content: updatedItems.map(item => item.content).join('\n'),
+      properties: { ...block.properties, listItems: updatedItems } }
+      : { ...block, content, properties: { ...block.properties, inlineLinks, inlineGroupMentions } };
+    const blocks = doc.blocks.flatMap(item => item.id !== blockId ? [item] : inline ? [inserted] : [item, inserted]);
+    const updated = { ...doc, blocks, updatedAt: new Date().toISOString() };
+    pendingBlockFocusRef.current = { blockId: inserted.id, offset: mentionEnd + suffix.length, itemId: range.itemId };
+    setGroupMentionTarget(null);
+    setSlashState({ isOpen: false, blockId: null, query: '' });
+    setDoc(updated);
+    commitSaveNow(updated);
+    if (access) saveGroupAccess(access);
   };
 
   const handleSlashColor = (color: string, isBackground: boolean) => {
@@ -446,6 +529,10 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
   const handleSelectSlashItem = (type: BlockType, extraProps?: BlockProperties, targetId = slashState.blockId, preserveText = false) => {
     if (!targetId) return;
+    if (extraProps?.utilityKind === 'Nhắc đến một nhóm' && !extraProps.mention) {
+      openGroupMention(targetId, slashState.blockId === targetId ? slashState.mentionRange : undefined);
+      return;
+    }
     let focusId = targetId;
 
     const updatedBlocks = doc.blocks.flatMap((b) => {
@@ -453,9 +540,10 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
         const textType = ['paragraph', 'h1', 'h2', 'h3', 'h4', 'bullet', 'numbered', 'checklist', 'callout'].includes(type);
         const sourceText = b.properties?.listItems?.map(item => item.content).join('\n') ?? b.content;
         const content = preserveText && textType ? sourceText : '';
-        let props: BlockProperties = preserveText && textType ? { textColor: b.properties?.textColor, backgroundColor: b.properties?.backgroundColor, bold: b.properties?.bold, italic: b.properties?.italic, underline: b.properties?.underline, fontFamily: b.properties?.fontFamily, fontSize: b.properties?.fontSize, inlineLinks: b.properties?.inlineLinks } : {};
+        let props: BlockProperties = preserveText && textType ? { textColor: b.properties?.textColor, backgroundColor: b.properties?.backgroundColor, bold: b.properties?.bold, italic: b.properties?.italic, underline: b.properties?.underline, fontFamily: b.properties?.fontFamily, fontSize: b.properties?.fontSize, inlineLinks: b.properties?.inlineLinks, inlineGroupMentions: groupMentionTextTypes.includes(type) ? b.properties?.inlineGroupMentions : undefined } : {};
         if (['bullet', 'numbered', 'checklist'].includes(type)) props = {
-          ...props, listItems: preserveText && b.properties?.listItems?.length ? b.properties.listItems : [{ id: `list_${crypto.randomUUID()}`, content, checked: false, inlineLinks: props.inlineLinks }],
+          ...props, listItems: preserveText && b.properties?.listItems?.length ? b.properties.listItems : [{ id: `list_${crypto.randomUUID()}`, content, checked: false, inlineLinks: props.inlineLinks,
+            ...(preserveText && b.properties?.inlineGroupMentions ? { inlineGroupMentions: b.properties.inlineGroupMentions } : {}) }],
         };
         if (type === 'toggle') props = { open: true, caption: '' };
         if (type === 'callout') props = { ...props, calloutType: 'info', calloutIcon: '💡' };
@@ -660,7 +748,7 @@ function getTextareaSelectionCoords(
 
     // 1. Check if active element is textarea or input in editor
     if (activeEl instanceof HTMLTextAreaElement || activeEl instanceof HTMLInputElement) {
-      if (editorContainer && editorContainer.contains(activeEl)) {
+      if (editorContainer && editorContainer.contains(activeEl) && !activeEl.closest('[data-mind-map], [data-spreadsheet]')) {
         const start = activeEl.selectionStart;
         const end = activeEl.selectionEnd;
         if (start !== null && end !== null && end > start) {
@@ -873,10 +961,24 @@ function getTextareaSelectionCoords(
     }
   };
 
+  const groupAccess = getShareSettings(doc).groups;
+  const contentBlocks = doc.blocks.filter(block => block.type !== 'paragraph' || block.content.trim());
+  const mindMap = contentBlocks.length === 1 && contentBlocks[0].type === 'mind_map' && contentBlocks[0].properties?.mindMap
+    ? contentBlocks[0] : undefined;
+  const spreadsheet = contentBlocks.length === 1 && contentBlocks[0].type === 'spreadsheet' && contentBlocks[0].properties?.spreadsheet
+    ? contentBlocks[0] : undefined;
+  const documentTitle = doc.title || 'Không có tiêu đề';
+  const displayTitle = spreadsheet && !/\.xlsx$/i.test(documentTitle) ? `${documentTitle}.xlsx` : documentTitle;
+  const handleDownloadWorkbook = () => {
+    if (!spreadsheet) return;
+    const [first, ...rest] = spreadsheetTabs(spreadsheet);
+    try { downloadSpreadsheet(first.sheet, doc.title, rest, first.name); }
+    catch { onToast('Không thể tải xuống bảng tính.', 'error'); }
+  };
   return (
     <div className="flex-1 flex flex-col h-full print:h-auto bg-[var(--ui-surface)] overflow-hidden print:overflow-visible relative">
       {/* Top Header Bar: Breadcrumbs on left, [Xem toàn màn hình] [Chia sẻ] [In] [•••] on right */}
-      <div className="no-print h-14 border-b border-[var(--ui-border)] px-8 flex items-center justify-between gap-4 bg-[var(--ui-surface)] sticky top-0 z-30">
+      <div className="no-print h-14 border-b border-[var(--ui-border)] px-3 sm:px-8 flex items-center justify-between gap-2 sm:gap-4 bg-[var(--ui-surface)] sticky top-0 z-30">
         {/* Breadcrumb matching screenshot: "Ghi chép của tôi / Công việc / Kế hoạch tuần" */}
         <div className="flex items-center gap-2 text-xs text-[var(--ui-muted)] min-w-0 font-medium">
           <button type="button" onClick={() => onNavigate?.({ type: doc.space === 'personal' ? 'private' : 'company' })} className="truncate hover:underline">
@@ -891,18 +993,30 @@ function getTextareaSelectionCoords(
               <span className="text-[#C7C7CC]">/</span>
             </React.Fragment>
           ))}
-          <span className="truncate text-[var(--ui-text)] font-semibold">{doc.title || 'Không có tiêu đề'}</span>
+          <span className="truncate text-[var(--ui-text)] font-semibold">{displayTitle}</span>
         </div>
 
         {/* Action Buttons Toolbar: [Xem toàn màn hình] [Chia sẻ] [In] [•••] */}
         <div data-doc-header-actions className="flex items-center gap-2 shrink-0">
-          <button type="button" aria-label="Xem toàn màn hình" aria-pressed={wideContent}
+          {groupAccess.length > 0 && <button type="button" onClick={() => setShareOpen(true)}
+            aria-label={`Quyền truy cập (${groupAccess.length})`} title="Quyền truy cập của nhóm"
+            className="flex items-center gap-1.5 rounded-xl border border-[var(--ui-border)] px-3 py-1.5 text-xs font-medium text-[var(--ui-text)] hover:bg-[var(--ui-hover)]">
+            <Users aria-hidden="true" className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Quyền truy cập ({groupAccess.length})</span>
+          </button>}
+          <DocumentRolePill role={currentRole} />
+          {!mindMap && !spreadsheet && <button type="button" aria-label="Xem toàn màn hình" aria-pressed={wideContent}
             onClick={() => setWideContent(previous => !previous)}
             title={wideContent ? 'Thu hẹp nội dung cho dễ đọc' : 'Giãn nội dung theo chiều rộng màn hình'}
             className="flex items-center gap-1.5 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-hover)] px-3 py-1.5 text-xs font-medium text-[var(--ui-text)] transition-colors hover:bg-[var(--ui-hover-strong)] cursor-pointer">
             {wideContent ? <Maximize2 aria-hidden="true" className="h-3.5 w-3.5" /> : <Minimize2 aria-hidden="true" className="h-3.5 w-3.5" />}
             <span>{wideContent ? 'Xem toàn màn hình' : 'Vừa đọc'}</span>
-          </button>
+          </button>}
+
+          {spreadsheet && <button type="button" aria-label="Tải xuống Excel" onClick={handleDownloadWorkbook}
+            className="flex items-center gap-1.5 rounded-xl border border-[var(--ui-border)] px-3 py-1.5 text-xs font-medium text-[var(--ui-text)] hover:bg-[var(--ui-hover)]">
+            <Download aria-hidden="true" className="h-4 w-4" /><span className="hidden sm:inline">Tải xuống Excel</span>
+          </button>}
 
           {/* Share Button */}
           <button
@@ -956,7 +1070,13 @@ function getTextareaSelectionCoords(
       </div>
 
       {/* Editor Canvas */}
-      <div
+      {mindMap ? <>
+        <h1 className="hidden text-2xl font-bold print:block">{doc.title}</h1>
+        <MindMapBlock block={mindMap} readOnly={isReadOnly} fullscreen
+          onChange={(content, properties) => handleUpdateBlock(mindMap.id, content, properties)} />
+      </> : spreadsheet ? <SpreadsheetWorkspace block={spreadsheet} title={displayTitle} readOnly={isReadOnly} saved={!pendingSaveRef.current}
+        onChange={(content, properties) => handleUpdateBlock(spreadsheet.id, content, properties)}
+        onDownload={handleDownloadWorkbook} onPrint={handlePrintDocument} /> : <div
         ref={scrollContainerRef}
         data-block-selection-surface
         onMouseDown={(event) => {
@@ -1040,6 +1160,7 @@ function getTextareaSelectionCoords(
             onCopy={(event) => handleContainerCopy(event)}
             onCut={handleContainerCut}
             onKeyDownCapture={(event) => {
+              if (event.target instanceof HTMLElement && event.target.closest('[data-mind-map], [data-spreadsheet]')) return;
               if (handleContainerKeyDownCapture(event)) return;
               if (isReadOnly || event.nativeEvent.isComposing || event.getModifierState?.('AltGraph')) return;
               if (!(event.target instanceof HTMLTextAreaElement)) return;
@@ -1048,6 +1169,13 @@ function getTextareaSelectionCoords(
               if (!command || !blockId) return;
               event.preventDefault(); event.stopPropagation();
               recordSlashCommand(command.id);
+              if (command.id === 'mention_group') {
+                const range = slashState.blockId === blockId ? slashState.mentionRange : undefined;
+                const input = event.target;
+                openGroupMention(blockId, range ?? (slashState.blockId === blockId && slashState.isOpen
+                  ? undefined : { start: input.selectionStart, end: input.selectionEnd, itemId: input.closest<HTMLElement>('[data-list-item]')?.dataset.listItem }));
+                return;
+              }
               handleSelectSlashItem(command.type, command.properties, blockId, !slashState.isOpen);
             }}
             onPaste={(event) => {
@@ -1083,6 +1211,8 @@ function getTextareaSelectionCoords(
                 index={idx}
                 totalBlocks={doc.blocks.length}
                 userRole={currentRole}
+                enableInlineGroupMentions
+                onGroupMentionClick={handleGroupMentionClick}
                 isBlockSelected={selectedBlockIdSet.has(block.id)}
                 autoFocus={focusedBlockId === block.id}
                 autoFocusPosition={focusedBlockId === block.id ? focusCursorPosition : 'start'}
@@ -1120,6 +1250,13 @@ function getTextareaSelectionCoords(
                 onSelect={handleSelectSlashItem}
                 onSelectTemplate={handleInsertTemplate}
                 onApplyColor={handleSlashColor}
+                groups={slashState.mentionRange ? getEmployeeGroups() : undefined}
+                onSelectGroup={group => {
+                  const { blockId, mentionRange } = slashState;
+                  if (blockId && mentionRange) insertGroupMention({ blockId, range: mentionRange }, group);
+                }}
+                groupsOnly={!!slashState.mentionRange && (!!slashState.mentionRange.itemId || slashState.mentionRange.start > 0 ||
+                  slashState.mentionRange.end < (doc.blocks.find(block => block.id === slashState.blockId)?.content.length ?? 0))}
                 mentions={doc.blocks.flatMap(block => block.properties?.mention ? [block.properties.mention] : [])}
                 onClose={() => setSlashState({ isOpen: false, blockId: null, query: '' })}
               />
@@ -1151,7 +1288,7 @@ function getTextareaSelectionCoords(
             className={`w-full ${isReadOnly ? '' : 'cursor-text'}`}
           />
         </div>
-      </div>
+      </div>}
 
       {showTemplatePills && <TemplateSuggestions templates={visibleTemplates} onSelect={handleInsertTemplate}
         onDismiss={id => setDismissedTemplates(previous => [...previous, id])} />}
@@ -1159,6 +1296,10 @@ function getTextareaSelectionCoords(
       {/* Modals */}
       {renameOpen && !isReadOnly && <RenameDialog kind="document" initialName={doc.title}
         onClose={() => setRenameOpen(false)} onSave={name => updateDocField('title', name)} />}
+      {groupMentionTarget && !isReadOnly && <GroupMentionFlow
+        onConfirm={(group, access) => insertGroupMention(groupMentionTarget, group, access)} onClose={closeGroupMention} />}
+      {groupToInvite && !isReadOnly && <GroupInvitationDialog group={groupToInvite}
+        onSave={saveGroupAccess} onClose={() => setGroupToInvite(null)} />}
       <ShareModal
         document={doc}
         isOpen={shareOpen}

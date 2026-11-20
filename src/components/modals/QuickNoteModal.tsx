@@ -1929,6 +1929,7 @@ export const QuickNoteModal: React.FC<QuickNoteModalProps> = ({
                 onCut={handleContainerCut}
                 onPaste={handleEditorPaste}
                 onKeyDownCapture={(event) => {
+                  if (event.target instanceof HTMLElement && event.target.closest('[data-mind-map], [data-spreadsheet]')) return;
                   if (handleContainerKeyDownCapture(event)) return;
                   if (event.nativeEvent.isComposing || event.getModifierState?.('AltGraph')) return;
                   if (!(event.target instanceof HTMLTextAreaElement)) return;

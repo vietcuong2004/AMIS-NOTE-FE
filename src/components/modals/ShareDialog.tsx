@@ -1,38 +1,49 @@
 import { EmployeePicker } from '../editor/EmployeePicker';
 import { ShareRolePicker } from './ShareRolePicker';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Check, Globe, Link2, LockKeyhole, Users, X } from 'lucide-react';
+import { Globe, Link2, LockKeyhole, Users, X } from 'lucide-react';
 import { Document } from '../../types';
 import { CURRENT_USER, TEAM_MEMBERS } from '../../data/mockData';
-import { memoryStorage } from '../../utils/memoryStorage';
+import { getShareSettings, saveShareSettings, type ShareSettings } from '../../utils/documentSharing';
 import { documentUrl } from '../../app/router/routes';
 
-type AccessRole = 'editor' | 'commenter' | 'viewer';
-type Recipient = { id: string; name: string; email: string; group?: boolean };
-export interface ShareSettings { members: (Recipient & { role: AccessRole })[]; general: 'restricted' | 'link'; linkRole: AccessRole }
+const grantPermissions = { editor: 'edit', commenter: 'comment', viewer: 'view' } as const;
+const sharedRoles = { full: 'editor', edit: 'editor', comment: 'commenter', view: 'viewer' } as const;
+
 export function ShareDialog({ document: doc, onClose, onSave }: { document: Document; onClose: () => void; onSave?: (settings: ShareSettings) => void }) {
-  const key = `misa_share_${doc.id}`;
-  const [settings, setSettings] = useState<ShareSettings>(() => {
-    const stored = memoryStorage.getItem(key);
-    if (stored) { try { return JSON.parse(stored); } catch { /* Use the document's defaults. */ } }
-    return { members: TEAM_MEMBERS.filter(person => person.id !== doc.author.id).slice(0, 2).map(person => ({ id: person.id, name: person.name, email: person.email, role: 'editor' })), general: doc.isPrivate ? 'restricted' : 'link', linkRole: 'viewer' };
-  });
+  const [settings, setSettings] = useState(() => getShareSettings(doc));
   const [pending, setPending] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
   const dialog = useRef<HTMLDivElement>(null);
   const urlInput = useRef<HTMLInputElement>(null);
+  const copyAttempt = useRef(0);
+  const copyNoticeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const url = documentUrl(window.location.origin, doc.id);
   useEffect(() => {
     const previous = window.document.activeElement as HTMLElement | null;
     dialog.current?.querySelector('input')?.focus();
-    return () => { if (previous?.isConnected) previous.focus(); };
+    return () => {
+      clearTimeout(copyNoticeTimer.current);
+      if (previous?.isConnected) previous.focus();
+    };
   }, []);
   useLayoutEffect(() => { if (error) { urlInput.current?.focus(); urlInput.current?.select(); } }, [error]);
   const copy = async () => {
+    const attempt = ++copyAttempt.current;
     setError(''); setCopied(false);
-    try { if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable'); await navigator.clipboard.writeText(url); setCopied(true); }
-    catch { setError('Không thể sao chép tự động. Nhấn Ctrl+C để sao chép liên kết đã chọn.'); }
+    clearTimeout(copyNoticeTimer.current);
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(url);
+      if (!dialog.current || attempt !== copyAttempt.current) return;
+      setCopied(true);
+      copyNoticeTimer.current = setTimeout(() => setCopied(false), 3200);
+    } catch {
+      if (dialog.current && attempt === copyAttempt.current) {
+        setError('Không thể sao chép tự động. Nhấn Ctrl+C để sao chép liên kết đã chọn.');
+      }
+    }
   };
   return <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <div ref={dialog} role="dialog" aria-modal="true" aria-label="Chia sẻ tài liệu" className="flex max-h-[calc(100dvh-32px)] w-full max-w-[640px] flex-col overflow-hidden rounded-3xl border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text)] shadow-2xl"
@@ -76,6 +87,18 @@ export function ShareDialog({ document: doc, onClose, onSave }: { document: Docu
               onChange={role => setSettings(previous => ({ ...previous, members: previous.members.map(member => member.id === person.id ? { ...member, role } : member) }))}
               onRemove={() => setSettings(previous => ({ ...previous, members: previous.members.filter(member => member.id !== person.id) }))} />
           </div>)}
+          {settings.groups.map(access => <div key={access.group.id} className="flex flex-wrap items-center gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700"><Users aria-hidden="true" className="h-5 w-5" /></span>
+            <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{access.group.name}</p><p className="text-sm text-[var(--ui-muted)]">{access.group.emails.length} thành viên</p></div>
+            <ShareRolePicker label={`Quyền của nhóm ${access.group.name}`} value={sharedRoles[access.permission]}
+              onChange={role => setSettings(previous => ({ ...previous, groups: previous.groups.map(item => {
+                if (item.group.id !== access.group.id) return item;
+                const permission = grantPermissions[role];
+                return { ...item, permission, permissions: Object.fromEntries(Object.entries(item.permissions)
+                  .map(([email, memberPermission]) => [email, memberPermission === item.permission ? permission : memberPermission])) };
+              }) }))}
+              onRemove={() => setSettings(previous => ({ ...previous, groups: previous.groups.filter(item => item.group.id !== access.group.id) }))} />
+          </div>)}
         </section>
         <section className="space-y-3 border-t border-[var(--ui-border)] pt-5">
           <h3 className="text-base font-semibold">Quyền truy cập chung</h3>
@@ -91,9 +114,12 @@ export function ShareDialog({ document: doc, onClose, onSave }: { document: Docu
         </section>
         {error && <div><input ref={urlInput} aria-label="Liên kết tài liệu" readOnly value={url} className="w-full rounded-lg border border-[var(--ui-border)] px-3 py-2 text-sm" /><p role="status" className="mt-1 text-xs text-[var(--ui-muted)]">{error}</p></div>}
       </div>
-      <footer className="flex shrink-0 flex-wrap items-center justify-between gap-3 px-6 pb-6 pt-4">
-        <button type="button" onClick={copy} className="flex items-center gap-2 rounded-full border border-[var(--ui-border-strong)] px-4 py-2.5 text-sm font-semibold text-[#0866ff] hover:bg-blue-50">{copied ? <Check className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}{copied ? 'Đã sao chép' : 'Sao chép đường liên kết'}</button>
-        <button type="button" onClick={() => { memoryStorage.setItem(key, JSON.stringify(settings)); onSave?.(settings); onClose(); }} className="rounded-full bg-[#0866ff] px-7 py-2.5 text-sm font-semibold text-white hover:bg-blue-600">Xong</button>
+      <footer className="relative flex shrink-0 flex-wrap items-center justify-between gap-3 px-6 pb-6 pt-4">
+        <button type="button" onClick={copy} className="flex items-center gap-2 rounded-full border border-[var(--ui-border-strong)] px-4 py-2.5 text-sm font-semibold text-[#0866ff] hover:bg-blue-50"><Link2 aria-hidden="true" className="h-4 w-4" />Sao chép liên kết</button>
+        <button type="button" onClick={() => { saveShareSettings(doc.id, settings); onSave?.(settings); onClose(); }} className="rounded-full bg-[#0866ff] px-7 py-2.5 text-sm font-semibold text-white hover:bg-blue-600">Xong</button>
+        <div role="status" className="pointer-events-none absolute inset-x-4 bottom-1 z-10 flex justify-center">
+          {copied && <span className="rounded-md bg-neutral-800 px-4 py-2.5 text-sm text-white shadow-lg">Đã sao chép đường liên kết</span>}
+        </div>
       </footer>
     </div>
   </div>;

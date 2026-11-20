@@ -1,5 +1,5 @@
 import { formatDateTime } from '../../utils/dateTime';
-import { LinkedTextarea, shiftInlineLinks } from './LinkedTextarea';
+import { getMentionTrigger, LinkedTextarea, shiftInlineRanges } from './LinkedTextarea';
 import { TableBlock } from './TableBlock';
 import { LinkBlock } from './LinkBlock';
 import { AttachmentBlock } from './AttachmentBlock';
@@ -29,6 +29,8 @@ import {
 import { Block, BlockType, UserRole } from '../../types';
 import { TEAM_MEMBERS } from '../../data/mockData';
 import { UtilityBlock } from './UtilityBlock';
+import { MindMapBlock } from './MindMapBlock';
+import { SpreadsheetBlock } from './SpreadsheetBlock';
 
 interface BlockItemProps {
   block: Block;
@@ -39,6 +41,8 @@ interface BlockItemProps {
   isDragOver?: boolean;
   isBlockSelected?: boolean;
   compactGutter?: boolean;
+  enableInlineGroupMentions?: boolean;
+  onGroupMentionClick?: (groupId: string) => void;
   autoFocus?: boolean;
   autoFocusPosition?: 'start' | 'end';
   openMenuInitially?: boolean;
@@ -51,7 +55,7 @@ interface BlockItemProps {
   onMoveUp: (blockId: string) => void;
   onMoveDown: (blockId: string) => void;
   onAddBelow: (index: number) => void;
-  onTriggerSlash: (blockId: string, query: string, rect: DOMRect | null) => void;
+  onTriggerSlash: (blockId: string, query: string, rect: DOMRect | null, mentionRange?: { start: number; end: number; itemId?: string }) => void;
   onDragStartBlock?: (index: number) => void;
   onDragOverBlock?: (index: number) => void;
   onDropBlock?: (sourceIndex: number, targetIndex: number) => void;
@@ -67,6 +71,8 @@ export const BlockItem: React.FC<BlockItemProps> = ({
   isDragOver = false,
   isBlockSelected = false,
   compactGutter = false,
+  enableInlineGroupMentions = false,
+  onGroupMentionClick,
   autoFocus = false,
   autoFocusPosition = 'start',
   openMenuInitially = false,
@@ -85,7 +91,8 @@ export const BlockItem: React.FC<BlockItemProps> = ({
   onDropBlock,
   onDragEndBlock,
 }) => {
-  const isReadOnly = userRole === 'viewer';
+  const isReadOnly = userRole === 'viewer' || userRole === 'commenter';
+  const showBlockSelection = isBlockSelected && block.type !== 'mind_map';
   const [showMenu, setShowMenu] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -135,14 +142,20 @@ export const BlockItem: React.FC<BlockItemProps> = ({
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
-    onUpdate(block.id, val, { ...block.properties, inlineLinks: shiftInlineLinks(block.properties?.inlineLinks, block.content, val) });
+    const inlineGroupMentions = shiftInlineRanges(block.properties?.inlineGroupMentions, block.content, val);
+    onUpdate(block.id, val, { ...block.properties, inlineGroupMentions: inlineGroupMentions.length ? inlineGroupMentions : undefined,
+      inlineLinks: shiftInlineRanges(block.properties?.inlineLinks, block.content, val) });
 
-    if ((val.startsWith('/') || val.startsWith('@')) && textRef.current) {
-      const rect = textRef.current.getBoundingClientRect();
-      onTriggerSlash(block.id, val.startsWith('@') ? val : val.slice(1), rect);
-    } else {
-      onTriggerSlash(block.id, '', null);
+    const mention = enableInlineGroupMentions ? getMentionTrigger(val, e.currentTarget.selectionStart, inlineGroupMentions) : undefined;
+    const rect = textRef.current?.getBoundingClientRect();
+    if (rect && mention) {
+      onTriggerSlash(block.id, mention.query, rect, mention);
+      return;
+    } else if (rect && (val.startsWith('/') || (!enableInlineGroupMentions && val.startsWith('@')))) {
+      onTriggerSlash(block.id, val.startsWith('/') ? val.slice(1) : val, rect);
+      return;
     }
+    onTriggerSlash(block.id, '', null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -171,6 +184,12 @@ export const BlockItem: React.FC<BlockItemProps> = ({
 
   const renderBlockContent = () => {
     switch (block.type) {
+      case 'mind_map':
+        return <MindMapBlock block={block} readOnly={isReadOnly}
+          onChange={(content, properties) => onUpdate(block.id, content, properties)} />;
+      case 'spreadsheet':
+        return <SpreadsheetBlock block={block} readOnly={isReadOnly}
+          onChange={(content, properties) => onUpdate(block.id, content, properties)} />;
       case 'video':
       case 'file':
         return <AttachmentBlock block={block} readOnly={isReadOnly}
@@ -183,13 +202,13 @@ export const BlockItem: React.FC<BlockItemProps> = ({
         return <UtilityBlock block={block} readOnly={isReadOnly}
           onChange={(content, properties) => onUpdate(block.id, content, properties)} />;
       case 'h4':
-        return <LinkedTextarea links={block.properties?.inlineLinks} ref={textRef} rows={1} disabled={isReadOnly}
+        return <LinkedTextarea links={block.properties?.inlineLinks} groupMentions={block.properties?.inlineGroupMentions} onGroupMentionClick={onGroupMentionClick} ref={textRef} rows={1} disabled={isReadOnly}
           value={block.content} onChange={handleTextChange} onKeyDown={handleKeyDown}
           placeholder="Tiêu đề 4..."
           className="w-full text-sm font-semibold bg-transparent resize-none focus:outline-none placeholder:text-[#C7C7CC] mt-1" />;
       case 'h1':
         return (
-          <LinkedTextarea links={block.properties?.inlineLinks}
+          <LinkedTextarea links={block.properties?.inlineLinks} groupMentions={block.properties?.inlineGroupMentions} onGroupMentionClick={onGroupMentionClick}
             ref={textRef}
             rows={1}
             disabled={isReadOnly}
@@ -203,7 +222,7 @@ export const BlockItem: React.FC<BlockItemProps> = ({
 
       case 'h2':
         return (
-          <LinkedTextarea links={block.properties?.inlineLinks}
+          <LinkedTextarea links={block.properties?.inlineLinks} groupMentions={block.properties?.inlineGroupMentions} onGroupMentionClick={onGroupMentionClick}
             ref={textRef}
             rows={1}
             disabled={isReadOnly}
@@ -217,7 +236,7 @@ export const BlockItem: React.FC<BlockItemProps> = ({
 
       case 'h3':
         return (
-          <LinkedTextarea links={block.properties?.inlineLinks}
+          <LinkedTextarea links={block.properties?.inlineLinks} groupMentions={block.properties?.inlineGroupMentions} onGroupMentionClick={onGroupMentionClick}
             ref={textRef}
             rows={1}
             disabled={isReadOnly}
@@ -233,7 +252,9 @@ export const BlockItem: React.FC<BlockItemProps> = ({
       case 'numbered':
       case 'checklist':
         return <ListBlock block={block} readOnly={isReadOnly} autoFocus={autoFocus}
+          onGroupMentionClick={onGroupMentionClick}
           onExitItem={onExitListItem ? (itemIndex) => onExitListItem(block.id, itemIndex) : undefined}
+          onMentionTrigger={enableInlineGroupMentions ? (mention, rect) => onTriggerSlash(block.id, mention?.query ?? '', rect, mention ?? undefined) : undefined}
           onChange={(content, properties) => onUpdate(block.id, content, properties)} />;
 
       case 'toggle':
@@ -250,7 +271,7 @@ export const BlockItem: React.FC<BlockItemProps> = ({
               >
                 {isOpen ? <ChevronDown className="w-4 h-4 stroke-[1.75]" /> : <ChevronRight className="w-4 h-4 stroke-[1.75]" />}
               </button>
-              <LinkedTextarea links={block.properties?.inlineLinks}
+              <LinkedTextarea links={block.properties?.inlineLinks} groupMentions={block.properties?.inlineGroupMentions} onGroupMentionClick={onGroupMentionClick}
                 ref={textRef}
                 rows={1}
                 disabled={isReadOnly}
@@ -284,7 +305,7 @@ export const BlockItem: React.FC<BlockItemProps> = ({
       case 'quote':
         return (
           <div className="w-full pl-4 border-l-2 border-[var(--ui-primary)] py-1 my-1">
-            <LinkedTextarea links={block.properties?.inlineLinks}
+            <LinkedTextarea links={block.properties?.inlineLinks} groupMentions={block.properties?.inlineGroupMentions} onGroupMentionClick={onGroupMentionClick}
               ref={textRef}
               rows={1}
               disabled={isReadOnly}
@@ -311,7 +332,7 @@ export const BlockItem: React.FC<BlockItemProps> = ({
               {block.properties?.calloutIcon || '💡'}
             </span>
             <div className="flex-1 min-w-0">
-              <LinkedTextarea links={block.properties?.inlineLinks}
+              <LinkedTextarea links={block.properties?.inlineLinks} groupMentions={block.properties?.inlineGroupMentions} onGroupMentionClick={onGroupMentionClick}
                 ref={textRef}
                 rows={1}
                 disabled={isReadOnly}
@@ -658,7 +679,7 @@ export const BlockItem: React.FC<BlockItemProps> = ({
       case 'paragraph':
       default:
         return (
-          <LinkedTextarea links={block.properties?.inlineLinks}
+          <LinkedTextarea links={block.properties?.inlineLinks} groupMentions={block.properties?.inlineGroupMentions} onGroupMentionClick={onGroupMentionClick}
             ref={textRef}
             rows={1}
             disabled={isReadOnly}
@@ -681,6 +702,7 @@ export const BlockItem: React.FC<BlockItemProps> = ({
   return (
     <div
       data-block-id={block.id}
+      data-block-type={block.type}
       data-block-selected={isBlockSelected ? 'true' : undefined}
       onDragOver={(e) => {
         e.preventDefault();
@@ -705,7 +727,7 @@ export const BlockItem: React.FC<BlockItemProps> = ({
       } print:ml-0 print:px-0 rounded-xl transition-all ${
         isDragging
           ? 'opacity-30 bg-[var(--ui-hover)] border border-dashed border-[var(--ui-primary)]'
-          : isBlockSelected
+          : showBlockSelection
             ? 'bg-[#0071e3]/10 print:bg-transparent'
             : 'hover:bg-[var(--ui-hover)]/40 print:hover:bg-transparent'
       } ${isDragOver ? 'border-t-2 border-[var(--ui-primary)] -mt-0.5' : ''}`}
@@ -820,7 +842,7 @@ export const BlockItem: React.FC<BlockItemProps> = ({
         ...(block.properties?.textColor ? { '--ui-text': block.properties.textColor } : {}),
       } as React.CSSProperties}>
         {renderBlockContent()}
-        {isBlockSelected && (
+        {showBlockSelection && (
           <span
             aria-hidden="true"
             data-block-selection-highlight="true"

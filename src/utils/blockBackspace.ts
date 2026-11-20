@@ -1,4 +1,4 @@
-import { Block, BlockProperties, InlineLink } from '../types';
+import { Block, BlockProperties } from '../types';
 
 const TEXT_EDITABLE_TYPES = new Set([
   'paragraph',
@@ -21,19 +21,20 @@ const LIST_TYPES = new Set(['bullet', 'numbered', 'checklist']);
 export interface BlockFocusTarget {
   blockId: string;
   offset: number;
+  itemId?: string;
 }
 
-function mergeInlineLinks(
-  baseLinks: InlineLink[] | undefined,
-  appendedLinks: InlineLink[] | undefined,
+export function mergeInlineRanges<T extends { start: number; end: number }>(
+  baseRanges: T[] | undefined,
+  appendedRanges: T[] | undefined,
   offset: number
-): InlineLink[] | undefined {
+): T[] | undefined {
   const combined = [
-    ...(baseLinks || []),
-    ...(appendedLinks || []).map((link) => ({
-      ...link,
-      start: link.start + offset,
-      end: link.end + offset,
+    ...(baseRanges || []),
+    ...(appendedRanges || []).map((range) => ({
+      ...range,
+      start: range.start + offset,
+      end: range.end + offset,
     })),
   ];
   return combined.length > 0 ? combined : undefined;
@@ -43,13 +44,15 @@ function mergeInlineLinks(
 export function focusBlockAtOffset(
   container: HTMLElement | null,
   blockId: string,
-  offset = Number.MAX_SAFE_INTEGER
+  offset = Number.MAX_SAFE_INTEGER,
+  itemId?: string,
 ): boolean {
   if (!container) return false;
   const blockEl = container.querySelector<HTMLElement>(`[data-block-id="${blockId}"]`);
   if (!blockEl) return false;
   const textareas = blockEl.querySelectorAll<HTMLTextAreaElement>('textarea:not([disabled])');
-  const input = textareas.length > 0 ? textareas[textareas.length - 1] : null;
+  const input = itemId ? Array.from(textareas).find(textarea => textarea.closest<HTMLElement>('[data-list-item]')?.dataset.listItem === itemId)
+    : textareas[textareas.length - 1];
   if (!input) return false;
 
   const clamped = Math.max(0, Math.min(offset, input.value.length));
@@ -117,12 +120,14 @@ export function computeBlocksAfterMergeWithPrevious(
 
   if (MERGEABLE_TEXT_TYPES.has(prev.type)) {
     const offset = prev.content.length;
-    const mergedLinks = mergeInlineLinks(prev.properties?.inlineLinks, curr.properties?.inlineLinks, offset);
+    const mergedLinks = mergeInlineRanges(prev.properties?.inlineLinks, curr.properties?.inlineLinks, offset);
+    const mergedMentions = mergeInlineRanges(prev.properties?.inlineGroupMentions, curr.properties?.inlineGroupMentions, offset);
     const mergedProps: BlockProperties | undefined =
-      prev.properties || mergedLinks
+      prev.properties || mergedLinks || mergedMentions
         ? {
             ...prev.properties,
             inlineLinks: mergedLinks,
+            ...(mergedMentions ? { inlineGroupMentions: mergedMentions } : {}),
           }
         : undefined;
     const merged: Block = {
@@ -144,15 +149,18 @@ export function computeBlocksAfterMergeWithPrevious(
             content: prev.content,
             checked: !!prev.properties?.checked,
             inlineLinks: prev.properties?.inlineLinks,
+            inlineGroupMentions: prev.properties?.inlineGroupMentions,
           },
         ];
     const lastIndex = prevItems.length - 1;
     const lastItem = prevItems[lastIndex];
     const offset = lastItem.content.length;
+    const inlineGroupMentions = mergeInlineRanges(lastItem.inlineGroupMentions, curr.properties?.inlineGroupMentions, offset);
     const updatedLast = {
       ...lastItem,
       content: lastItem.content + curr.content,
-      inlineLinks: mergeInlineLinks(lastItem.inlineLinks, curr.properties?.inlineLinks, offset),
+      inlineLinks: mergeInlineRanges(lastItem.inlineLinks, curr.properties?.inlineLinks, offset),
+      ...(inlineGroupMentions ? { inlineGroupMentions } : {}),
     };
     const nextItems = prevItems.map((item, i) => (i === lastIndex ? updatedLast : item));
     const mergedList: Block = {
@@ -193,6 +201,7 @@ export function computeBlocksAfterExitListItem(
           content: block.content,
           checked: !!block.properties?.checked,
           inlineLinks: block.properties?.inlineLinks,
+          inlineGroupMentions: block.properties?.inlineGroupMentions,
         },
       ];
   const first = items[itemIndex];
@@ -203,6 +212,7 @@ export function computeBlocksAfterExitListItem(
         listItems: undefined,
         checked: undefined,
         inlineLinks: first.inlineLinks,
+        ...(first.inlineGroupMentions || block.properties.inlineGroupMentions ? { inlineGroupMentions: first.inlineGroupMentions } : {}),
       }
     : first.inlineLinks
       ? { inlineLinks: first.inlineLinks }

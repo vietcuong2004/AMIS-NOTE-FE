@@ -5,6 +5,7 @@ import { TEAM_MEMBERS } from '../../data/mockData';
 
 const normalize = (text: string) => text.toLowerCase().normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').trim();
+const directorySearchLabel = 'Tìm kiếm theo tên/SĐT/email';
 
 export const employeeName = (email: string) => TEAM_MEMBERS.find(person => person.email === email)?.name || email;
 
@@ -12,23 +13,36 @@ export function EmployeePicker({ value, onChange, autoFocus = false, exclude = [
   value: string[]; onChange: (emails: string[]) => void; autoFocus?: boolean; exclude?: string[]; invitationLayout?: boolean;
 }) {
   const [query, setQuery] = useState('');
+  const [directoryQuery, setDirectoryQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [browse, setBrowse] = useState(false);
   const [active, setActive] = useState(0);
   const container = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  const directoryInput = useRef<HTMLInputElement>(null);
   const directoryButton = useRef<HTMLButtonElement>(null);
   const popup = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const listId = useId();
-  const matches = TEAM_MEMBERS.filter(person => !value.includes(person.email) && !exclude.includes(person.email) &&
-    (browse || normalize(`${person.name} ${person.email} ${person.role}`).includes(normalize(query))));
+  const searchTerm = normalize(browse ? directoryQuery : query);
+  const phoneDigits = /^[\d\s()+.-]+$/.test(searchTerm) ? searchTerm.replace(/\D/g, '') : '';
+  const matches = TEAM_MEMBERS.filter(person => !value.includes(person.email) && !exclude.includes(person.email) && (
+    normalize(`${person.name} ${person.email}${browse ? '' : ` ${person.role}`}`).includes(searchTerm) ||
+    (browse && phoneDigits && person.phone.replace(/\D/g, '').includes(phoneDigits))
+  ));
   const index = Math.min(active, Math.max(0, matches.length - 1));
   const closeList = () => { setOpen(false); setBrowse(false); };
+  const dismissPopup = () => {
+    (browse ? directoryButton : input).current?.focus();
+    closeList();
+  };
 
   useEffect(() => {
     if (autoFocus) input.current?.focus();
   }, [autoFocus]);
+  useLayoutEffect(() => {
+    if (open && browse) directoryInput.current?.focus({ preventScroll: true });
+  }, [open, browse]);
   useEffect(() => {
     const outside = (event: MouseEvent) => {
       if (!container.current?.contains(event.target as Node) && !popup.current?.contains(event.target as Node)) { setOpen(false); setBrowse(false); }
@@ -38,7 +52,7 @@ export function EmployeePicker({ value, onChange, autoFocus = false, exclude = [
   }, []);
   useEffect(() => {
     if (open) popup.current?.querySelector('[data-active="true"]')?.scrollIntoView({ block: 'nearest' });
-  }, [active, open, query]);
+  }, [active, open, searchTerm]);
   useLayoutEffect(() => {
     if (!open) return;
     const update = () => {
@@ -59,7 +73,24 @@ export function EmployeePicker({ value, onChange, autoFocus = false, exclude = [
   const choose = (email: string) => {
     if (!value.includes(email)) onChange([...value, email]);
     setQuery(''); setActive(0); setOpen(browse);
-    input.current?.focus();
+    (browse ? directoryInput : input).current?.focus();
+  };
+
+  const handleSearchKey = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.nativeEvent.isComposing) return;
+    if (event.key === 'Escape' && open) {
+      event.preventDefault(); event.stopPropagation(); dismissPopup(); return;
+    }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      if (!open && !query.trim()) return;
+      event.preventDefault(); setOpen(true);
+      const direction = event.key === 'ArrowDown' ? 1 : -1;
+      setActive(matches.length ? (index + direction + matches.length) % matches.length : 0);
+    }
+    if (event.key === 'Enter' && open) {
+      event.preventDefault(); event.stopPropagation();
+      if (matches[index]) choose(matches[index].email);
+    }
   };
 
   return <div ref={container} className="relative min-w-0 flex-1 basis-48"
@@ -74,42 +105,43 @@ export function EmployeePicker({ value, onChange, autoFocus = false, exclude = [
     <div className={`flex items-center ${invitationLayout ? 'gap-3' : 'gap-1 px-2'}`}>
       <div className={`flex flex-1 min-w-0 items-center gap-2 ${invitationLayout ? 'rounded-lg border border-[var(--ui-border)] px-3 py-2.5' : ''}`}>
       <Search className="w-3.5 h-3.5 shrink-0 text-[var(--ui-tertiary)]" />
-      <input ref={input} role="combobox" aria-label="Tìm nhân viên" aria-autocomplete="list" aria-expanded={open}
-        aria-controls={open ? listId : undefined} aria-activedescendant={open && matches[index] ? `${listId}-${matches[index].id}` : undefined}
+      <input ref={input} role="combobox" aria-label="Tìm nhân viên" aria-autocomplete="list" aria-expanded={open && !browse}
+        aria-controls={open && !browse ? listId : undefined} aria-activedescendant={open && !browse && matches[index] ? `${listId}-${matches[index].id}` : undefined}
         placeholder="Tìm tên hoặc email nhân viên..." value={query}
         onChange={event => { setQuery(event.target.value); setOpen(!!event.target.value.trim()); setBrowse(false); setActive(0); }}
-        onKeyDown={event => {
-          if (event.nativeEvent.isComposing) return;
-          if (event.key === 'Escape' && open) { event.preventDefault(); event.stopPropagation(); closeList(); return; }
-          if (['ArrowDown', 'ArrowUp'].includes(event.key)) {
-            if (!open && !query.trim()) return;
-            event.preventDefault(); setOpen(true);
-            setActive(previous => matches.length ? (previous + (event.key === 'ArrowDown' ? 1 : -1) + matches.length) % matches.length : 0);
-          }
-          if (event.key === 'Enter' && open) {
-            event.preventDefault(); event.stopPropagation();
-            if (matches[index]) choose(matches[index].email);
-          }
-        }} className="w-full min-w-0 bg-transparent py-1 text-sm outline-none" />
+        onKeyDown={handleSearchKey} className="w-full min-w-0 bg-transparent py-1 text-sm outline-none" />
       </div>
       <button ref={directoryButton} type="button" aria-label="Danh bạ" aria-haspopup="listbox" aria-expanded={open && browse}
         onClick={() => {
-          if (open && browse) closeList();
-          else { setQuery(''); setBrowse(true); setOpen(true); setActive(0); }
-          input.current?.focus();
+          if (open && browse) dismissPopup();
+          else { setQuery(''); setDirectoryQuery(''); setBrowse(true); setOpen(true); setActive(0); }
         }} className={`inline-flex shrink-0 items-center gap-2 rounded-lg text-[var(--ui-text)] hover:bg-[var(--ui-hover)] ${invitationLayout ? 'border border-[var(--ui-border)] px-3 py-3 text-sm font-medium' : 'px-2 py-1 text-xs'}`}>
         <ContactRound className="w-3.5 h-3.5" />Danh bạ
       </button>
     </div>
     {open && createPortal(<div ref={popup} data-employee-picker-popover={browse ? 'directory' : 'search'} style={position}
-      onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeList(); input.current?.focus(); } }}
-      className="fixed z-[150] w-80 max-w-[calc(100vw-24px)] rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-1 shadow-xl text-[var(--ui-text)]">
-      <div className="flex items-center justify-between border-b border-[var(--ui-border)] px-2 py-1 text-xs text-[var(--ui-muted)]">
+      onKeyDown={event => {
+        if (event.nativeEvent.isComposing) { event.stopPropagation(); return; }
+        if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); dismissPopup(); }
+        if (event.key === 'Tab' && browse) { event.stopPropagation(); dismissPopup(); }
+      }}
+      className="fixed z-[150] flex max-h-[calc(100dvh-24px)] w-80 max-w-[calc(100vw-24px)] flex-col rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-1 shadow-xl text-[var(--ui-text)]">
+      <div className="flex shrink-0 items-center justify-between border-b border-[var(--ui-border)] px-2 py-1 text-xs text-[var(--ui-muted)]">
         <span>{browse ? 'Danh sách nhân viên' : 'Kết quả tìm kiếm'}</span>
-        <button type="button" aria-label="Đóng danh sách nhân viên" onClick={() => { closeList(); input.current?.focus(); }}
+        <button type="button" aria-label="Đóng danh sách nhân viên" onClick={dismissPopup}
           className="rounded p-1 hover:bg-[var(--ui-hover)]"><X className="h-3.5 w-3.5" /></button>
       </div>
-      <div id={listId} role="listbox" aria-label="Danh sách nhân viên" className="max-h-56 overflow-y-auto">
+      {browse && <div className="shrink-0 px-2 py-2">
+        <div className="flex items-center gap-2 rounded-lg border border-[var(--ui-border)] px-2.5 focus-within:border-[var(--ui-accent)]">
+          <Search aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[var(--ui-tertiary)]" />
+          <input ref={directoryInput} type="search" role="combobox" aria-label={directorySearchLabel} placeholder={directorySearchLabel}
+            aria-autocomplete="list" aria-expanded="true" aria-controls={listId}
+            aria-activedescendant={matches[index] ? `${listId}-${matches[index].id}` : undefined}
+            value={directoryQuery} onChange={event => { setDirectoryQuery(event.target.value); setActive(0); }}
+            onKeyDown={handleSearchKey} className="w-full min-w-0 bg-transparent py-2 text-sm outline-none" />
+        </div>
+      </div>}
+      <div id={listId} role="listbox" aria-label="Danh sách nhân viên" className="min-h-0 max-h-56 overflow-y-auto">
       {matches.length ? matches.map((person, optionIndex) => <button key={person.id} id={`${listId}-${person.id}`} type="button" role="option"
         aria-selected={optionIndex === index} data-active={optionIndex === index}
         onMouseDown={event => event.preventDefault()} onMouseEnter={() => setActive(optionIndex)} onClick={() => choose(person.email)}
@@ -118,7 +150,7 @@ export function EmployeePicker({ value, onChange, autoFocus = false, exclude = [
         <span className="min-w-0"><span className="block text-sm font-medium">{person.name}</span>
           <span className="block truncate text-[11px] text-[var(--ui-tertiary)]">{person.email}</span>
           <span className="block text-[11px] text-[var(--ui-muted)]">{person.role}</span></span>
-      </button>) : <p role="status" className="p-3 text-xs text-[var(--ui-tertiary)]">{query.trim() ? 'Không tìm thấy nhân viên phù hợp.' : 'Đã chọn tất cả nhân viên.'}</p>}
+      </button>) : <p role="status" className="p-3 text-xs text-[var(--ui-tertiary)]">{searchTerm ? 'Không tìm thấy nhân viên phù hợp.' : 'Đã chọn tất cả nhân viên.'}</p>}
       </div>
     </div>, document.body)}
   </div>;

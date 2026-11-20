@@ -1,4 +1,6 @@
 import { memoryStorage } from '../utils/memoryStorage';
+import { MIND_MAP_TEMPLATES } from '../data/mindMapTemplates';
+import { EXCEL_TEMPLATES } from '../data/excelTemplates';
 import React, { useState, useEffect } from 'react';
 import {
   Document,
@@ -288,12 +290,13 @@ export default function App() {
   };
 
   // Create new document from template
-  const handleCreateFromTemplate = (templateId: string, spaceOverride?: SpaceType) => {
-    const tpl = TEMPLATES.find((t) => t.id === templateId);
+  const handleCreateFromTemplate = (templateId: string, spaceOverride?: SpaceType, folderId?: string) => {
+    const excel = EXCEL_TEMPLATES.find(template => template.id === templateId);
+    const tpl = excel ?? TEMPLATES.find((t) => t.id === templateId) ?? MIND_MAP_TEMPLATES.find(t => t.id === templateId);
     if (!tpl) { addToast('Không tìm thấy mẫu tài liệu', 'error'); return; }
     const targetSpace: SpaceType = spaceOverride ?? tpl.space;
-    const targetFolderId = spaceOverride
-      ? null
+    const targetFolderId = spaceOverride || excel
+      ? folders.find(folder => folder.id === folderId && folder.space === targetSpace)?.id ?? null
       : targetSpace === 'personal' && folders.some(folder => folder.id === 'fld_work' && folder.space === 'personal')
         ? 'fld_work'
         : null;
@@ -301,7 +304,7 @@ export default function App() {
     const newDoc: Document = {
       id: newDocId,
       title: tpl.title === 'Ghi chú cá nhân' ? 'Ghi chú không có tiêu đề' : tpl.title,
-      icon: '📄',
+      icon: excel ? '📊' : '📄',
       space: targetSpace,
       folderId: targetFolderId,
       type: tpl.type,
@@ -599,9 +602,9 @@ export default function App() {
             onMoveFolder: handleMoveFolder,
             onToast: addToast,
           }}
-          editor={{ folders, currentRole, onUpdateDocument: handleUpdateDocument, onNavigate: navigate,
+          editor={{ folders, onUpdateDocument: handleUpdateDocument, onNavigate: navigate,
             onSoftDeleteDocument: handleSoftDeleteDocument, onToggleFavorite: handleToggleFavorite,
-            onMoveDocument: handleMoveDocument, onToast: addToast, onRoleChange: setCurrentRole,
+            onMoveDocument: handleMoveDocument, onToast: addToast,
             autoFocusTitle: viewState.type === 'document' && newDocumentId === viewState.documentId,
             onAutoFocusTitleHandled: () => setNewDocumentId(null) }}
           trash={{ onRestore: handleRestoreDocument, onPermanentDelete: handlePermanentDelete, onEmptyTrash: handleEmptyTrash }}

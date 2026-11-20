@@ -1,0 +1,227 @@
+.mind-map-preview,
+.mind-map-canvas {
+  --node-fill: #eaf3ff;
+  --node-root-fill: #bfdbfe;
+  --node-line: #377bd1;
+  --node-text: #15375f;
+  container-type: inline-size;
+  border-radius: 0.875rem;
+}
+
+.mind-map-canvas--page {
+  flex: 1;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.mind-map-canvas--page .mind-map-board { min-height: 100%; }
+
+.mind-map-preview {
+  display: grid;
+  min-height: 13.75rem;
+  align-items: center;
+  overflow: auto;
+  background: var(--ui-subtle);
+  padding: 0.75rem;
+}
+
+.mind-map-template-thumbnail > .mind-map-preview {
+  height: 100%;
+  min-height: 0;
+  padding: 0.5rem;
+}
+
+.mind-map-template-thumbnail .mind-map-tree {
+  --node-gap: clamp(0.5rem, 5cqw, 1rem);
+  --node-width: clamp(2.375rem, 27cqw, 5.5rem);
+  font-size: 0.625rem;
+}
+
+.mind-map-template-thumbnail .mind-map-children > li { padding-block: 0.125rem; }
+
+.mind-map-canvas {
+  overflow: auto;
+  border: 1px solid var(--ui-border);
+  background: var(--ui-subtle);
+  padding: 0.5rem;
+}
+
+.mind-map-board {
+  position: relative;
+  min-width: 100%;
+  font-size: 0.875rem;
+}
+
+.mind-map-board-node {
+  position: absolute;
+}
+
+.mind-map-board-node:is(:hover, :focus-within) { z-index: 1; }
+.mind-map-board-node:is([data-dragging], [data-resizing]) { z-index: 2; }
+
+.mind-map-board-node > .mind-map-card { width: 100%; min-height: 2rem; }
+
+.mind-map-board-node:focus-within > .mind-map-card {
+  outline: 1px solid var(--node-line);
+  outline-offset: 1px;
+}
+
+.mind-map-node-actions {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  display: flex;
+  gap: 0.125rem;
+  padding: 0.125rem;
+  border-radius: 0.375rem;
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mind-map-board-node:is(:hover, :focus-within, [data-dragging]) .mind-map-node-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mind-map-node-actions button {
+  border-radius: 0.25rem;
+  padding: 0.125rem;
+}
+
+.mind-map-node-actions button:hover:not(:disabled) { background: var(--ui-hover); }
+.mind-map-node-actions button:disabled { opacity: 0.4; }
+
+.mind-map-resize {
+  position: absolute;
+  right: -0.25rem;
+  bottom: -0.25rem;
+  width: 0.875rem;
+  height: 0.875rem;
+  border: 1px solid var(--node-line);
+  border-radius: 0.25rem;
+  background: var(--ui-surface);
+  cursor: nwse-resize;
+  touch-action: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mind-map-resize::after {
+  content: '';
+  position: absolute;
+  inset: 0.25rem;
+  border-right: 1px solid var(--node-line);
+  border-bottom: 1px solid var(--node-line);
+}
+
+.mind-map-board-node:is(:hover, :focus-within, [data-resizing]) .mind-map-resize {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mind-map-board-node[data-movable] > .mind-map-card {
+  touch-action: none;
+  cursor: grab;
+}
+
+.mind-map-board-node[data-movable] textarea:not(:focus) { cursor: grab; }
+.mind-map-board-node[data-dragging] :is(.mind-map-card, textarea) { cursor: grabbing; }
+
+.mind-map-edge {
+  position: absolute;
+  color: var(--node-line);
+  pointer-events: none;
+}
+
+.mind-map-tree {
+  position: relative;
+  --node-gap: 2rem;
+  --node-width: clamp(9.5rem, 24cqw, 14rem);
+  width: max-content;
+  margin-inline: auto;
+  font-size: 0.875rem;
+}
+
+.mind-map-preview .mind-map-tree {
+  --node-gap: clamp(0.75rem, 6cqw, 1.5rem);
+  --node-width: clamp(3.75rem, 27cqw, 7.5rem);
+  font-size: clamp(0.625rem, 3.5cqw, 0.8125rem);
+}
+
+.mind-map-node {
+  display: flex;
+  align-items: center;
+}
+
+.mind-map-card {
+  position: relative;
+  width: var(--node-width);
+  border: 1px solid var(--node-line);
+  border-radius: 0.375rem;
+  background: var(--node-fill);
+  color: var(--node-text);
+  padding: 0.375rem 0.5rem;
+}
+
+.mind-map-tree > .mind-map-node > .mind-map-card,
+.mind-map-board-node[data-map-root] > .mind-map-card {
+  background: var(--node-root-fill);
+  font-weight: 650;
+  text-align: center;
+}
+
+.mind-map-preview .mind-map-card {
+  text-align: center;
+  padding: 0.375rem 0.25rem;
+  line-height: 1.3;
+}
+
+.mind-map-children {
+  position: relative;
+  margin: 0;
+  padding: 0 0 0 var(--node-gap);
+  list-style: none;
+}
+
+.mind-map-children > li { padding-block: 0.25rem; }
+
+.mind-map-text,
+.mind-map-textbox::after {
+  display: block;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.mind-map-textbox {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mind-map-textbox::after {
+  content: attr(data-content) ' ';
+  grid-area: 1 / 1;
+  visibility: hidden;
+}
+
+.mind-map-textbox textarea {
+  grid-area: 1 / 1;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  text-align: inherit;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  outline: none;
+}
+
+@media print {
+  .mind-map-canvas { overflow: visible; padding: 0.5rem; background: none; }
+  .mind-map-tree { --node-width: 7rem; --node-gap: 1rem; font-size: 0.75rem; }
+  .mind-map-canvas .print\:hidden { display: none; }
+}

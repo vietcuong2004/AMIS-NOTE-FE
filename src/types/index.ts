@@ -1,4 +1,4 @@
-export type UserRole = 'owner' | 'editor' | 'viewer';
+export type UserRole = 'owner' | 'viewer' | 'commenter' | 'editor';
 
 export type DocumentType = 'note' | 'meeting' | 'plan' | 'internal_doc';
 
@@ -34,7 +34,9 @@ export type BlockType =
   | 'meeting_info'
   | 'meeting_attendees'
   | 'meeting_agenda'
-  | 'meeting_action_items';
+  | 'meeting_action_items'
+  | 'mind_map'
+  | 'spreadsheet';
 
 export interface BlockActionItem {
   id: string;
@@ -64,27 +66,74 @@ export interface BlockTableData {
   rows: string[][];
 }
 
+export interface SpreadsheetData extends BlockTableData {
+  columnOptions?: Record<number, string[]>;
+  numericColumns?: number[];
+  cellStyles?: Record<string, SpreadsheetCellStyle>;
+}
+
+export interface SpreadsheetCellStyle {
+  font?: 'Arial' | 'Calibri' | 'Times New Roman' | 'Verdana';
+  fontSize?: number;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  align?: 'left' | 'center' | 'right';
+}
+
+export interface SpreadsheetTab {
+  id: string;
+  name: string;
+  sheet: SpreadsheetData;
+}
+
+export interface MindMapNode {
+  id: string;
+  label: string;
+  note?: string;
+  position?: { x: number; y: number };
+  size?: { width: number; height: number };
+  children: MindMapNode[];
+}
+
 export interface InlineLink { start: number; end: number; url: string }
+export interface InlineGroupMention { start: number; end: number; groupId: string }
+export type DocumentPermission = 'full' | 'edit' | 'comment' | 'view';
+
+export interface EmployeeGroup {
+  id: string;
+  name: string;
+  emails: string[];
+}
+
+export interface GroupAccess {
+  group: EmployeeGroup;
+  permission: DocumentPermission;
+  permissions: Record<string, DocumentPermission>;
+  message: string;
+}
 
 export interface BlockProperties {
   inlineLinks?: InlineLink[];
+  inlineGroupMentions?: InlineGroupMention[];
   bold?: boolean;
   italic?: boolean;
   underline?: boolean;
   fontFamily?: string;
   fontSize?: number;
-  listItems?: { id: string; content: string; checked?: boolean; level?: number; inlineLinks?: InlineLink[] }[];
+  listItems?: { id: string; content: string; checked?: boolean; level?: number; inlineLinks?: InlineLink[]; inlineGroupMentions?: InlineGroupMention[] }[];
   textColor?: string;
   backgroundColor?: string;
   mention?: {
     kind: 'person' | 'group';
     groupName?: string;
     emails: string[];
-    permission: 'full' | 'edit' | 'comment' | 'view';
-    permissions?: Record<string, 'full' | 'edit' | 'comment' | 'view'>;
+    permission: DocumentPermission;
+    permissions?: Record<string, DocumentPermission>;
     scope: 'workspace' | 'page';
     message: string;
   };
+  mentionTrailingText?: string;
   commandTitle?: string;
   utilityKind?: string;
   provider?: string;
@@ -111,6 +160,10 @@ export interface BlockProperties {
   agenda?: BlockAgendaItem[];
   actionItems?: BlockActionItem[];
   tableData?: BlockTableData;
+  mindMap?: MindMapNode;
+  spreadsheet?: SpreadsheetData;
+  spreadsheetName?: string;
+  spreadsheetTabs?: SpreadsheetTab[];
 }
 
 export interface Block {
@@ -178,6 +231,8 @@ export interface User {
 
 export type ViewState =
   | { type: 'space_root'; space: SpaceType }
+  | { type: 'mind_maps'; space: SpaceType }
+  | { type: 'excel_templates'; space: SpaceType; folderId?: string }
   | { type: 'private' }
   | { type: 'company' }
   | { type: 'shared' }
