@@ -241,6 +241,7 @@ export type ViewState =
   | { type: 'not_found'; path: string }
   | { type: 'document'; documentId: string }
   | { type: 'recent' }
+  | { type: 'search'; query: string; scope?: { space: SpaceType; folderId?: string } }
   | { type: 'unclassified'; space?: SpaceType }
   | { type: 'favorite' }
   | { type: 'meeting_notes' }

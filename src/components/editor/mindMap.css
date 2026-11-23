@@ -151,6 +151,20 @@
   font-size: clamp(0.625rem, 3.5cqw, 0.8125rem);
 }
 
+.template-gallery-preview > .mind-map-preview {
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+.template-gallery-preview .mind-map-preview .mind-map-tree {
+  --node-gap: clamp(0.5rem, 5cqw, 1rem);
+  --node-width: clamp(2.375rem, 27cqw, 5.5rem);
+  font-size: 0.625rem;
+}
+
 .mind-map-node {
   display: flex;
   align-items: center;
@@ -179,6 +193,8 @@
   line-height: 1.3;
 }
 
+.template-gallery-preview .mind-map-preview .mind-map-card { padding-block: 0.1875rem; }
+
 .mind-map-children {
   position: relative;
   margin: 0;
@@ -187,6 +203,7 @@
 }
 
 .mind-map-children > li { padding-block: 0.25rem; }
+.template-gallery-preview .mind-map-children > li { padding-block: 0.125rem; }
 
 .mind-map-text,
 .mind-map-textbox::after {

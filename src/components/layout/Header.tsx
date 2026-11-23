@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Search,
   MessageSquare,
   Bell,
   HelpCircle,
@@ -37,7 +36,7 @@ interface HeaderProps {
   onThemeChange: (theme: ThemeId) => void;
   sidebarVariant: 1 | 2;
   onSidebarVariantChange: (variant: 1 | 2) => void;
-  onOpenSearch: () => void;
+  search: React.ReactNode;
   onOpenChat: () => void;
   onNavigateHome?: () => void;
 }
@@ -47,7 +46,7 @@ export const Header: React.FC<HeaderProps> = ({
   onThemeChange,
   sidebarVariant,
   onSidebarVariantChange,
-  onOpenSearch,
+  search,
   onOpenChat,
   onNavigateHome
 }) => {
@@ -220,24 +219,8 @@ export const Header: React.FC<HeaderProps> = ({
         </a>
       </div>
 
-      {/* 2. Search Box */}
-      <div className="box-search flex-1 max-w-md mx-6" id="main-header-search">
-        <div className="relative flex items-center">
-          <input
-            type="text"
-            id="top-search"
-            className="form-control w-full h-8 pl-3.5 pr-8 rounded-md bg-[var(--ui-surface)]/15 hover:bg-[var(--ui-surface)]/20 focus:bg-[var(--ui-surface)] focus:text-gray-900 focus:placeholder-gray-400 placeholder-white/75 text-xs text-white border border-white/20 focus:border-white focus:outline-none transition-all shadow-inner cursor-pointer"
-            name="textSearch"
-            placeholder="Nhập từ khóa tìm kiếm ..."
-            onClick={onOpenSearch}
-            readOnly
-          />
-          <span
-            className="m-icon icon-top-search absolute right-2.5 text-white/80 pointer-events-none"
-          >
-            <Search className="w-3.5 h-3.5 stroke-[2]" />
-          </span>
-        </div>
+      <div className="box-search mx-2 min-w-0 max-w-[34rem] flex-1 sm:mx-6" id="main-header-search">
+        {search}
       </div>
 
       {/* 3. Sub Header Title (Hidden by default) */}

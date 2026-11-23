@@ -108,7 +108,7 @@ AMIS NOTE được định hướng phát triển thành một nền tảng qu�
 
 | Hiện tại – AMIS Ghi chép | Khó khăn | Mục tiêu – AMIS NOTE |
 |---|---|---|
-| Chủ yếu xem tài liệu có sẵn, chưa hỗ trợ tạo và lưu trữ tài liệu cá nhân. | Nhân viên phải dùng ứng dụng ngoài để ghi chép, tài liệu công việc bị phân tán và khó quản lý. | Cung cấp không gian Tài liệu của tôi để tự tạo, lưu trữ và sắp xếp tài liệu cá nhân theo thư mục. |
+| Chủ yếu xem tài liệu có sẵn, chưa hỗ trợ tạo và lưu trữ tài liệu cá nhân. | Nhân viên phải dùng ứng dụng ngoài để ghi chép, tài liệu công việc bị phân tán và khó quản lý. | Cung cấp không gian Ghi chép của tôi để tự tạo, lưu trữ và sắp xếp tài liệu cá nhân theo thư mục. |
 | Chưa có công cụ soạn thảo linh hoạt phục vụ công việc hằng ngày. | Khó định dạng nội dung rõ ràng, thiếu các thành phần hỗ trợ như bảng, danh sách công việc. | Hỗ trợ trình soạn thảo linh hoạt, phím tắt nhanh và mẫu tài liệu (biên bản, kế hoạch, báo cáo). |
 
 **Giá trị mang lại:** Nhân viên có công cụ làm việc thuận tiện, tài liệu được lưu tập trung trong hệ thống doanh nghiệp.
@@ -141,7 +141,7 @@ Qua đánh giá thực trạng, AMIS NOTE chuyển đổi chiến lược theo 3
 | Cấp độ quản lý | Thực trạng (AMIS Ghi chép) | Mục tiêu chuyển đổi (AMIS NOTE) | Giá trị cốt lõi mang lại |
 |---|---|---|---|
 | **1. Kho tài liệu công ty** | Danh mục tài liệu dàn trải; chủ yếu xem tài liệu có sẵn; tìm kiếm hạn chế; rủi ro mất quyền khi nhân sự thay đổi. | Xây dựng Thư viện tài liệu công ty tập trung; cấu trúc cây thư mục phân cấp theo mảng nghiệp vụ; phân quyền chặt chẽ; hỗ trợ cộng tác trực tuyến và tự động bàn giao khi thay đổi nhân sự. | Thông tin chính thức, thống nhất, tổ chức phân cấp rõ ràng, dễ dàng tra cứu và cộng tác. |
-| **2. Tài liệu cá nhân của nhân viên** | Thiếu công cụ ghi chép cá nhân; phải dùng Word/Docs bên ngoài; chia sẻ qua kênh ngoài dễ lộ lọt thông tin. | Cung cấp không gian Tài liệu của tôi; soạn thảo nhanh với Template & Slash Menu (/); chia sẻ nội bộ có kiểm soát và chuyển giao vào kho tài liệu công ty. | Nhân viên chủ động ghi chép công việc hằng ngày; dữ liệu được giữ an toàn tuyệt đối trong doanh nghiệp. |
+| **2. Tài liệu cá nhân của nhân viên** | Thiếu công cụ ghi chép cá nhân; phải dùng Word/Docs bên ngoài; chia sẻ qua kênh ngoài dễ lộ lọt thông tin. | Cung cấp không gian Ghi chép của tôi; soạn thảo nhanh với Template & Slash Menu (/); chia sẻ nội bộ có kiểm soát và chuyển giao vào kho tài liệu công ty. | Nhân viên chủ động ghi chép công việc hằng ngày; dữ liệu được giữ an toàn tuyệt đối trong doanh nghiệp. |
 | **3. Chu trình quản trị tri thức** | Quy trình phân tán, rời rạc giữa việc tạo lập cá nhân và lưu trữ doanh nghiệp. | Khép kín chu trình từ Ghi chép cá nhân $\rightarrow$ Đóng góp vào kho tài liệu công ty $\rightarrow$ Quản trị và bàn giao tài liệu của tổ chức. | Doanh nghiệp làm chủ toàn bộ tài sản tri thức, kế thừa liên tục không phụ thuộc cá nhân. |
 
 ---
@@ -258,7 +258,7 @@ Qua đánh giá thực trạng, AMIS NOTE chuyển đổi chiến lược theo 3
 | **Lark** | • Không gian tài liệu cá nhân My Documents kết nối đám mây, mở ra là ghi chép được ngay.<br>• Slash Command linh hoạt, cho phép chèn bảng biểu, nhắc lịch hẹn và khảo sát nội bộ.<br>• Kho mẫu chuyên nghiệp cho các loại biên bản, báo cáo công việc hàng tuần/tháng. |
 | **Google Drive** | • Tạo tệp Google Docs/Keep cá nhân đơn giản, lưu tự động trên My Drive.<br>• Cung cấp thư viện mẫu biểu chuẩn cho công việc văn phòng, báo cáo, thư mời.<br>• Giao diện soạn thảo văn bản quen thuộc, thanh công cụ trực quan dễ dùng. |
 
-**Bài học & Giải pháp áp dụng cho AMIS NOTE:** Cung cấp không gian 'Tài liệu của tôi' đảm bảo tính riêng tư; trang bị trình soạn thảo dạng khối linh hoạt với phím tắt Slash Menu (/) và thư viện mẫu biên bản họp, kế hoạch công việc chuẩn hóa.
+**Bài học & Giải pháp áp dụng cho AMIS NOTE:** Cung cấp không gian 'Ghi chép của tôi' đảm bảo tính riêng tư; trang bị trình soạn thảo dạng khối linh hoạt với phím tắt Slash Menu (/) và thư viện mẫu biên bản họp, kế hoạch công việc chuẩn hóa.
 
 ---
 
@@ -304,7 +304,7 @@ Qua đánh giá thực trạng, AMIS NOTE chuyển đổi chiến lược theo 3
 | **2. Bàn giao khi đổi nhân sự** | Google Shared Drives; Lark chuyển giao quyền. | Tự động thu hồi quyền và kích hoạt quy trình bàn giao tài liệu khi có thay đổi nhân sự trên AMIS Hệ thống. |
 | **3. Cấu trúc cây thư mục phân cấp** | Notion Nested Pages; Lark Wiki Tree; Google Drive Folders. | Cấu trúc cây thư mục phân cấp đa tầng theo mảng nghiệp vụ; phân loại rõ tài liệu chung và tài liệu chuyên môn. |
 | **4. Cộng tác & Quản trị phiên bản** | Google Docs; Lark Docs; Notion Realtime. | Cho phép nhiều người cùng chỉnh sửa trực tuyến, bình luận ngữ cảnh và lưu vết lịch sử phiên bản chi tiết. |
-| **5. Soạn thảo & Ghi chép cá nhân** | Notion Slash Menu (/), Block-based, Template. | Không gian 'Tài liệu của tôi'; soạn thảo nhanh với Slash Menu (/); kho mẫu biên bản họp, kế hoạch công việc. |
+| **5. Soạn thảo & Ghi chép cá nhân** | Notion Slash Menu (/), Block-based, Template. | Không gian 'Ghi chép của tôi'; soạn thảo nhanh với Slash Menu (/); kho mẫu biên bản họp, kế hoạch công việc. |
 | **6. Ứng dụng AI & Tiện ích mở rộng** | Notion AI Meeting Notes; Lark AI Summary; Lark Clip. | Định hướng tích hợp AI tự động ghi chép / tóm tắt cuộc họp; trích xuất Action Items; tiện ích Web Clipper lưu tư liệu. |
 
 **Định hướng cốt lõi:** AMIS NOTE chọn lọc những giải pháp tối ưu nhất từ Notion, Lark và Google Drive để phục vụ trọn vẹn cả hai mục tiêu: Cá nhân & Doanh nghiệp.
@@ -345,7 +345,7 @@ AMIS NOTE được định hướng phát triển thành nền tảng quản lý
 Phát triển AMIS NOTE thành công cụ ghi chép và quản lý tài liệu thuận tiện, giúp người dùng chủ động lưu trữ thông tin và xử lý công việc hằng ngày.
 
 ### 1. Không gian ghi chú cá nhân
-- Cung cấp không gian **Tài liệu của tôi**, cho phép tự tạo, chỉnh sửa và quản lý ghi chú riêng.
+- Cung cấp không gian **Ghi chép của tôi**, cho phép tự tạo, chỉnh sửa và quản lý ghi chú riêng.
 - Hỗ trợ lưu trữ, tìm kiếm theo thư mục; hướng đến trải nghiệm thống nhất trên Web và thiết bị di động.
 
 ### 2. Nâng cấp trình soạn thảo

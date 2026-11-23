@@ -573,6 +573,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
               <button
                 type="button"
                 onClick={() => toggleFolderExpanded(folder.id)}
+                aria-expanded={isOpen}
                 className="flex items-center gap-2 font-semibold text-xs text-[var(--ui-text)] hover:text-[var(--ui-primary)] transition-colors cursor-pointer text-left truncate"
               >
                 <span className="text-[var(--ui-tertiary)] shrink-0">
@@ -1282,7 +1283,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
               </button>
             </div>
 
-            {viewMode === 'tree' && (
+            {trashMode && viewMode === 'tree' && (
               <button
                 type="button"
                 onClick={() => {
@@ -1297,8 +1298,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
               </button>
             )}
 
-            {/* Sliders / Tune icon */}
-            <button
+            {trashMode && <button
               type="button"
               onClick={() => {
                 setSelectedType('all');
@@ -1311,7 +1311,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
               title="Đặt lại bộ lọc"
             >
               <SlidersHorizontal className="w-3.5 h-3.5 stroke-[1.75]" />
-            </button>
+            </button>}
           </div>
         </div>
       </div>

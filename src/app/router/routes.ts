@@ -13,6 +13,14 @@ export function pathForView(view: ViewState): string {
     case 'excel_templates': return `/${view.space === 'personal' ? 'private' : 'company'}/excel-templates${view.folderId ? `?folder=${encodeURIComponent(view.folderId)}` : ''}`;
     case 'unclassified': return view.space ? `/library/${view.space === 'personal' ? 'private' : 'company'}/unclassified` : '/unclassified';
     case 'document': return `/documents/${encodeURIComponent(view.documentId)}`;
+    case 'search': {
+      const params = new URLSearchParams({ q: view.query });
+      if (view.scope) {
+        params.set('space', view.scope.space);
+        if (view.scope.folderId) params.set('folder', view.scope.folderId);
+      }
+      return `/search?${params}`;
+    }
     case 'folder': return `/folders/${encodeURIComponent(view.folderId)}`;
     case 'not_found': return view.path.startsWith('/') && !view.path.startsWith('//') ? view.path : '/404';
     default: return pagePaths[view.type];
@@ -32,6 +40,12 @@ export function viewForLocation(location: string): ViewState {
     '/shared': { type: 'shared' }, '/meetings': { type: 'meeting_notes' },
   };
   if (aliases[path]) return aliases[path];
+  if (path === '/search') {
+    const space = url.searchParams.get('space');
+    const folderId = url.searchParams.get('folder');
+    return { type: 'search', query: url.searchParams.get('q') ?? '',
+      ...(space === 'personal' || space === 'company' ? { scope: { space, ...(folderId ? { folderId } : {}) } } : {}) };
+  }
   if (path === '/private/mind-maps' || path === '/company/mind-maps') {
     return { type: 'mind_maps', space: path.startsWith('/company') ? 'company' : 'personal' };
   }

@@ -1,317 +1,191 @@
-import React, { useState, useEffect } from 'react';
-import { X, Folder as FolderIcon, User, Building2, Check, ArrowRight, AlertCircle } from 'lucide-react';
-import { Folder, SpaceType } from '../../types';
-import { getFolderAncestors, getFolderPath } from '../../utils/folders';
+import { useEffect, useId, useRef, useState } from 'react';
+import type { KeyboardEvent } from 'react';
+import { createPortal } from 'react-dom';
+import { Building2, Check, ChevronDown, ChevronRight, Folder as FolderIcon, FolderInput, Home, Info, Search, User, X } from 'lucide-react';
+import type { Folder, SpaceType } from '../../types';
+import { getFolderAncestors } from '../../utils/folders';
+import { searchTerms, workspaceName } from '../../utils/workspaceSearch';
 
 interface MoveFolderModalProps {
   folder: Folder | null;
   folders: Folder[];
   isOpen: boolean;
   onClose: () => void;
-  onMove: (folderId: string, targetParentId: string | null, targetSpace: SpaceType) => void;
+  onMove: (folderId: string, targetParentId: string | null, targetSpace: SpaceType) => boolean | void;
   onToast?: (msg: string, type?: 'success' | 'info' | 'error') => void;
 }
 
-export const MoveFolderModal: React.FC<MoveFolderModalProps> = ({
-  folder,
-  folders,
-  isOpen,
-  onClose,
-  onMove,
-  onToast,
-}) => {
-  const [selectedSpace, setSelectedSpace] = useState<SpaceType>('personal');
-  const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
+const spaces = [
+  { id: 'personal', Icon: User },
+  { id: 'company', Icon: Building2 },
+] as const;
+
+export function MoveFolderModal({ isOpen, folder, ...props }: MoveFolderModalProps) {
+  return isOpen && folder ? <MoveFolderDialog key={folder.id} folder={folder} {...props} /> : null;
+}
+
+function MoveFolderDialog({ folder, folders, onClose, onMove, onToast }:
+  Omit<MoveFolderModalProps, 'folder' | 'isOpen'> & { folder: Folder }) {
+  const titleId = useId();
+  const search = useRef<HTMLInputElement>(null);
+  const [space, setSpace] = useState(folder.space);
+  const [parentId, setParentId] = useState<string | null>(folder.parentId ?? null);
+  const [expanded, setExpanded] = useState(() => new Set(getFolderAncestors(folder.parentId, folders).map(item => item.id)));
+  const [query, setQuery] = useState('');
+  const [error, setError] = useState('');
+  const allowed = folders.filter(item => item.space === space &&
+    !getFolderAncestors(item.id, folders).some(ancestor => ancestor.id === folder.id));
+  const children = (id: string | null) => allowed.filter(item => (item.parentId ?? null) === id);
+  const oldLocation = [workspaceName(folder.space), ...getFolderAncestors(folder.parentId, folders).map(item => item.name)].join(' / ');
+  const newLocation = [workspaceName(space), ...getFolderAncestors(parentId, allowed).map(item => item.name)].join(' / ');
+  const destinationExists = parentId === null || allowed.some(item => item.id === parentId);
+  const unchanged = space === folder.space && parentId === (folder.parentId ?? null);
+  const keyword = query.trim();
+  const matches = keyword ? allowed.flatMap(item => {
+    const path = getFolderAncestors(item.id, allowed).map(part => part.name);
+    return searchTerms(path.join(' / '), keyword).length ? [{ item, breadcrumb: path.slice(0, -1).join(' / ') }] : [];
+  }) : [];
 
   useEffect(() => {
-    if (isOpen && folder) {
-      setSelectedSpace(folder.space);
-      setSelectedParentId(folder.parentId || null);
-    }
-  }, [isOpen, folder]);
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    search.current?.focus();
+    return () => { if (previous?.isConnected) previous.focus(); };
+  }, []);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  if (!isOpen || !folder) return null;
-
-  // Collect descendants of the folder to prevent circular nesting
-  const descendantIds = new Set<string>();
-  const collectDescendants = (parentId: string) => {
-    folders
-      .filter((f) => f.parentId === parentId)
-      .forEach((f) => {
-        descendantIds.add(f.id);
-        collectDescendants(f.id);
-      });
-  };
-  collectDescendants(folder.id);
-
-  // Filter allowed target folders in selected space (cannot be self or descendant)
-  const allowedFolders = folders.filter(
-    (f) => f.space === selectedSpace && f.id !== folder.id && !descendantIds.has(f.id)
-  );
-
-  const handleSpaceChange = (space: SpaceType) => {
-    setSelectedSpace(space);
-    const currentParent = folders.find((f) => f.id === selectedParentId);
-    if (!currentParent || currentParent.space !== space) {
-      setSelectedParentId(null);
-    }
-  };
-
-  const isUnchanged =
-    selectedSpace === folder.space &&
-    selectedParentId === (folder.parentId || null);
-
-  const handleConfirm = () => {
-    if (isUnchanged) {
-      onToast?.('Thư mục đã ở vị trí này rồi', 'info');
+  function handleKeys(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Escape' && !event.nativeEvent.isComposing) {
+      event.preventDefault();
+      event.stopPropagation();
       onClose();
-      return;
     }
+    if (event.key !== 'Tab') return;
+    const items = event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), input');
+    const first = items[0], last = items[items.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+  }
 
+  function selectParent(id: string | null) {
+    setParentId(id);
+    setError('');
+  }
+
+  function confirm() {
+    if (unchanged || !destinationExists) return;
     try {
-      onMove(folder.id, selectedParentId, selectedSpace);
-      const targetParent = folders.find((f) => f.id === selectedParentId);
-      const spaceLabel = selectedSpace === 'personal' ? 'Ghi chép của tôi' : 'Tài liệu công ty';
-      const locText = targetParent
-        ? `thư mục "${targetParent.name}" (${spaceLabel})`
-        : `thư mục gốc "${spaceLabel}"`;
-      onToast?.(`Đã di chuyển thư mục "${folder.name}" vào ${locText}`);
+      if (onMove(folder.id, parentId, space) === false) {
+        setError('Không thể di chuyển thư mục. Hãy kiểm tra lại vị trí đích.');
+        return;
+      }
+      onToast?.(`Đã di chuyển thư mục “${folder.name}” vào ${newLocation}.`);
       onClose();
-    } catch (err) {
-      onToast?.(err instanceof Error ? err.message : 'Không thể di chuyển thư mục', 'error');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Không thể di chuyển thư mục.');
     }
-  };
+  }
 
-  const currentSpaceLabel = folder.space === 'personal' ? 'Ghi chép của tôi' : 'Tài liệu công ty';
-  const currentPath = folder.parentId ? getFolderPath(folder.parentId, folders) : null;
-  const targetSpaceLabel = selectedSpace === 'personal' ? 'Ghi chép của tôi' : 'Tài liệu công ty';
-  const targetParent = folders.find((f) => f.id === selectedParentId);
-  const targetPath = targetParent ? getFolderPath(targetParent.id, folders) : null;
+  function destinationButton(id: string | null, name: string, breadcrumb?: string) {
+    const Icon = id === null ? Home : FolderIcon;
+    return <button type="button" aria-pressed={parentId === id} onClick={() => selectParent(id)} title={name}
+      className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-sm hover:bg-[var(--ui-hover)] ${parentId === id ? 'border-blue-600 font-semibold' : 'border-transparent'}`}>
+      <Icon aria-hidden="true" className="size-4 shrink-0 text-[var(--ui-muted)]" />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate">{name}</span>
+        {breadcrumb && <span className="block truncate text-xs font-normal text-[var(--ui-muted)]">{breadcrumb}</span>}
+      </span>
+      {parentId === id && <Check aria-hidden="true" className="size-4 shrink-0 text-blue-600" />}
+    </button>;
+  }
 
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md animate-in fade-in duration-150 p-4"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="move-folder-title"
-        className="bg-[var(--ui-surface)] rounded-[24px] ios-elevated-shadow border border-[var(--ui-border)] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--ui-border)]">
-          <div className="flex items-center gap-2">
-            <span className="text-base">{folder.icon || '📁'}</span>
-            <div>
-              <h3 id="move-folder-title" className="text-sm font-semibold text-[var(--ui-text)]">
-                Di chuyển thư mục
-              </h3>
-              <p className="text-xs text-[var(--ui-tertiary)] truncate max-w-[260px]">
-                {folder.name}
-              </p>
-            </div>
+  function renderTree(id: string | null, visited: Set<string>) {
+    return <ul className="space-y-0.5">
+      {children(id).filter(item => !visited.has(item.id)).map(item => {
+        const hasChildren = children(item.id).some(child => child.id !== item.id && !visited.has(child.id));
+        const open = expanded.has(item.id);
+        return <li key={item.id}>
+          <div className="flex min-w-0 items-center gap-0.5">
+            {hasChildren ? <button type="button" aria-label={`${open ? 'Thu gọn' : 'Mở rộng'} ${item.name}`} aria-expanded={open}
+              onClick={() => setExpanded(previous => {
+                const next = new Set(previous);
+                if (next.has(item.id)) next.delete(item.id);
+                else next.add(item.id);
+                return next;
+              })} className="grid size-7 shrink-0 place-items-center rounded-md hover:bg-[var(--ui-hover)]">
+              {open ? <ChevronDown aria-hidden="true" className="size-4" /> : <ChevronRight aria-hidden="true" className="size-4" />}
+            </button> : <span className="w-7 shrink-0" />}
+            {destinationButton(item.id, item.name)}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Đóng"
-            title="Đóng"
-            className="p-1.5 rounded-lg text-[var(--ui-tertiary)] hover:text-[var(--ui-text)] hover:bg-[var(--ui-hover)] transition-colors cursor-pointer"
-          >
-            <X className="w-4 h-4 stroke-[1.75]" />
-          </button>
+          {hasChildren && open && <div className="ml-3 border-l border-[var(--ui-border)] pl-1.5">
+            {renderTree(item.id, new Set([...visited, item.id]))}
+          </div>}
+        </li>;
+      })}
+    </ul>;
+  }
+
+  return createPortal(<div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/30 p-3"
+    onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
+    <div role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={`${titleId}-description`}
+      onKeyDown={handleKeys} className="flex h-[81dvh] max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text)] shadow-xl">
+      <header className="flex shrink-0 items-start gap-3 border-b border-[var(--ui-border)] px-4 py-4 sm:px-5">
+        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-blue-500/10 text-blue-600"><FolderIcon aria-hidden="true" className="size-5" /></span>
+        <div className="min-w-0 flex-1">
+          <h2 id={titleId} className="text-lg font-bold">Di chuyển thư mục</h2>
+          <p id={`${titleId}-description`} title={folder.name} className="truncate text-sm text-[var(--ui-muted)]">{folder.name}</p>
         </div>
+        <button type="button" aria-label="Đóng" onClick={onClose} className="rounded-lg p-2 text-[var(--ui-muted)] hover:bg-[var(--ui-hover)]"><X aria-hidden="true" className="size-4" /></button>
+      </header>
 
-        {/* Content */}
-        <div className="p-6 space-y-4">
-          {/* Space selector */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-[var(--ui-text)] block">
-              1. Chọn không gian đích
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleSpaceChange('personal')}
-                className={`flex items-center gap-2.5 p-3 rounded-2xl border text-left transition-all ios-interactive cursor-pointer ${
-                  selectedSpace === 'personal'
-                    ? 'border-[var(--ui-primary)] theme-primary bg-[var(--ui-primary)] text-white shadow-xs'
-                    : 'border-[var(--ui-border)] hover:border-[var(--ui-border-strong)] bg-[var(--ui-subtle)] text-[var(--ui-text)]'
-                }`}
-              >
-                <User className="w-4 h-4 shrink-0 stroke-[1.75]" />
-                <div>
-                  <div className="text-xs font-bold">Ghi chép của tôi</div>
-                  <div
-                    className={`text-[10px] ${
-                      selectedSpace === 'personal' ? 'text-white/80' : 'text-[var(--ui-tertiary)]'
-                    }`}
-                  >
-                    Cá nhân & riêng tư
-                  </div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleSpaceChange('company')}
-                className={`flex items-center gap-2.5 p-3 rounded-2xl border text-left transition-all ios-interactive cursor-pointer ${
-                  selectedSpace === 'company'
-                    ? 'border-[var(--ui-primary)] theme-primary bg-[var(--ui-primary)] text-white shadow-xs'
-                    : 'border-[var(--ui-border)] hover:border-[var(--ui-border-strong)] bg-[var(--ui-subtle)] text-[var(--ui-text)]'
-                }`}
-              >
-                <Building2 className="w-4 h-4 shrink-0 stroke-[1.75]" />
-                <div>
-                  <div className="text-xs font-bold">Tài liệu công ty</div>
-                  <div
-                    className={`text-[10px] ${
-                      selectedSpace === 'company' ? 'text-white/80' : 'text-[var(--ui-tertiary)]'
-                    }`}
-                  >
-                    Chia sẻ nội bộ
-                  </div>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* Target parent folder list */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-[var(--ui-text)] block">
-              2. Chọn vị trí thư mục cha
-            </label>
-            <div className="border border-[var(--ui-border)] rounded-2xl max-h-52 overflow-y-auto divide-y divide-[var(--ui-border)] bg-[var(--ui-subtle)]">
-              {/* Option 1: Root level */}
-              <button
-                type="button"
-                onClick={() => setSelectedParentId(null)}
-                className={`w-full flex items-center justify-between p-3 text-xs text-left transition-colors ios-interactive cursor-pointer ${
-                  selectedParentId === null
-                    ? 'bg-[var(--ui-surface)] font-semibold text-[var(--ui-text)] ring-1 ring-[var(--ui-primary)]/40'
-                    : 'hover:bg-[var(--ui-surface)] text-[var(--ui-text)]'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="text-base">📂</span>
-                  <div>
-                    <span className="font-semibold block">(Thư mục gốc)</span>
-                    <span className="text-[10px] text-[var(--ui-tertiary)] block">
-                      Đặt ở cấp ngoài cùng của {targetSpaceLabel}
-                    </span>
-                  </div>
-                </div>
-                {selectedParentId === null && (
-                  <Check className="w-4 h-4 text-[var(--ui-primary)] stroke-[2.5]" />
-                )}
-              </button>
-
-              {/* Subfolders list */}
-              {allowedFolders.map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setSelectedParentId(f.id)}
-                  className={`w-full flex items-center justify-between p-3 text-xs text-left transition-colors ios-interactive cursor-pointer ${
-                    selectedParentId === f.id
-                      ? 'bg-[var(--ui-surface)] font-semibold text-[var(--ui-text)] ring-1 ring-[var(--ui-primary)]/40'
-                      : 'hover:bg-[var(--ui-surface)] text-[var(--ui-text)]'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <span className="text-base shrink-0">{f.icon || '📁'}</span>
-                    <div className="truncate min-w-0">
-                      <span className="truncate block font-medium">{f.name}</span>
-                      <span className="text-[10px] text-[var(--ui-tertiary)] truncate block">
-                        {getFolderPath(f.id, folders)}
-                      </span>
-                    </div>
-                  </div>
-                  {selectedParentId === f.id && (
-                    <Check className="w-4 h-4 text-[var(--ui-primary)] stroke-[2.5] shrink-0" />
-                  )}
-                </button>
-              ))}
-
-              {allowedFolders.length === 0 && (
-                <div className="p-3 text-center text-xs text-[var(--ui-tertiary)]">
-                  Chưa có thư mục nào khác trong không gian này. Thư mục sẽ nằm ở thư mục gốc.
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Path Transition Preview Card */}
-          <div className="p-3.5 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-subtle)] space-y-2">
-            <div className="flex items-center justify-between text-xs gap-2">
-              <div className="flex-1 min-w-0">
-                <span className="text-[10px] uppercase font-bold text-[var(--ui-tertiary)] block">
-                  Vị trí hiện tại
-                </span>
-                <span className="font-medium text-[var(--ui-text)] truncate block mt-0.5">
-                  {currentSpaceLabel} {currentPath ? ` / ${currentPath}` : ' (Thư mục gốc)'}
-                </span>
-              </div>
-
-              <div className="px-2 text-[var(--ui-tertiary)] shrink-0">
-                <ArrowRight className="w-4 h-4 stroke-[2]" />
-              </div>
-
-              <div className="flex-1 min-w-0 text-right">
-                <span className="text-[10px] uppercase font-bold text-[var(--ui-tertiary)] block">
-                  Vị trí mới
-                </span>
-                <span className="font-bold text-[var(--ui-primary)] truncate block mt-0.5">
-                  {targetSpaceLabel} {targetPath ? ` / ${targetPath}` : ' (Thư mục gốc)'}
-                </span>
-              </div>
-            </div>
-
-            {selectedSpace !== folder.space && (
-              <div className="pt-2 border-t border-[var(--ui-border)] text-[11px] text-[var(--ui-tertiary)] flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5 stroke-[1.75] text-amber-500 shrink-0" />
-                <span>
-                  Các ghi chú và thư mục con bên trong sẽ được tự động chuyển sang không gian{' '}
-                  <strong className="text-[var(--ui-text)]">{targetSpaceLabel}</strong>.
-                </span>
-              </div>
-            )}
-          </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 py-4 sm:px-5">
+        <div role="group" aria-label="Không gian đích" className="flex shrink-0 flex-wrap items-center gap-2">
+          {spaces.map(({ id, Icon }) => <button key={id} type="button" aria-pressed={space === id} onClick={() => {
+            if (space === id) return;
+            setSpace(id);
+            selectParent(id === folder.space ? folder.parentId ?? null : null);
+            setQuery('');
+            setExpanded(new Set(id === folder.space ? getFolderAncestors(folder.parentId, folders).map(item => item.id) : []));
+          }} className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-sm font-medium hover:bg-[var(--ui-hover)] ${space === id ? 'border-blue-600' : 'border-[var(--ui-border)]'}`}>
+            <Icon aria-hidden="true" className="size-4 shrink-0" />{workspaceName(id)}
+          </button>)}
         </div>
-
-        {/* Footer Actions */}
-        <div className="flex items-center justify-end gap-2.5 px-6 py-4 bg-[var(--ui-subtle)] border-t border-[var(--ui-border)]">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-text)] rounded-xl transition-colors cursor-pointer"
-          >
-            Hủy
-          </button>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={isUnchanged}
-            className="px-4 py-2 text-xs font-semibold text-white theme-primary bg-[var(--ui-primary)] hover:bg-[var(--ui-primary-hover)] rounded-xl shadow-xs transition-colors ios-interactive cursor-pointer disabled:opacity-40"
-          >
-            Xác nhận di chuyển
-          </button>
+        <label className="flex shrink-0 items-center gap-2 rounded-lg border border-[var(--ui-border)] px-3 focus-within:border-blue-600">
+          <Search aria-hidden="true" className="size-4 shrink-0 text-[var(--ui-muted)]" />
+          <input ref={search} type="search" value={query} aria-label="Tìm thư mục" placeholder="Tìm thư mục…"
+            onChange={event => setQuery(event.target.value)} className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none" />
+        </label>
+        <div className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain rounded-xl border border-[var(--ui-border)] p-1.5" aria-label="Thư mục đích">
+          <div className="flex">{destinationButton(null, 'Thư mục gốc')}</div>
+          {keyword ? (matches.length ? <ul className="space-y-0.5">
+            {matches.map(({ item, breadcrumb }) => <li key={item.id} className="flex">
+              {destinationButton(item.id, item.name, breadcrumb)}
+            </li>)}
+          </ul> : <p role="status" className="px-3 py-4 text-sm text-[var(--ui-muted)]">Không tìm thấy thư mục phù hợp.</p>)
+            : renderTree(null, new Set())}
         </div>
       </div>
+
+      <footer className="shrink-0 space-y-2 border-t border-[var(--ui-border)] px-4 py-3 sm:px-5">
+        <div className="flex items-center gap-2 rounded-xl bg-blue-500/10 px-3 py-2.5 sm:gap-3">
+          <FolderIcon aria-hidden="true" className="size-5 shrink-0 text-blue-600" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-[var(--ui-muted)]" title={oldLocation}>Từ <span className="inline-block max-w-full truncate align-bottom">{oldLocation}</span></p>
+            <p className="truncate text-sm font-semibold" aria-live="polite" title={newLocation}>
+              {destinationExists ? `Đến ${newLocation}` : 'Chưa chọn vị trí đích hợp lệ'}
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-2 whitespace-nowrap">
+            <button type="button" onClick={onClose} className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2.5 py-2 text-sm hover:bg-[var(--ui-hover)] sm:px-4">Hủy</button>
+            <button type="button" disabled={unchanged || !destinationExists} onClick={confirm}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-2.5 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-40 sm:px-4">
+              <FolderInput aria-hidden="true" className="hidden size-4 sm:block" />Di chuyển
+            </button>
+          </div>
+        </div>
+        <p aria-hidden={space === folder.space} className={`flex items-center gap-1.5 text-xs text-[var(--ui-muted)] ${space === folder.space ? 'invisible' : ''}`}>
+          <Info aria-hidden="true" className="size-4 shrink-0 text-blue-600" />Các tài liệu và thư mục con cũng sẽ được chuyển sang không gian đích.
+        </p>
+        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+      </footer>
     </div>
-  );
-};
+  </div>, document.body);
+}

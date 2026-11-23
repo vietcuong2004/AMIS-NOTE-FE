@@ -1,265 +1,273 @@
-import { formatDateTime } from '../../utils/dateTime';
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  Search,
-  FileText,
-  Calendar,
-  Sparkles,
-  CheckSquare,
-  Clock,
-  ArrowRight,
-  X,
-  Folder as FolderIcon,
-  Tag,
-} from 'lucide-react';
-import { Document, Folder } from '../../types';
-import { getFolderPath } from '../../utils/folders';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent } from 'react';
+import { ArrowRight, ChevronDown, ChevronRight, FileText, Folder as FolderIcon, Info, Search, X } from 'lucide-react';
+import type { Document, Folder, ViewState } from '../../types';
+import { findWorkspaceResults, searchTerms, workspaceName, type SearchResult, type SearchScope } from '../../utils/workspaceSearch';
+import { getFolderAncestors } from '../../utils/folders';
 
-interface SpotlightSearchModalProps {
+const RESULT_ROW_HEIGHT_REM = 5;
+const VISIBLE_RESULT_ROWS = 5;
+
+export function SearchResultRows({ results, query, selected, listId, onSelect }: {
+  results: SearchResult[]; query: string; selected?: number; listId?: string; onSelect: (result: SearchResult) => void;
+}) {
+  function highlight(text: string) {
+    const ranges = searchTerms(text, query);
+    if (!ranges.length) return text;
+    let previous = 0;
+    return <>{ranges.map(([start, end]) => {
+      const before = text.slice(previous, start);
+      previous = end;
+      return <span key={start}>{before}<mark className="rounded-sm bg-amber-200 px-px text-slate-900">{text.slice(start, end)}</mark></span>;
+    })}{text.slice(previous)}</>;
+  }
+
+  return <ul id={listId} role={listId ? 'listbox' : undefined} aria-label="Kết quả tìm kiếm" className="divide-y divide-[var(--ui-border)]">
+    {results.map((result, index) => {
+      const Icon = result.type === 'folder' ? FolderIcon : FileText;
+      return <li key={`${result.type}-${result.id}`} role={listId ? 'presentation' : undefined}
+        style={listId ? { height: `${RESULT_ROW_HEIGHT_REM}rem` } : undefined}>
+        <button type="button" id={listId ? `${listId}-${index}` : undefined} role={listId ? 'option' : undefined}
+          aria-selected={listId ? selected === index : undefined} onClick={() => onSelect(result)}
+          className={`flex w-full items-start gap-3 rounded-lg px-1 text-left hover:bg-[var(--ui-hover)] focus-visible:outline-[var(--ui-accent)] ${listId ? 'h-full py-2' : 'py-3'} ${selected === index ? 'bg-[var(--ui-selected)]' : ''}`}>
+          <span className="grid size-9 shrink-0 place-items-center rounded-lg border border-[var(--ui-border)]">
+            <Icon aria-hidden="true" className="size-5" />
+          </span>
+          <span className="min-w-0 flex-1 space-y-0.5">
+            <span className="block truncate text-sm font-semibold" title={result.title}>{highlight(result.title)}</span>
+            {result.snippet && <span className="block truncate text-sm text-[var(--ui-muted)]">{highlight(result.snippet)}</span>}
+            <span className="flex items-center gap-1.5 text-xs text-[var(--ui-muted)]">
+              <FolderIcon aria-hidden="true" className="size-3.5 shrink-0" />
+              <span className="truncate" title={result.path}>{highlight(result.path)}</span>
+            </span>
+          </span>
+        </button>
+      </li>;
+    })}
+  </ul>;
+}
+
+interface Props {
   isOpen: boolean;
+  onOpen: () => void;
   onClose: () => void;
   documents: Document[];
   folders: Folder[];
-  onOpenDocument: (docId: string) => void;
-  onCreateNewNote: () => void;
-  onCreateMeetingNote: () => void;
-  onOpenOneAI: () => void;
-  onCreateTaskList: () => void;
-  onOpenTemplates: () => void;
+  currentScope?: SearchScope;
+  onNavigate: (view: ViewState) => void;
 }
 
-export const SpotlightSearchModal: React.FC<SpotlightSearchModalProps> = ({
-  isOpen,
-  onClose,
-  documents,
-  folders,
-  onOpenDocument,
-  onCreateNewNote,
-  onCreateMeetingNote,
-  onOpenOneAI,
-  onCreateTaskList,
-}) => {
-  const [query, setQuery] = useState('');
-  const [selectedIndex, setSelectedIndex] = useState(0);
+export function SpotlightSearchModal({
+  isOpen, onOpen, onClose, documents, folders, currentScope, onNavigate,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const root = useRef<HTMLDivElement>(null);
+  const resultViewport = useRef<HTMLDivElement>(null);
+  const listId = useId();
+  const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState<number>();
+  const [scope, setScope] = useState<SearchScope>();
+  const [scopePickerOpen, setScopePickerOpen] = useState(false);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set());
+  const [position, setPosition] = useState({ top: 48, left: 12, width: 600 });
+  const keyword = query.trim();
+  const folder = folders.find(item => item.id === scope?.folderId && item.space === scope?.space);
+  const currentFolder = folders.find(item => item.id === currentScope?.folderId && item.space === currentScope?.space);
+  const effectiveScope = scope && (!scope.folderId || folder) ? scope : undefined;
+  const scopeLabel = effectiveScope ? folder?.name ?? workspaceName(effectiveScope.space)
+    : currentScope ? currentFolder?.name ?? workspaceName(currentScope.space) : '';
+  const pickerScope = effectiveScope ?? currentScope;
+  const pickerFolderId = effectiveScope ? folder?.id : currentFolder?.id;
+  const pickerAncestors = getFolderAncestors(pickerFolderId, folders);
+  const childrenByParent = new Map<string | undefined, Folder[]>();
+  if (scopePickerOpen && pickerScope) {
+    for (const child of folders) {
+      if (child.space !== pickerScope.space) continue;
+      const parentId = child.parentId || undefined;
+      const siblings = childrenByParent.get(parentId);
+      if (siblings) siblings.push(child);
+      else childrenByParent.set(parentId, [child]);
+    }
+  }
+  const results = useMemo(() => findWorkspaceResults(documents, folders, keyword, effectiveScope),
+    [documents, folders, keyword, effectiveScope]);
+  const shown = keyword ? results : results.slice(0, 6);
 
   useEffect(() => {
-    if (isOpen) {
-      setQuery('');
-      setSelectedIndex(0);
-      setTimeout(() => inputRef.current?.focus(), 50);
-    }
+    setScope(undefined);
+    setScopePickerOpen(false);
+    setSelected(undefined);
+  }, [currentScope?.space, currentScope?.folderId]);
+
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    inputRef.current?.focus();
+    const place = () => {
+      const bounds = root.current?.getBoundingClientRect();
+      const width = Math.min(664, window.innerWidth - 24);
+      const left = Math.max(12, Math.min(bounds?.left ?? 12, window.innerWidth - width - 12));
+      setPosition({ top: (bounds?.bottom || 42) + 6, left, width });
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
   }, [isOpen]);
 
-  const activeDocs = documents.filter((d) => !d.isTrash);
-
-  const filteredDocs = query.trim()
-    ? activeDocs.filter((doc) => {
-        const q = query.toLowerCase().trim();
-        const matchTitle = doc.title.toLowerCase().includes(q);
-        const matchTag = doc.tags.some((t) => t.toLowerCase().includes(q));
-        const matchContent = doc.blocks.some((b) => b.content.toLowerCase().includes(q));
-        return matchTitle || matchTag || matchContent;
-      })
-    : [...activeDocs].sort(
-        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-      ).slice(0, 6);
-
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
-
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      } else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev + 1) % Math.max(1, filteredDocs.length));
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev - 1 + filteredDocs.length) % Math.max(1, filteredDocs.length));
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (filteredDocs[selectedIndex]) {
-          onOpenDocument(filteredDocs[selectedIndex].id);
-          onClose();
-        }
-      }
+    if (!isOpen) {
+      setSelected(undefined);
+      setScopePickerOpen(false);
+      return;
+    }
+    const outside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !root.current?.contains(event.target)) onClose();
     };
+    window.document.addEventListener('pointerdown', outside);
+    return () => window.document.removeEventListener('pointerdown', outside);
+  }, [isOpen, onClose]);
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, filteredDocs, selectedIndex, onOpenDocument, onClose]);
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 bg-black/40 backdrop-blur-md animate-in fade-in duration-150 p-4">
-      <div
-        className="bg-[var(--ui-surface)] rounded-[24px] ios-elevated-shadow border border-[var(--ui-border)] w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-150 flex flex-col max-h-[75vh]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Search Input Bar */}
-        <div className="flex items-center px-4 py-3.5 border-b border-[var(--ui-border)] gap-3">
-          <Search className="w-5 h-5 text-[var(--ui-tertiary)] stroke-[1.75] shrink-0" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setSelectedIndex(0);
-            }}
-            placeholder="Tìm kiếm ghi chú, nội dung hoặc tác vụ..."
-            className="flex-1 min-w-0 bg-transparent text-sm font-medium text-[var(--ui-text)] focus:outline-none placeholder:text-[var(--ui-tertiary)]"
-          />
-          {query && (
-            <button
-              type="button"
-              aria-label="Xóa từ khóa tìm kiếm"
-              title="Xóa từ khóa tìm kiếm"
-              onClick={() => setQuery('')}
-              className="p-1 rounded-md text-[var(--ui-tertiary)] hover:text-[var(--ui-text)] hover:bg-[var(--ui-hover)]"
-            >
-              <X className="w-4 h-4 stroke-[1.75]" />
+  function selectResult(result: SearchResult) {
+    onClose();
+    onNavigate(result.type === 'document' ? { type: 'document', documentId: result.id } : { type: 'folder', folderId: result.id });
+  }
+  function viewAll() {
+    onClose();
+    onNavigate({ type: 'search', query: keyword, scope: effectiveScope });
+  }
+  function applyScope(next?: SearchScope) {
+    setScope(next);
+    setScopePickerOpen(false);
+    setSelected(undefined);
+    inputRef.current?.focus();
+  }
+  function renderFolders(parentId: string | undefined, visited: Set<string>) {
+    return <ul className="space-y-0.5">
+      {childrenByParent.get(parentId)?.filter(child => !visited.has(child.id)).map(child => {
+        const canExpand = !!childrenByParent.get(child.id)?.some(item => !visited.has(item.id) && item.id !== child.id);
+        const expanded = expandedFolders.has(child.id);
+        return <li key={child.id}>
+          <div className="flex items-center">
+            {canExpand ? <button type="button" aria-label={`${expanded ? 'Thu gọn' : 'Mở rộng'} ${child.name}`}
+              aria-expanded={expanded} onClick={() => setExpandedFolders(previous => {
+                const next = new Set(previous);
+                if (next.has(child.id)) next.delete(child.id);
+                else next.add(child.id);
+                return next;
+              })} className="grid size-7 shrink-0 place-items-center rounded-md hover:bg-[var(--ui-hover)]">
+              {expanded ? <ChevronDown aria-hidden="true" className="size-3.5" /> : <ChevronRight aria-hidden="true" className="size-3.5" />}
+            </button> : <span className="w-7 shrink-0" />}
+            <button type="button" onClick={() => applyScope({ space: child.space, folderId: child.id })} title={child.name}
+              className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 py-1.5 text-left text-sm hover:bg-[var(--ui-hover)]">
+              <FolderIcon aria-hidden="true" className="size-4 shrink-0 text-[var(--ui-muted)]" />
+              <span className="truncate">{child.name}</span>
             </button>
-          )}
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Đóng tìm kiếm"
-            title="Đóng tìm kiếm"
-            className="w-8 h-8 shrink-0 flex items-center justify-center rounded-md text-[var(--ui-tertiary)] hover:text-[var(--ui-text)] hover:bg-[var(--ui-hover)] transition-colors"
-          >
-            <X className="w-5 h-5 stroke-[1.75]" />
-          </button>
-        </div>
-
-        {/* Quick actions chips */}
-        {!query && (
-          <div className="p-3 bg-[var(--ui-subtle)] border-b border-[var(--ui-border)]">
-            <div className="text-[10px] font-semibold text-[var(--ui-tertiary)] uppercase tracking-wider px-2 mb-2">
-              Thao tác nhanh
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  onCreateNewNote();
-                  onClose();
-                }}
-                className="flex items-center gap-2 p-2 rounded-xl bg-[var(--ui-surface)] border border-[var(--ui-border)] hover:border-[var(--ui-primary)] text-xs font-medium text-[var(--ui-text)] ios-interactive shadow-2xs"
-              >
-                <FileText className="w-4 h-4 text-[var(--ui-text)] stroke-[1.75]" />
-                <span className="truncate">Ghi chú mới</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  onCreateMeetingNote();
-                  onClose();
-                }}
-                className="flex items-center gap-2 p-2 rounded-xl bg-[var(--ui-surface)] border border-[var(--ui-border)] hover:border-[var(--ui-primary)] text-xs font-medium text-[var(--ui-text)] ios-interactive shadow-2xs"
-              >
-                <Calendar className="w-4 h-4 text-[var(--ui-text)] stroke-[1.75]" />
-                <span className="truncate">Biên bản họp</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenOneAI();
-                  onClose();
-                }}
-                className="flex items-center gap-2 p-2 rounded-xl bg-[var(--ui-surface)] border border-[var(--ui-border)] hover:border-[var(--ui-primary)] text-xs font-medium text-[var(--ui-text)] ios-interactive shadow-2xs"
-              >
-                <Sparkles className="w-4 h-4 text-[var(--ui-text)] stroke-[1.75]" />
-                <span className="truncate">Hỏi One AI</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  onCreateTaskList();
-                  onClose();
-                }}
-                className="flex items-center gap-2 p-2 rounded-xl bg-[var(--ui-surface)] border border-[var(--ui-border)] hover:border-[var(--ui-primary)] text-xs font-medium text-[var(--ui-text)] ios-interactive shadow-2xs"
-              >
-                <CheckSquare className="w-4 h-4 text-[var(--ui-text)] stroke-[1.75]" />
-                <span className="truncate">Công việc</span>
-              </button>
-            </div>
           </div>
-        )}
+          {canExpand && expanded && <div className="ml-3 border-l border-[var(--ui-border)] pl-1.5">
+            {renderFolders(child.id, new Set([...visited, child.id]))}
+          </div>}
+        </li>;
+      })}
+    </ul>;
+  }
+  function keyboard(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.nativeEvent.isComposing) return;
+    if (event.key === 'Escape' && isOpen) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (scopePickerOpen) setScopePickerOpen(false);
+      else onClose();
+      inputRef.current?.focus();
+      return;
+    }
+    if (event.target !== inputRef.current) return;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (!isOpen) onOpen();
+      const direction = event.key === 'ArrowDown' ? 1 : -1;
+      if (shown.length) setSelected(previous => ((previous ?? (direction === 1 ? -1 : 0)) + direction + shown.length) % shown.length);
+    } else if (isOpen && event.key === 'Enter') {
+      event.preventDefault();
+      if (selected !== undefined && shown[selected]) selectResult(shown[selected]);
+      else if (keyword) viewAll();
+      else if (shown[0]) selectResult(shown[0]);
+    }
+  }
+  useLayoutEffect(() => {
+    if (resultViewport.current) resultViewport.current.scrollTop = 0;
+  }, [isOpen, keyword, effectiveScope]);
+  useEffect(() => {
+    if (selected !== undefined) resultViewport.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
+  }, [selected]);
 
-        {/* Results List */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          <div className="text-[10px] font-semibold text-[var(--ui-tertiary)] uppercase tracking-wider px-2 py-1">
-            {query ? `Kết quả tìm kiếm (${filteredDocs.length})` : 'Tài liệu gần đây'}
-          </div>
-
-          {filteredDocs.length === 0 ? (
-            <div className="p-8 text-center text-xs text-[var(--ui-tertiary)]">
-              Không tìm thấy ghi chú nào phù hợp với "{query}"
-            </div>
-          ) : (
-            filteredDocs.map((doc, idx) => {
-              const folder = folders.find((f) => f.id === doc.folderId);
-              const isSelected = idx === selectedIndex;
-
-              return (
-                <div
-                  key={doc.id}
-                  onClick={() => {
-                    onOpenDocument(doc.id);
-                    onClose();
-                  }}
-                  onMouseEnter={() => setSelectedIndex(idx)}
-                  className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-colors ${
-                    isSelected ? 'theme-primary bg-[var(--ui-primary)] text-white shadow-2xs' : 'hover:bg-[var(--ui-hover)] text-[var(--ui-text)]'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <FileText className={`w-4 h-4 stroke-[1.75] shrink-0 ${isSelected ? 'text-white' : 'text-[var(--ui-text)]'}`} />
-                    <div className="min-w-0">
-                      <div className={`text-xs font-semibold truncate ${isSelected ? 'text-white' : 'text-[var(--ui-text)]'}`}>
-                        {doc.title || 'Không có tiêu đề'}
-                      </div>
-                      <div className={`text-[10px] flex items-center gap-2 truncate mt-0.5 ${isSelected ? 'text-white/70' : 'text-[var(--ui-tertiary)]'}`}>
-                        <span>{doc.space === 'personal' ? 'Của tôi' : 'Công ty'}</span>
-                        {folder && (
-                          <>
-                            <span>/</span>
-                            <span>{getFolderPath(folder.id, folders)}</span>
-                          </>
-                        )}
-                        <span>·</span>
-                        <span>{formatDateTime(doc.updatedAt)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    {doc.tags.slice(0, 1).map((t) => (
-                      <span
-                        key={t}
-                        className={`text-[9px] px-2 py-0.5 rounded-md ${
-                          isSelected ? 'bg-[var(--ui-surface)]/20 text-white' : 'bg-[var(--ui-hover)] text-[var(--ui-muted)] border border-[var(--ui-border)]'
-                        }`}
-                      >
-                        #{t}
-                      </span>
-                    ))}
-                    <ArrowRight className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-[var(--ui-tertiary)]'}`} />
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-
-      </div>
+  return <div ref={root} onKeyDown={keyboard} className="relative min-w-0">
+    <div className={`flex h-8 items-center gap-2 rounded-lg border bg-white/15 px-2.5 text-white ${isOpen ? 'border-white' : 'border-white/25'}`}>
+      <Search aria-hidden="true" className="size-4 shrink-0" />
+      <input ref={inputRef} id="top-search" type="text" role="combobox" aria-label="Tìm kiếm tài liệu" autoComplete="off"
+        aria-autocomplete="list" aria-expanded={isOpen} aria-controls={isOpen && shown.length ? listId : undefined}
+        aria-activedescendant={isOpen && selected !== undefined && shown[selected] ? `${listId}-${selected}` : undefined}
+        value={query} placeholder="Nhập từ khóa tìm kiếm ..." onClick={onOpen}
+        onChange={event => { setQuery(event.target.value); setSelected(undefined); onOpen(); }}
+        className="min-w-0 flex-1 select-text bg-transparent text-sm text-white outline-none placeholder:text-white/80" />
+      {query && <button type="button" aria-label="Xóa từ khóa tìm kiếm" onClick={() => {
+        setQuery(''); setSelected(undefined); inputRef.current?.focus(); onOpen();
+      }} className="rounded-full bg-white/25 p-0.5 hover:bg-white/40"><X aria-hidden="true" className="size-3.5" /></button>}
     </div>
-  );
-};
+
+    {isOpen && <div role="region" aria-label="Hộp kết quả tìm kiếm"
+      style={{ ...position, maxHeight: `calc(100dvh - ${position.top + 12}px)` }}
+      className="fixed z-50 flex select-text flex-col rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3 text-[var(--ui-text)] shadow-xl sm:p-4">
+      <div className="mb-3 flex shrink-0 flex-wrap items-center gap-2">
+        <button type="button" aria-pressed={!effectiveScope} onClick={() => applyScope()}
+          className={`inline-flex min-w-0 items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-sm font-medium hover:bg-[var(--ui-hover)] ${effectiveScope ? 'border-[var(--ui-border)]' : 'border-blue-600'}`}>
+          <FileText aria-hidden="true" className="size-4 shrink-0" />Tất cả tài liệu
+        </button>
+        {currentScope && <div className={`relative flex max-w-full items-stretch rounded-xl border ${effectiveScope ? 'border-blue-600' : 'border-[var(--ui-border)]'}`}>
+          <button type="button" aria-pressed={!!effectiveScope} onClick={() => applyScope(effectiveScope ?? currentScope)}
+            className="inline-flex min-w-0 items-center gap-1.5 rounded-l-xl py-1.5 pl-2.5 text-sm font-medium hover:bg-[var(--ui-hover)]">
+            <FolderIcon aria-hidden="true" className="size-4 shrink-0" /><span className="truncate">Trong {scopeLabel}</span>
+          </button>
+          <button type="button" aria-label="Chọn phạm vi tìm kiếm" aria-expanded={scopePickerOpen} onClick={() => {
+            if (!scopePickerOpen) setExpandedFolders(new Set());
+            setScopePickerOpen(!scopePickerOpen);
+          }}
+          className="rounded-r-xl px-2 hover:bg-[var(--ui-hover)]"><ChevronDown aria-hidden="true" className="size-3.5" /></button>
+          {scopePickerOpen && pickerScope && <div role="region" aria-label="Phạm vi tìm kiếm"
+            className="absolute top-full right-0 z-10 mt-1 max-h-[min(21rem,55dvh)] w-[min(19rem,calc(100vw-3rem))] overflow-y-auto overscroll-contain rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 text-[var(--ui-text)] shadow-lg sm:right-auto sm:left-0">
+            <nav aria-label="Đường dẫn phạm vi" className="mb-1 flex flex-wrap items-center gap-x-1 border-b border-[var(--ui-border)] pb-1 text-xs">
+              <button type="button" aria-current={!pickerFolderId ? 'location' : undefined} onClick={() => applyScope({ space: pickerScope.space })}
+                className="rounded px-1 py-1 hover:bg-[var(--ui-hover)] aria-[current=location]:font-semibold">{workspaceName(pickerScope.space)}</button>
+              {pickerAncestors.map(item => <span key={item.id} className="inline-flex min-w-0 items-center gap-1">
+                <ChevronRight aria-hidden="true" className="size-3 shrink-0" />
+                <button type="button" aria-current={item.id === pickerFolderId ? 'location' : undefined}
+                  title={item.name} onClick={() => applyScope({ space: item.space, folderId: item.id })}
+                  className="truncate rounded px-1 py-1 hover:bg-[var(--ui-hover)] aria-[current=location]:font-semibold">{item.name}</button>
+              </span>)}
+            </nav>
+            {childrenByParent.get(pickerFolderId)?.length ? renderFolders(pickerFolderId, new Set(pickerAncestors.map(item => item.id)))
+              : <p className="px-2 py-2 text-xs text-[var(--ui-muted)]">Không có thư mục con.</p>}
+          </div>}
+        </div>}
+        <button type="button" aria-label="Đóng tìm kiếm" onClick={() => { onClose(); inputRef.current?.focus(); }}
+          className="ml-auto shrink-0 rounded-lg bg-[var(--ui-subtle)] px-2.5 py-1.5 text-xs text-[var(--ui-muted)] hover:bg-[var(--ui-hover)]"><kbd>ESC</kbd> đóng</button>
+      </div>
+      <p className="mb-3 flex shrink-0 items-center gap-2 rounded-lg bg-blue-500/10 px-3 py-2.5 text-sm text-[var(--ui-muted)]">
+        <Info aria-hidden="true" className="size-4 shrink-0 text-[var(--ui-accent)]" />Tìm theo tên thư mục / tên tài liệu / nội dung
+      </p>
+      <div className="flex min-h-0 flex-col px-0.5">
+        <div className="flex shrink-0 items-center justify-between gap-2 py-1">
+          <h2 className="text-sm font-bold">{keyword ? 'Kết quả phù hợp' : 'Kết quả tìm kiếm'}</h2>
+          {keyword && <span role="status" className="text-xs text-[var(--ui-muted)]">{results.length} kết quả</span>}
+        </div>
+        {shown.length ? <div ref={resultViewport} aria-label="Vùng cuộn kết quả" className="min-h-0 overflow-y-auto overscroll-contain"
+          style={keyword ? { maxHeight: `${VISIBLE_RESULT_ROWS * RESULT_ROW_HEIGHT_REM}rem` } : undefined}>
+          <SearchResultRows results={shown} query={keyword} selected={selected} listId={listId} onSelect={selectResult} />
+        </div>
+          : <p className="py-8 text-center text-sm text-[var(--ui-muted)]">Không tìm thấy tài liệu hoặc thư mục phù hợp.</p>}
+      </div>
+      {keyword && results.length > 0 && <button type="button" onClick={viewAll}
+        className="mt-3 flex shrink-0 items-center justify-center gap-2 rounded-lg bg-blue-500/15 px-3 py-2.5 text-sm font-semibold text-[var(--ui-accent)] hover:bg-blue-500/25">
+        Xem tất cả kết quả <ArrowRight aria-hidden="true" className="size-4" />
+      </button>}
+    </div>}
+  </div>;
+}

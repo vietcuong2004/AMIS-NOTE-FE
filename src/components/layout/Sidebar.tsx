@@ -70,7 +70,7 @@ interface SidebarProps {
   onRenameDocument?: (docId: string, newTitle: string) => void;
   onMoveDocumentRequest?: (doc: Document) => void;
   onMoveDocument?: (docId: string, targetFolderId: string | null, targetSpace: SpaceType) => void;
-  onMoveFolder?: (folderId: string, targetParentId: string | null, targetSpace: SpaceType) => void;
+  onMoveFolder?: (folderId: string, targetParentId: string | null, targetSpace: SpaceType) => boolean | void;
   onToast?: (msg: string, type?: 'success' | 'info' | 'error') => void;
   onOpenQuickNote?: () => void;
 }
@@ -1061,10 +1061,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         folders={folders}
         isOpen={moveFolderModal.isOpen}
         onClose={() => setMoveFolderModal({ isOpen: false, folder: null })}
-        onMove={(folderId, targetParentId, targetSpace) => {
-          onMoveFolder?.(folderId, targetParentId, targetSpace);
-          setMoveFolderModal({ isOpen: false, folder: null });
-        }}
+        onMove={(folderId, targetParentId, targetSpace) => onMoveFolder ? onMoveFolder(folderId, targetParentId, targetSpace) : false}
         onToast={onToast}
       />
 

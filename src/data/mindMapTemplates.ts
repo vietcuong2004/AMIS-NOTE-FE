@@ -17,7 +17,7 @@ export function mindMapText(root: MindMapNode, depth = 0): string {
 
 const templates = [
   {
-    id: 'mind-map-overview', title: 'Cuộc họp tổng quan',
+    id: 'mind-map-overview', title: 'Cuộc họp tổng quan', category: 'Cuộc họp',
     description: 'Tổng hợp nội dung chính, quyết định, việc cần làm, người phụ trách và thời hạn trong một sơ đồ.',
     diagram: node('overview', 'Chủ đề', [
       node('topics', 'Nội dung chính'), node('decisions', 'Quyết định'), node('tasks', 'Việc cần làm'),
@@ -25,7 +25,7 @@ const templates = [
     ]),
   },
   {
-    id: 'mind-map-decisions', title: 'Quyết định & hành động',
+    id: 'mind-map-decisions', title: 'Quyết định & hành động', category: 'Hành động',
     description: 'Ghi lại những gì đã thống nhất và theo dõi các đầu việc cần triển khai sau cuộc họp.',
     diagram: node('decisions-actions', 'Chủ đề', [
       node('decisions', 'Quyết định', [node('details', 'Nội dung'), node('decision-owner', 'Người phụ trách')]),
@@ -33,7 +33,7 @@ const templates = [
     ]),
   },
   {
-    id: 'mind-map-departments', title: 'Theo phòng ban',
+    id: 'mind-map-departments', title: 'Theo phòng ban', category: 'Phòng ban',
     description: 'Gom quyết định và việc cần làm theo từng phòng ban tham gia cuộc họp.',
     diagram: node('departments', 'Chủ đề', [
       node('sales', 'Phòng Kinh doanh', [node('sales-decision', 'Quyết định'), node('sales-task', 'Việc cần làm')]),

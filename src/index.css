@@ -217,6 +217,9 @@
 
 .spreadsheet-grid--compact :is(th, td) > span { margin: 0 0.125rem; }
 
+.template-gallery-preview .spreadsheet-grid--compact { font-size: 0.625rem; }
+.template-gallery-preview .spreadsheet-grid--compact :is(tr, th, td) { height: 1rem; }
+
 @media print {
   .spreadsheet-workspace-grid { overflow: visible; }
   .spreadsheet-grid :is(.cell-field, .sheet-axis-button) { display: none; }

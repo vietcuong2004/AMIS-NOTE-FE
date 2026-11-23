@@ -17,6 +17,7 @@ import { TrashPage } from './pages/TrashPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { MindMapTemplatesPage } from './pages/MindMapTemplatesPage';
 import { ExcelTemplatesPage } from './pages/ExcelTemplatesPage';
+import { SearchPage } from './pages/SearchPage';
 
 export interface AppPagesProps extends DocumentPageProps {
   view: ViewState;
@@ -43,6 +44,7 @@ export function AppPages({ view, onNavigate, onUseTemplate, editor, trash, ...wo
     case 'library': return <LibraryPage {...workspace} />;
     case 'favorite': return <FavoritesPage {...workspace} onNavigate={onNavigate} />;
     case 'recent': return <RecentPage {...workspace} />;
+    case 'search': return <SearchPage view={view} documents={workspace.documents} folders={workspace.folders} onNavigate={onNavigate} />;
     case 'unclassified': return <UnclassifiedPage {...workspace} space={view.space} />;
     case 'meeting_notes': return <MeetingsPage {...workspace} />;
     case 'shared': return <SharedPage {...workspace} />;

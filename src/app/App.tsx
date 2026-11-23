@@ -216,10 +216,14 @@ export default function App() {
   ) => {
     try {
       const result = moveFolderToParentOrSpace(folderId, targetParentId, targetSpace);
+      if (!result.folders.some(folder => folder.id === folderId && folder.space === targetSpace &&
+        (folder.parentId ?? null) === targetParentId)) return false;
       setFolders(result.folders);
       setDocuments(result.docs);
+      return true;
     } catch (err) {
       addToast(err instanceof Error ? err.message : 'Không thể di chuyển thư mục', 'error');
+      return false;
     }
   };
 
@@ -539,6 +543,12 @@ export default function App() {
       ? documents.find((d) => d.id === viewState.documentId && !d.isTrash)
       : null;
 
+  const searchFolder = folders.find(folder => folder.id === (viewState.type === 'folder' ? viewState.folderId : activeDocument?.folderId));
+  const searchScope = searchFolder ? { space: searchFolder.space, folderId: searchFolder.id }
+    : viewState.type === 'space_root' ? { space: viewState.space }
+    : viewState.type === 'search' ? viewState.scope
+    : activeDocument ? { space: activeDocument.space } : undefined;
+
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden print:h-auto print:overflow-visible bg-[var(--ui-surface)] text-[var(--ui-text)] select-none font-sans">
       {/* Full-width Top Header (Navbar) matching MISA AMIS GHI CHÉP */}
@@ -551,7 +561,15 @@ export default function App() {
           setUseSidebar2(variant === 2);
           setSidebarWidth(variant === 2 ? SIDEBAR2_DEFAULT_WIDTH : SIDEBAR_DEFAULT_WIDTH);
         }}
-        onOpenSearch={() => setIsSpotlightOpen(true)}
+        search={<SpotlightSearchModal
+          isOpen={isSpotlightOpen}
+          onOpen={() => setIsSpotlightOpen(true)}
+          onClose={() => setIsSpotlightOpen(false)}
+          documents={documents}
+          folders={folders}
+          currentScope={searchScope}
+          onNavigate={navigate}
+        />}
         onOpenChat={() => setChatModalOpen(true)}
         onNavigateHome={() => navigate({ type: 'space_root', space: 'personal' })}
       />
@@ -631,20 +649,6 @@ export default function App() {
         />
       </main>
       </div>
-
-      {/* Spotlight Search & Command Palette (Ctrl+K) */}
-      <SpotlightSearchModal
-        isOpen={isSpotlightOpen}
-        onClose={() => setIsSpotlightOpen(false)}
-        documents={documents}
-        folders={folders}
-        onOpenDocument={(docId) => navigate({ type: 'document', documentId: docId })}
-        onCreateNewNote={() => handleCreateDocument('personal', null)}
-        onCreateMeetingNote={() => handleCreateFromTemplate('tpl_meeting_minutes')}
-        onOpenOneAI={() => addToast('Tính năng Hỏi AI (One AI) sắp ra mắt', 'info')}
-        onCreateTaskList={handleCreateTaskList}
-        onOpenTemplates={() => navigate({ type: 'templates' })}
-      />
 
       {/* Global Modals */}
       {showImportModal && <ImportDocumentModal folders={folders} onClose={() => setShowImportModal(false)} onImport={handleImportDocument} />}
@@ -742,10 +746,7 @@ export default function App() {
           folders={folders}
           isOpen={!!moveModalFolder}
           onClose={() => setMoveModalFolder(null)}
-          onMove={(folderId, parentId, space) => {
-            handleMoveFolder(folderId, parentId, space);
-            setMoveModalFolder(null);
-          }}
+          onMove={handleMoveFolder}
           onToast={addToast}
         />
       )}

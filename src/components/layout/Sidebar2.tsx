@@ -754,7 +754,7 @@ export const Sidebar2: React.FC<SidebarProps> = ({
 
         {/* Personal workspace */}
         {spaceTab === 'personal' && <div
-          role="region" id="space-panel-personal" aria-label="Tài liệu của tôi"
+          role="region" id="space-panel-personal" aria-label="Ghi chép của tôi"
           data-space-panel="personal"
           onDragOver={(e) => {
             e.preventDefault();
@@ -789,7 +789,7 @@ export const Sidebar2: React.FC<SidebarProps> = ({
                   : 'text-[var(--ui-tertiary)] hover:text-[var(--ui-text)]'
               }`}
             >
-              <span>TÀI LIỆU CỦA TÔI</span>
+              <span>GHI CHÉP CỦA TÔI</span>
             </button>
             <div className="flex items-center gap-0.5">
               <button type="button" onClick={() => setPersonalExpanded(!personalExpanded)} aria-label="Thu gọn hoặc mở Ghi chép của tôi" aria-expanded={personalExpanded} className="p-1 rounded-md hover:bg-[var(--ui-border)]">
@@ -993,10 +993,7 @@ export const Sidebar2: React.FC<SidebarProps> = ({
         folders={folders}
         isOpen={moveFolderModal.isOpen}
         onClose={() => setMoveFolderModal({ isOpen: false, folder: null })}
-        onMove={(folderId, targetParentId, targetSpace) => {
-          onMoveFolder?.(folderId, targetParentId, targetSpace);
-          setMoveFolderModal({ isOpen: false, folder: null });
-        }}
+        onMove={(folderId, targetParentId, targetSpace) => onMoveFolder ? onMoveFolder(folderId, targetParentId, targetSpace) : false}
         onToast={onToast}
       />
 

@@ -50,6 +50,110 @@ async function click(element: Element | null | undefined) {
 const button = (text: string, scope: ParentNode = document) => Array.from(scope.querySelectorAll('button')).find(element => element.textContent?.trim() === text);
 const heading = () => document.querySelector('main h1')?.textContent;
 
+test('header search opens below the input, highlights matches and preserves folder scope in all results', async () => {
+  const { getStoredFolders, saveStoredFolders, saveStoredDocuments } = await import('../utils/storage');
+  const folders = getStoredFolders();
+  const department = folders.find(folder => folder.id === 'fld_engineering')!;
+  saveStoredFolders([...folders,
+    { ...department, id: 'search-child', name: 'Hồ sơ', parentId: department.id },
+    { ...department, id: 'search-grandchild', name: 'Bản bàn giao', parentId: 'search-child' },
+  ]);
+  const base = getStoredDocuments().find(doc => !doc.isTrash)!;
+  const matching = Array.from({ length: 5 }, (_, index) => ({
+    ...base, id: `search-note-${index}`, title: `Đặc tả Phân quyền ${index}`,
+    folderId: index === 4 ? 'search-grandchild' : department.id, space: 'company' as const,
+    blocks: [{ id: 'search-body', type: 'paragraph' as const, content: 'Chi tiết cơ chế phân quyền và chia sẻ.' }],
+  }));
+  saveStoredDocuments([...matching,
+    { ...matching[0], id: 'search-outside', title: 'Chia sẻ tài liệu', folderId: 'fld_sales' },
+    { ...matching[0], id: 'search-trash', title: 'Phân quyền trong thùng rác', isTrash: true },
+  ]);
+  await mount('/folders/fld_engineering');
+  const input = document.querySelector<HTMLInputElement>('#top-search')!;
+  input.parentElement!.parentElement!.getBoundingClientRect = () => new window.DOMRect(320, 6, 450, 32);
+  const panel = () => document.querySelector<HTMLElement>('[aria-label="Hộp kết quả tìm kiếm"]');
+  const fill = (value: string) => act(async () => {
+    Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!.call(input, value);
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+  });
+  const key = (value: string) => act(async () => {
+    input.dispatchEvent(new window.KeyboardEvent('keydown', { key: value, bubbles: true, cancelable: true }));
+  });
+  await fill('phan quyen');
+  assert.equal(panel()?.style.top, '44px');
+  assert.equal(document.activeElement, input);
+  assert.equal(panel()?.querySelector('[role="status"]')?.textContent, '6 kết quả');
+  const viewport = panel()?.querySelector<HTMLElement>('[aria-label="Vùng cuộn kết quả"]');
+  assert(viewport?.classList.contains('overflow-y-auto'));
+  assert.equal(viewport?.style.maxHeight, '25rem');
+  assert.equal(viewport?.querySelectorAll('[role="option"]').length, 6);
+  let lastRowScrolled = false;
+  viewport!.querySelectorAll<HTMLElement>('[role="option"]')[5].scrollIntoView = () => { lastRowScrolled = true; };
+  for (let index = 0; index < 6; index++) await key('ArrowDown');
+  assert(lastRowScrolled);
+  assert(panel()?.querySelector('[aria-selected="true"]')?.textContent?.includes('Chia sẻ tài liệu'));
+  assert.deepEqual(Array.from(panel()!.querySelectorAll('[role="option"]:first-child mark'), mark => mark.textContent).slice(0, 2),
+    ['Phân quyền', 'phân quyền']);
+  assert(panel()?.textContent?.includes('Tài liệu công ty / Phòng Kỹ thuật'));
+  const allDocuments = button('Tất cả tài liệu', panel()!)!;
+  const folderScope = button('Trong Phòng Kỹ thuật', panel()!)!;
+  assert.equal(allDocuments.getAttribute('aria-pressed'), 'true');
+  assert(allDocuments.classList.contains('border-blue-600'));
+  assert(!folderScope.parentElement?.classList.contains('border-blue-600'));
+  await click(folderScope);
+  assert.equal(folderScope.getAttribute('aria-pressed'), 'true');
+  assert(folderScope.parentElement?.classList.contains('border-blue-600'));
+  assert(!folderScope.parentElement?.classList.contains('bg-blue-600'));
+  assert(!allDocuments.classList.contains('border-blue-600'));
+  assert.equal(panel()?.querySelector('[role="status"]')?.textContent, '5 kết quả');
+  await click(panel()?.querySelector('[aria-label="Chọn phạm vi tìm kiếm"]'));
+  const picker = () => panel()!.querySelector('[aria-label="Phạm vi tìm kiếm"]')!;
+  assert(button('Tài liệu công ty', picker()));
+  assert(button('Hồ sơ', picker()));
+  assert.equal(button('Bản bàn giao', picker()), undefined);
+  await click(picker().querySelector('[aria-label="Mở rộng Hồ sơ"]'));
+  assert(button('Bản bàn giao', picker()));
+  await click(button('Bản bàn giao', picker()));
+  assert.equal(panel()?.querySelector('[role="status"]')?.textContent, '1 kết quả');
+  assert(button('Trong Bản bàn giao', panel()!));
+  await click(panel()?.querySelector('[aria-label="Chọn phạm vi tìm kiếm"]'));
+  assert(picker().textContent?.includes('Không có thư mục con.'));
+  assert(button('Hồ sơ', picker()));
+  await key('Escape');
+  assert(panel());
+  assert.equal(panel()?.querySelector('[aria-label="Phạm vi tìm kiếm"]'), null);
+  await click(panel()?.querySelector('[aria-label="Chọn phạm vi tìm kiếm"]'));
+  await click(button('Tài liệu công ty', panel()!.querySelector('[aria-label="Phạm vi tìm kiếm"]')!));
+  assert.equal(panel()?.querySelector('[role="status"]')?.textContent, '6 kết quả');
+  await click(button('Tất cả tài liệu', panel()!));
+  await click(button('Trong Phòng Kỹ thuật', panel()!));
+  await click(button('Xem tất cả kết quả', panel()!));
+  assert.equal(panel(), null);
+  assert.equal(window.location.pathname, '/search');
+  assert.equal(new URLSearchParams(window.location.search).get('folder'), department.id);
+  assert.equal(heading(), 'Kết quả tìm kiếm');
+  assert.equal(document.querySelectorAll('main ul[aria-label="Kết quả tìm kiếm"] li').length, 5);
+  assert(document.querySelector('main')?.textContent?.includes('Phòng Kỹ thuật / Hồ sơ'));
+  assert(!document.querySelector('main')?.textContent?.includes('Chia sẻ tài liệu'));
+
+  await act(async () => window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true, cancelable: true })));
+  assert(panel());
+  await click(document.querySelector('[aria-label="Xóa từ khóa tìm kiếm"]'));
+  assert.equal(input.value, '');
+  assert.equal(panel()?.querySelector('h2')?.textContent, 'Kết quả tìm kiếm');
+  for (const label of ['Ghi chú mới', 'Biên bản họp', 'Hỏi One AI', 'Công việc']) {
+    assert.equal(button(label, panel()!), undefined);
+  }
+  await key('Escape');
+  assert.equal(panel(), null);
+  await fill('ho so');
+  await key('ArrowDown');
+  assert.equal(panel()?.querySelector('[aria-selected="true"] mark')?.textContent, 'Hồ sơ');
+  await key('Enter');
+  assert.equal(panel(), null);
+  assert.equal(window.location.pathname, '/folders/search-child');
+});
+
 test('slash previews follow hover and arrow selection without inserting content', async () => {
   const { saveStoredDocuments } = await import('../utils/storage');
   const base = getStoredDocuments().find(doc => !doc.isTrash)!;
@@ -460,7 +564,7 @@ test('Sidebar2 switches workspaces, preserves folder actions and keeps only one 
     assert.equal(sidebar.querySelector('[aria-label="Danh sách yêu thích"]'), null);
     await click(favoriteToggle);
     assert(sidebar.querySelector('[aria-label="Danh sách yêu thích"]'));
-    assert(sidebar.textContent?.includes('TÀI LIỆU CỦA TÔI'));
+    assert(button('GHI CHÉP CỦA TÔI', sidebar));
     assert(sidebar.querySelector('[data-folder-id="deep-default"]'));
     assert.equal(sidebar.querySelector('[aria-label="Thu gọn thư mục Thư mục con"]')?.getAttribute('aria-expanded'), 'true');
     assert.equal(sidebar.querySelector('[aria-label="Mở thư mục Thư mục cháu"]')?.getAttribute('aria-expanded'), 'false');
@@ -626,12 +730,14 @@ test('editor width toggle switches between reading and wide content without chan
 test('library folder tree starts collapsed and expands on demand', async () => {
   await mount('/library/all');
   const main = document.querySelector('main')!;
-  assert(button('Mở tất cả', main));
+  assert.equal(button('Mở tất cả', main), undefined);
+  assert.equal(main.querySelector('[title="Đặt lại bộ lọc"]'), null);
   assert.equal(main.querySelectorAll('table tbody button[title="Tùy chọn khác"]').length, 0);
-  await click(button('Mở tất cả', main));
-  assert(button('Thu gọn', main));
+  const folder = main.querySelector('table button[aria-expanded="false"]')!;
+  await click(folder);
+  assert.equal(folder.getAttribute('aria-expanded'), 'true');
   assert(main.querySelector('table tbody button[title="Tùy chọn khác"]'));
-  await click(button('Thu gọn', main));
+  await click(folder);
   assert.equal(main.querySelectorAll('table tbody button[title="Tùy chọn khác"]').length, 0);
 });
 
@@ -965,6 +1071,51 @@ test('Tab and Shift+Tab change list indentation within four levels and Enter kee
   for (const block of blocks) assert.deepEqual(block.properties?.listItems?.map(item => item.level), [3, 1]);
   await mount('/documents/list-levels');
   assert.equal(document.querySelector<HTMLLIElement>('[data-block-id="level-bullet"] li')?.style.marginLeft, '48px');
+});
+
+test('move folder dialog searches nested destinations, excludes its own subtree and moves across spaces', async () => {
+  const { getStoredFolders, saveStoredFolders, saveStoredDocuments } = await import('../utils/storage');
+  const folders = getStoredFolders();
+  const source = folders.find(folder => folder.id === 'fld_ideas')!;
+  const engineering = folders.find(folder => folder.id === 'fld_engineering')!;
+  saveStoredFolders([...folders,
+    { ...source, id: 'move-own-child', name: 'Nhánh đang di chuyển', parentId: source.id },
+    { ...engineering, id: 'move-team', name: 'Nhóm triển khai', parentId: engineering.id },
+    { ...engineering, id: 'move-team-records', name: 'Hồ sơ kỹ thuật', parentId: 'move-team' },
+  ]);
+  const base = getStoredDocuments().find(doc => !doc.isTrash && doc.space === 'personal')!;
+  saveStoredDocuments([...getStoredDocuments(), { ...base, id: 'move-own-doc', folderId: 'move-own-child' }]);
+  await mount('/folders/fld_ideas');
+  await click(document.querySelector('main header [aria-label="Tùy chọn thư mục Ý tưởng"]'));
+  await click(document.querySelector('[role="menuitem"][aria-label="Di chuyển thư mục Ý tưởng"]'));
+  const dialog = document.querySelector('[role="dialog"][aria-labelledby]')!;
+  assert.equal(dialog.querySelector('h2')?.textContent, 'Di chuyển thư mục');
+  assert.equal(button('Di chuyển', dialog)?.disabled, true);
+  const input = dialog.querySelector<HTMLInputElement>('[aria-label="Tìm thư mục"]')!;
+  const destinations = dialog.querySelector('[aria-label="Thư mục đích"]')!;
+  const fill = (value: string) => act(async () => {
+    Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!.call(input, value);
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+  });
+  assert.equal(document.activeElement, input);
+  await fill('nhanh dang di chuyen');
+  assert(destinations.textContent?.includes('Không tìm thấy thư mục phù hợp.'));
+  await click(button('Tài liệu công ty', dialog));
+  assert(button('Tài liệu công ty', dialog)?.classList.contains('border-blue-600'));
+  assert(!button('Tài liệu công ty', dialog)?.classList.contains('bg-blue-600'));
+  assert.equal(input.value, '');
+  assert.equal(button('Hồ sơ kỹ thuật', destinations), undefined);
+  await click(destinations.querySelector('[aria-label="Mở rộng Phòng Kỹ thuật"]'));
+  await click(destinations.querySelector('[aria-label="Mở rộng Nhóm triển khai"]'));
+  assert(button('Hồ sơ kỹ thuật', destinations));
+  await fill('ho so ky thuat');
+  await click(destinations.querySelector('button[title="Hồ sơ kỹ thuật"]'));
+  assert.equal(dialog.querySelector('[aria-live="polite"]')?.textContent, 'Đến Tài liệu công ty / Phòng Kỹ thuật / Nhóm triển khai / Hồ sơ kỹ thuật');
+  await click(button('Di chuyển', dialog));
+  assert.equal(document.querySelector('[role="dialog"][aria-labelledby]'), null);
+  assert.equal(getStoredFolders().find(folder => folder.id === source.id)?.parentId, 'move-team-records');
+  assert.equal(getStoredFolders().find(folder => folder.id === 'move-own-child')?.space, 'company');
+  assert.equal(getStoredDocuments().find(doc => doc.id === 'move-own-doc')?.space, 'company');
 });
 
 test('move document dialog browses, searches, creates a destination and moves across spaces', async () => {
@@ -1952,7 +2103,7 @@ test('note rename uses the folder-style dialog and only saves on confirmation', 
   assert.equal(document.querySelector('[aria-label="Đặt lại tên ghi chú"]'), null);
   await mount('/library/all');
   const main = document.querySelector('main')!;
-  await click(button('Mở tất cả', main));
+  await click(main.querySelector('table button[aria-expanded="false"]'));
   await click(main.querySelector('table button[title="Tùy chọn khác"]'));
   await click(Array.from(main.querySelectorAll('[aria-label="Thao tác tài liệu"] button')).find(item => Array.from(item.querySelectorAll('span')).some(span => span.textContent === 'Đổi tên')));
   dialog = document.querySelector('[aria-label="Đặt lại tên ghi chú"]')!;
@@ -1996,7 +2147,7 @@ test('share menu copies the current document URL and reports clipboard failures 
   await click(dialog.querySelector('button[aria-label="Đóng chia sẻ"]'));
   await mount('/library/all');
   const main = document.querySelector('main')!;
-  await click(button('Mở tất cả', main));
+  await click(main.querySelector('table button[aria-expanded="false"]'));
   await click(main.querySelector('table button[title="Tùy chọn khác"]'));
   await click(button('Chia sẻ', main));
   dialog = document.querySelector('[aria-label="Chia sẻ tài liệu"]')!;
@@ -2257,6 +2408,20 @@ test('all library template actions create, persist and open distinct document UR
   await mount(documentPath); // Fresh application mount at a copied document URL.
   assert.equal(window.location.pathname, documentPath);
   assert(document.querySelector('.mind-map-canvas--page'));
+});
+
+test('mind map and Excel galleries use the same margins and template card dimensions', async () => {
+  async function readLayout(path: string) {
+    await mount(path);
+    const preview = document.querySelector('main .template-gallery-preview')!;
+    assert(preview.classList.contains('h-48'));
+    const card = preview.closest('article')!;
+    const gallery = card.closest('section')!;
+    assert(gallery.parentElement?.classList.contains('px-[5vw]'));
+    return [gallery.parentElement?.className, gallery.className, card.parentElement?.className, card.className, preview.className,
+      card.querySelector('h2')?.className, card.querySelector('p')?.className, card.querySelector('button')?.className];
+  }
+  assert.deepEqual(await readLayout('/private/mind-maps'), await readLayout('/private/excel-templates'));
 });
 
 test('Excel templates open from quick actions and the library, edit cells and download a workbook', async () => {
@@ -4179,8 +4344,20 @@ test('mind map quick action displays three templates and saves an editable meeti
       const cards = Array.from(document.querySelectorAll('main article'));
       assert.deepEqual(cards.map(card => card.querySelector('h2')?.textContent), ['Cuộc họp tổng quan', 'Quyết định & hành động', 'Theo phòng ban']);
       assert.deepEqual(cards.map(card => card.querySelectorAll('.mind-map-card').length), [6, 7, 10]);
-
-      const selected = cards[useNewSidebar ? 2 : 0];
+      assert.equal(heading(), 'Tạo sơ đồ tư duy từ mẫu');
+      const category = document.querySelector('[aria-label="Chủ đề mẫu sơ đồ tư duy"]')!;
+      await click(button('Phòng ban', category));
+      assert.equal(document.querySelectorAll('main article').length, 1);
+      assert.equal(document.querySelector('main article h2')?.textContent, 'Theo phòng ban');
+      await click(button('Tất cả', category));
+      const search = document.querySelector<HTMLInputElement>('main input[aria-label="Tìm mẫu sơ đồ tư duy"]')!;
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!.call(search, useNewSidebar ? 'theo phong ban' : 'cuoc hop tong quan');
+        search.dispatchEvent(new window.Event('input', { bubbles: true }));
+      });
+      assert.equal(document.querySelectorAll('main article').length, 1);
+      const selected = document.querySelector('main article')!;
+      assert.equal(selected.querySelector('h2')?.textContent, useNewSidebar ? 'Theo phòng ban' : 'Cuộc họp tổng quan');
       await click(button('Sử dụng mẫu', selected));
       const path = window.location.pathname;
       const docId = path.split('/').pop()!;
