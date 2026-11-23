@@ -1,9 +1,10 @@
-import type { Document, Folder, SpaceType } from '../types';
+import type { Document, Folder, SpaceType, UserRole } from '../types';
 import { blocksToPlainText } from './blockClipboard';
 import { getFolderAncestors } from './folders';
 
 export type SearchScope = { space: SpaceType; folderId?: string };
-export type SearchResult = { id: string; type: 'document' | 'folder'; title: string; path: string; snippet: string };
+export type SearchResult = { id: string; title: string; path: string; snippet: string } &
+  ({ type: 'document'; permission: UserRole } | { type: 'folder' });
 
 export const workspaceName = (space: SpaceType) => space === 'company' ? 'Tài liệu công ty' : 'Ghi chép của tôi';
 const fold = (text: string) => text.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd');
@@ -57,7 +58,7 @@ export function findWorkspaceResults(documents: Document[], folders: Folder[], q
     const tagMatches = !!needle && fold(tags).includes(needle);
     const rank = !needle || fold(title).includes(needle) ? 0 : contentMatches || tagMatches ? 1 : fold(path).includes(needle) ? 2 : -1;
     if (rank < 0) continue;
-    ranked.push({ result: { id: doc.id, type: 'document', title, path,
+    ranked.push({ result: { id: doc.id, type: 'document', permission: doc.permission ?? 'owner', title, path,
       snippet: excerpt(tagMatches && !contentMatches ? tags : content, query) }, rank, date: doc.updatedAt });
   }
   if (needle) {

@@ -62,6 +62,7 @@ test('header search opens below the input, highlights matches and preserves fold
   const matching = Array.from({ length: 5 }, (_, index) => ({
     ...base, id: `search-note-${index}`, title: `Đặc tả Phân quyền ${index}`,
     folderId: index === 4 ? 'search-grandchild' : department.id, space: 'company' as const,
+    permission: index === 0 ? 'commenter' as const : 'viewer' as const,
     blocks: [{ id: 'search-body', type: 'paragraph' as const, content: 'Chi tiết cơ chế phân quyền và chia sẻ.' }],
   }));
   saveStoredDocuments([...matching,
@@ -97,6 +98,8 @@ test('header search opens below the input, highlights matches and preserves fold
   assert(panel()?.textContent?.includes('Tài liệu công ty / Phòng Kỹ thuật'));
   const allDocuments = button('Tất cả tài liệu', panel()!)!;
   const folderScope = button('Trong Phòng Kỹ thuật', panel()!)!;
+  const searchPath = () => panel()!.querySelector('nav[aria-label="Vị trí tìm kiếm"]')!;
+  assert.equal(searchPath().textContent, 'Tất cả tài liệu');
   assert.equal(allDocuments.getAttribute('aria-pressed'), 'true');
   assert(allDocuments.classList.contains('border-blue-600'));
   assert(!folderScope.parentElement?.classList.contains('border-blue-600'));
@@ -116,14 +119,19 @@ test('header search opens below the input, highlights matches and preserves fold
   await click(button('Bản bàn giao', picker()));
   assert.equal(panel()?.querySelector('[role="status"]')?.textContent, '1 kết quả');
   assert(button('Trong Bản bàn giao', panel()!));
+  assert.deepEqual(Array.from(searchPath().querySelectorAll('button'), item => item.textContent),
+    ['Tài liệu công ty', 'Phòng Kỹ thuật', 'Hồ sơ', 'Bản bàn giao']);
+  assert.equal(searchPath().querySelector('[aria-current="location"]')?.textContent, 'Bản bàn giao');
   await click(panel()?.querySelector('[aria-label="Chọn phạm vi tìm kiếm"]'));
   assert(picker().textContent?.includes('Không có thư mục con.'));
   assert(button('Hồ sơ', picker()));
   await key('Escape');
   assert(panel());
   assert.equal(panel()?.querySelector('[aria-label="Phạm vi tìm kiếm"]'), null);
-  await click(panel()?.querySelector('[aria-label="Chọn phạm vi tìm kiếm"]'));
-  await click(button('Tài liệu công ty', panel()!.querySelector('[aria-label="Phạm vi tìm kiếm"]')!));
+  await click(button('Phòng Kỹ thuật', searchPath()));
+  assert.equal(panel()?.querySelector('[role="status"]')?.textContent, '5 kết quả');
+  await click(button('Tài liệu công ty', searchPath()));
+  assert.equal(searchPath().textContent, 'Tài liệu công ty');
   assert.equal(panel()?.querySelector('[role="status"]')?.textContent, '6 kết quả');
   await click(button('Tất cả tài liệu', panel()!));
   await click(button('Trong Phòng Kỹ thuật', panel()!));
@@ -133,6 +141,13 @@ test('header search opens below the input, highlights matches and preserves fold
   assert.equal(new URLSearchParams(window.location.search).get('folder'), department.id);
   assert.equal(heading(), 'Kết quả tìm kiếm');
   assert.equal(document.querySelectorAll('main ul[aria-label="Kết quả tìm kiếm"] li').length, 5);
+  const firstResult = document.querySelector('main ul[aria-label="Kết quả tìm kiếm"] li')!;
+  assert.deepEqual(Array.from(firstResult.querySelector('button > span:nth-child(2)')!.children, item => item.textContent), [
+    'Đặc tả Phân quyền 0Người nhận xét',
+    'Tài liệu công ty / Phòng Kỹ thuật',
+    'Chi tiết cơ chế phân quyền và chia sẻ.',
+  ]);
+  assert(firstResult.querySelector('[data-document-role="commenter"] svg.lucide-message-square-text'));
   assert(document.querySelector('main')?.textContent?.includes('Phòng Kỹ thuật / Hồ sơ'));
   assert(!document.querySelector('main')?.textContent?.includes('Chia sẻ tài liệu'));
 
@@ -1713,7 +1728,7 @@ test('the at menu groups suggestions and search actions, and inserts people with
   const peopleDialog = document.querySelector('[aria-label="Mời và phân quyền"]')!;
   await fill(peopleDialog.querySelector<HTMLInputElement>('[aria-label="Tìm nhân viên"]')!, 'nam.le');
   await click(document.querySelector('[aria-label="Danh sách nhân viên"] [role="option"]'));
-  await click(button('Thêm', peopleDialog));
+  assert(peopleDialog.querySelector('[data-invite-email="nam.le@congty.vn"]'));
   await click(button('Gửi lời mời (1)', peopleDialog));
   assert.equal(field('mention-menu-list').value, 'Phối hợp @Lê Hoàng Nam ');
   assert.equal(field('mention-menu-list').selectionStart, 'Phối hợp @Lê Hoàng Nam '.length);
@@ -1905,11 +1920,13 @@ test('invitations save individual permissions, create groups and reuse simple me
   const add = async (query: string) => {
     await fill(dialog.querySelector<HTMLInputElement>('input[aria-label="Tìm nhân viên"]')!, query);
     await click(document.querySelector('[aria-label="Danh sách nhân viên"] [role="option"]'));
-    await click(button('Thêm', dialog));
   };
   await add('thu ha');
   await add('cuong.viet');
   assert.equal(dialog.querySelectorAll('[data-invite-email]').length, 2);
+  const invitedRole = dialog.querySelector<HTMLSelectElement>('[aria-label="Quyền của Việt Cường"]')!;
+  assert.equal(invitedRole.value, 'edit');
+  assert.deepEqual(Array.from(invitedRole.options, option => option.textContent), ['Người xem', 'Người bình luận', 'Người chỉnh sửa']);
   await click(dialog.querySelector('[aria-label="Xóa Việt Cường khỏi danh sách mời"]'));
   assert.equal(dialog.querySelectorAll('[data-invite-email]').length, 1);
   await add('cuong.viet');
@@ -1943,7 +1960,16 @@ test('invitations save individual permissions, create groups and reuse simple me
   await click(button('Tạo nhóm mới', document.querySelector('[aria-label="Chọn nhóm"]')!));
   dialog = document.querySelector('[aria-label="Mời và phân quyền nhóm"]')!;
   await fill(dialog.querySelector('[aria-label="Tên nhóm"]')!, 'Nhóm sản phẩm');
-  await add('nam.le');
+  await click(dialog.querySelector('[aria-label="Danh bạ"]'));
+  const groupDirectory = document.querySelector('[data-employee-picker-popover="directory"]')!;
+  await fill(groupDirectory.querySelector<HTMLInputElement>('[aria-label="Tìm kiếm theo tên/SĐT/email"]')!, 'hoang nam');
+  await click(groupDirectory.querySelector('[role="option"]'));
+  const newMember = dialog.querySelector('[data-invite-email="nam.le@congty.vn"]')!;
+  assert(newMember);
+  assert.equal(newMember.querySelector('select')?.value, 'edit');
+  assert.equal(dialog.querySelector('[aria-label="Nhân viên đã chọn"]'), null);
+  assert.equal(button('Thêm', dialog), undefined);
+  await click(groupDirectory.querySelector('[aria-label="Đóng danh sách nhân viên"]'));
   await click(button('Gửi lời mời (1)', dialog));
   await mount('/library/private');
   const saved = getStoredDocuments().find(doc => doc.id === 'mentions-test')!;
@@ -1963,7 +1989,7 @@ test('invitations save individual permissions, create groups and reuse simple me
   await click(Array.from(document.querySelectorAll('[data-block-id="mention-person"] button')).find(item => item.textContent?.includes('@Việt Cường')));
   dialog = document.querySelector('[aria-label="Mời và phân quyền"]')!;
   assert.equal(dialog.querySelector<HTMLSelectElement>('[aria-label="Quyền của Việt Cường"]')?.value, 'view');
-  await role('Việt Cường', 'full');
+  await role('Việt Cường', 'edit');
   await click(button('Hủy', dialog));
   await fill(document.querySelector('[data-block-id="mention-reuse"] textarea')!, '@cuong.viet');
   await click(document.querySelector('button[data-slash-command-title="Việt Cường"]'));
@@ -1972,7 +1998,9 @@ test('invitations save individual permissions, create groups and reuse simple me
   await mount('/library/private');
   const reused = getStoredDocuments().find(doc => doc.id === 'mentions-test')!.blocks[2];
   assert.equal(reused.content, '@Việt Cường');
-  assert.equal(reused.properties?.mention?.permission, 'view');
+  assert.equal(reused.properties?.mention?.permission, 'edit');
+  assert.equal(reused.properties?.mention?.permissions?.['cuong.viet@congty.vn'], 'edit');
+  assert.equal(getStoredDocuments().find(doc => doc.id === 'mentions-test')?.blocks[0].properties?.mention?.permissions?.['cuong.viet@congty.vn'], 'view');
 });
 
 test('group mentions insert immediately from the at menu and the group picker', async () => {
@@ -2013,7 +2041,9 @@ test('group mentions insert immediately from the at menu and the group picker', 
   const invite = document.querySelector('[aria-label="Mời và phân quyền nhóm"]')!;
   assert(!invite.textContent?.includes('Mô phỏng'));
   assert.equal(invite.querySelector<HTMLInputElement>('[aria-label="Tên nhóm"]')?.value, 'Nhóm dự án');
-  assert.equal(invite.querySelector<HTMLSelectElement>('[aria-label="Quyền truy cập của nhóm"]')?.value, 'edit');
+  const groupRole = invite.querySelector<HTMLSelectElement>('[aria-label="Quyền truy cập của nhóm"]')!;
+  assert.equal(groupRole.value, 'edit');
+  assert.deepEqual(Array.from(groupRole.options, option => option.textContent), ['Người xem', 'Người bình luận', 'Người chỉnh sửa']);
   assert.equal(invite.querySelectorAll('[data-invite-email]').length, 2);
   await click(button('Gửi lời mời (2)', invite));
   assert.equal(textarea('group-paragraph').value, 'Đề nghị @Nhóm dự án phối hợp.');
@@ -2030,13 +2060,61 @@ test('group mentions insert immediately from the at menu and the group picker', 
   await chooseGroup();
   assert.equal(document.querySelector('[aria-label="Mời và phân quyền nhóm"]'), null);
   assert.equal(textarea('group-list').value, 'Theo dõi @Nhóm dự án ');
-  await fill(textarea('group-rollout-note'), '@');
-  await click(document.querySelector('[data-slash-command-title="Nhắc đến 1 nhóm"]'));
-  await click(button('Nhóm triển khai', document.querySelector('[aria-label="Chọn nhóm"]')!));
+  await fill(textarea('group-rollout-note'), '/');
+  const inline = document.querySelector('[role="group"][aria-label="Nội tuyến"]')!;
+  const options = (label: string) => Array.from(inline.querySelectorAll(`[role="group"][aria-label="${label}"] [role="option"]`),
+    item => item.getAttribute('aria-label'));
+  assert.deepEqual(options('Nhắc đến 1 người'), ['Nhắc đến 1 người', 'Việt Cường', 'Minh Anh', 'Hoàng Nam', 'Tìm 1 người']);
+  assert.deepEqual(options('Nhắc đến 1 nhóm'), ['Nhắc đến 1 nhóm', 'Nhóm dự án', 'Nhóm triển khai', 'Tìm 1 nhóm']);
+  await click(inline.querySelector('[aria-label="Nhóm triển khai"]'));
   assert.equal(textarea('group-rollout-note').value, '@Nhóm triển khai ');
   assert.equal(document.querySelector('[aria-label="Mời và phân quyền nhóm"]'), null);
   await mount(`/documents/${docId}`);
   assert.equal(document.querySelectorAll('[data-group-mention="group-project"]').length, 2);
+});
+
+test('group picker previews members inline and scrolls through larger groups without selecting them', async () => {
+  const { TEAM_MEMBERS } = await import('../data/mockData');
+  const { saveEmployeeGroup } = await import('../utils/documentSharing');
+  const { saveStoredDocuments } = await import('../utils/storage');
+  const employees = TEAM_MEMBERS.slice(0, 7);
+  saveEmployeeGroup({ id: 'large-group', name: 'Nhóm đông', emails: employees.map(person => person.email) });
+  const base = getStoredDocuments().find(doc => !doc.isTrash)!;
+  saveStoredDocuments([{ ...base, id: 'group-picker-test', blocks: [{ id: 'group-picker-line', type: 'paragraph', content: '' }] }]);
+  await mount('/documents/group-picker-test');
+  const textarea = () => document.querySelector<HTMLTextAreaElement>('[data-block-id="group-picker-line"] textarea')!;
+  const input = textarea();
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')!.set!.call(input, '@');
+    input.setSelectionRange(1, 1);
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+  });
+  await click(document.querySelector('[data-slash-command-title="Tìm 1 nhóm"]'));
+  const picker = document.querySelector('[role="dialog"][aria-label="Chọn nhóm"]')!;
+  const largeGroup = button('Nhóm đông', picker)!;
+  const toggle = picker.querySelector('[aria-label="Mở rộng thành viên Nhóm đông"]')!;
+  const list = () => picker.querySelector('ul[aria-label="Thành viên Nhóm đông"]');
+  assert.equal(document.getElementById(largeGroup.getAttribute('aria-describedby')!)?.textContent, '7 thành viên');
+  assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+  assert.equal(list(), null);
+  await click(toggle);
+  assert.equal(toggle.getAttribute('aria-expanded'), 'true');
+  assert.equal(input.value, '@');
+  assert.equal(document.querySelectorAll('[role="dialog"]').length, 1);
+  const memberDetails = () => Array.from(list()!.querySelectorAll('li'), row => Array.from(row.querySelectorAll('p'), item => item.textContent));
+  assert.deepEqual(memberDetails(), employees.slice(0, 5).map(({ name, email }) => [name, email]));
+  assert.equal(list()?.querySelector('[aria-hidden="true"]')?.textContent, 'VC');
+  await click(button('Xem tất cả', picker));
+  assert.deepEqual(memberDetails(), employees.map(({ name, email }) => [name, email]));
+  assert(list()?.classList.contains('overflow-y-auto'));
+  assert.equal(document.activeElement, list());
+  await click(toggle);
+  assert.equal(list(), null);
+  await click(toggle);
+  assert.equal(memberDetails().length, 5);
+  await click(button('Nhóm triển khai', picker));
+  assert.equal(textarea().value, '@Nhóm triển khai ');
+  assert.equal(picker.isConnected, false);
 });
 
 test('space panels highlight document drops to root and display moved notes outside folders', async () => {
@@ -2410,7 +2488,10 @@ test('all library template actions create, persist and open distinct document UR
   assert(document.querySelector('.mind-map-canvas--page'));
 });
 
-test('mind map and Excel galleries use the same margins and template card dimensions', async () => {
+test('mind map, Excel, and library templates use the same card design', async () => {
+  const cardDesign = (card: Element) => [card.parentElement?.className, card.className,
+    card.querySelector('.template-gallery-preview')?.className, card.querySelector('h2')?.className,
+    card.querySelector('h2 + p')?.className, card.querySelector('button[aria-label^="Sử dụng mẫu "]')?.className];
   async function readLayout(path: string) {
     await mount(path);
     const preview = document.querySelector('main .template-gallery-preview')!;
@@ -2418,10 +2499,30 @@ test('mind map and Excel galleries use the same margins and template card dimens
     const card = preview.closest('article')!;
     const gallery = card.closest('section')!;
     assert(gallery.parentElement?.classList.contains('px-[5vw]'));
-    return [gallery.parentElement?.className, gallery.className, card.parentElement?.className, card.className, preview.className,
-      card.querySelector('h2')?.className, card.querySelector('p')?.className, card.querySelector('button')?.className];
+    return { galleryDesign: [gallery.parentElement?.className, gallery.className], cardDesign: cardDesign(card),
+      preview: preview.innerHTML, icon: card.querySelector('h2 svg')?.outerHTML };
   }
-  assert.deepEqual(await readLayout('/private/mind-maps'), await readLayout('/private/excel-templates'));
+  const mindMap = await readLayout('/private/mind-maps');
+  const excel = await readLayout('/private/excel-templates');
+  assert.deepEqual(mindMap.galleryDesign, excel.galleryDesign);
+  assert.deepEqual(mindMap.cardDesign, excel.cardDesign);
+
+  await mount('/templates');
+  for (const card of document.querySelectorAll('main article')) {
+    assert.deepEqual(cardDesign(card), mindMap.cardDesign);
+  }
+  for (const [title, expected] of [['Cuộc họp tổng quan', mindMap], ['Kế hoạch công việc (Excel)', excel]] as const) {
+    const previewButton = document.querySelector(`button[aria-label="Xem trước ${title}"]`)!;
+    const card = previewButton.closest('article')!;
+    assert.equal(card.querySelector('.template-gallery-preview')?.innerHTML, expected.preview);
+    assert.equal(card.querySelector('h2 svg')?.outerHTML, expected.icon);
+    await click(previewButton);
+    assert.equal(previewButton.getAttribute('aria-pressed'), 'true');
+    const selectedCard = document.querySelectorAll('main article[data-selected]');
+    assert.deepEqual(Array.from(selectedCard), [card]);
+    assert(selectedCard[0].querySelector('button[aria-label^="Sử dụng mẫu "]'));
+    assert(document.querySelector(`main aside[aria-label="Xem trước ${title}"]`));
+  }
 });
 
 test('Excel templates open from quick actions and the library, edit cells and download a workbook', async () => {
@@ -2560,6 +2661,9 @@ test('Excel workspace calculates formulas and saves formatting and additional sh
     input.dispatchEvent(new window.Event('input', { bubbles: true }));
   });
   assert.equal(heading(), 'Kế hoạch công việc.xlsx');
+  const toolbarTabs = workspace().querySelectorAll('[aria-label="Nhóm công cụ bảng tính"] button');
+  assert.deepEqual(Array.from(toolbarTabs, tab => tab.textContent), ['Trang chủ', 'Chèn', 'Dữ liệu', 'Xem']);
+  assert.equal(toolbarTabs[0]?.getAttribute('aria-pressed'), 'true');
   assert.equal(button('Chia sẻ', workspace()), undefined);
   await click(button('Chia sẻ', document.querySelector('[data-doc-header-actions]')!));
   const sharing = document.querySelector('[aria-label="Chia sẻ tài liệu"]');
@@ -3003,7 +3107,7 @@ test('both sidebars omit unclassified folders and place new notes at the top abo
   assert.equal(document.querySelector('aside [aria-label="Danh sách gần đây"]'), null);
 });
 
-test('selecting text in block editor renders EditTextDialog with side-by-side submenu and closing on unselect', async () => {
+test('selecting text by mouse or keyboard opens EditTextDialog and clearing selection closes it', async () => {
   const initialDoc = getStoredDocuments().find(doc => doc.id === 'doc_week_plan')!;
   await mount(`/documents/${initialDoc.id}`);
   const textarea = document.querySelector('#document-editor-container textarea') as HTMLTextAreaElement;
@@ -3013,10 +3117,23 @@ test('selecting text in block editor renders EditTextDialog with side-by-side su
   await act(async () => {
     textarea.focus();
     textarea.setSelectionRange(0, 7);
-    window.dispatchEvent(new window.MouseEvent('mouseup', { bubbles: true }));
+    textarea.dispatchEvent(new window.MouseEvent('mouseup', { bubbles: true }));
   });
-  let dialog = document.querySelector('[aria-label="Định dạng văn bản"]');
-  assert(dialog, 'Expected EditTextDialog to open upon text selection');
+  const formatMenu = () => document.querySelector('[aria-label="Định dạng văn bản"]');
+  assert(formatMenu(), 'Mouse selection must open EditTextDialog');
+  await act(async () => {
+    textarea.dispatchEvent(new window.KeyboardEvent('keydown', { bubbles: true, key: 'Escape' }));
+    textarea.dispatchEvent(new window.KeyboardEvent('keyup', { bubbles: true, key: 'Escape' }));
+  });
+  assert.equal(formatMenu(), null, 'Releasing Escape must not reopen the menu');
+  await act(async () => {
+    textarea.setSelectionRange(0, 6);
+    textarea.dispatchEvent(new window.KeyboardEvent('keyup', { bubbles: true, key: 'ArrowLeft', shiftKey: true }));
+  });
+  const dialog = formatMenu();
+  assert(dialog, 'Keyboard selection must open EditTextDialog');
+  assert.equal(textarea.selectionStart, 0);
+  assert.equal(textarea.selectionEnd, 6);
   assert.equal(dialog.querySelector('input[placeholder="Tìm kiếm hành động…"]'), null);
   assert.equal((dialog.querySelector('[aria-label="Cỡ chữ"]') as HTMLSelectElement).value, '19');
   assert(!dialog.textContent?.includes('Tự động'));
@@ -3056,13 +3173,15 @@ test('selecting text in block editor renders EditTextDialog with side-by-side su
   assert.equal(formatted.style.fontStyle, 'italic');
   assert.equal(formatted.style.textDecoration, 'underline');
 
-  // When selection is cleared, dialog closes
+  // Clicking the same field collapses the range before mouseup reads the selection again.
   await act(async () => {
-    textarea.setSelectionRange(0, 0);
-    window.dispatchEvent(new window.MouseEvent('mouseup', { bubbles: true }));
+    textarea.focus();
+    textarea.setSelectionRange(0, 6);
+    textarea.dispatchEvent(new window.MouseEvent('mousedown', { bubbles: true, detail: 1 }));
+    textarea.dispatchEvent(new window.MouseEvent('mouseup', { bubbles: true }));
   });
-  dialog = document.querySelector('[aria-label="Định dạng văn bản"]');
-  assert.equal(dialog, null, 'Expected EditTextDialog to close when text is no longer highlighted');
+  assert.equal(textarea.selectionStart, textarea.selectionEnd);
+  assert.equal(formatMenu(), null, 'Expected EditTextDialog to close when text is no longer highlighted');
 });
 
 test('folder and document drag and drop updates hierarchy and persists to storage', async () => {
@@ -4562,7 +4681,7 @@ test('Quick Note header title input selects all text on focus/click for immediat
 
 
 
-test('editor selects and copies blocks when dragging from the canvas margin', async () => {
+test('editor selects and copies blocks inside a drag rectangle and clears selection on outside clicks', async () => {
   const { saveStoredDocuments } = await import('../utils/storage');
   const base = getStoredDocuments().find(doc => !doc.isTrash)!;
   saveStoredDocuments([{ ...base, id: 'margin-selection', blocks: [
@@ -4571,26 +4690,71 @@ test('editor selects and copies blocks when dragging from the canvas margin', as
   ] }]);
   await mount('/documents/margin-selection');
   const container = document.getElementById('document-editor-container')!;
-  const surface = container.closest('[data-block-selection-surface]')!;
+  const surface = container.closest<HTMLElement>('[data-block-selection-surface]')!;
+  const rectangle = () => surface.querySelector<HTMLElement>('[data-block-selection-marquee]');
+  Object.defineProperties(surface, { clientWidth: { value: 600 }, clientHeight: { value: 400 } });
   const blocks = Array.from(container.querySelectorAll<HTMLElement>('[data-block-id]'));
   blocks.forEach((block, index) => {
     block.getBoundingClientRect = () => ({ top: 100 + index * 50, bottom: 150 + index * 50, height: 50, left: 100, right: 500, width: 400, x: 100, y: 100 + index * 50, toJSON() {} });
   });
-  await act(async () => surface.dispatchEvent(new window.MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, clientX: 30, clientY: 120 })));
-  assert.equal(blocks[0].dataset.blockSelected, 'true');
-  assert.equal(document.activeElement, container);
-  await act(async () => window.dispatchEvent(new window.MouseEvent('mousemove', { bubbles: true, cancelable: true, clientX: 30, clientY: 175 })));
-  await act(async () => window.dispatchEvent(new window.MouseEvent('mouseup', { bubbles: true })));
+  const mouse = (target: EventTarget, type: string, clientX: number, clientY: number) => act(async () => {
+    target.dispatchEvent(new window.MouseEvent(type, { bubbles: true, cancelable: true, clientX, clientY, detail: 1 }));
+  });
+  await mouse(surface, 'mousedown', 30, 120);
+  assert.equal(rectangle(), null);
+  assert(blocks.every(block => !block.dataset.blockSelected));
+  await mouse(window, 'mousemove', 70, 175);
+  assert.equal(rectangle()?.style.width, '40px');
+  assert(blocks.every(block => !block.dataset.blockSelected), 'The rectangle must also overlap a block horizontally');
+  await mouse(window, 'mousemove', 250, 175);
+  assert.equal(rectangle()?.style.left, '30px');
+  assert.equal(rectangle()?.style.top, '120px');
+  assert.equal(rectangle()?.style.width, '220px');
+  assert.equal(rectangle()?.style.height, '55px');
   assert(blocks.every(block => block.dataset.blockSelected === 'true'));
+  await mouse(window, 'mouseup', 250, 175);
+  assert.equal(rectangle(), null);
+  assert.equal(document.activeElement, container);
+  assert(blocks.every(block => block.dataset.blockSelected === 'true'));
+  const formatMenu = () => document.querySelector('[aria-label="Định dạng văn bản"]');
+  assert(formatMenu(), 'Completing a multi-block drag must open the formatting dialog');
+  const bold = formatMenu()!.querySelector('[aria-label="Đậm"]')!;
+  await mouse(bold, 'mousedown', 180, 220);
+  await mouse(bold, 'mouseup', 180, 220);
+  await click(bold);
+  assert(blocks.every(block => block.querySelector('textarea')?.parentElement?.style.fontWeight === '700'));
   const copied = new Map<string, string>();
   const copy = new window.Event('copy', { bubbles: true, cancelable: true });
   Object.defineProperty(copy, 'clipboardData', { value: { setData: (type: string, value: string) => copied.set(type, value) } });
   await act(async () => container.dispatchEvent(copy));
   assert.match(copied.get('text/plain')!, /First selected paragraph/);
   assert.match(copied.get('text/plain')!, /Second selected paragraph/);
-  await act(async () => {
-    const input = blocks[0].querySelector('textarea')!;
-    input.dispatchEvent(new window.MouseEvent('mousedown', { bubbles: true, cancelable: true, clientY: 120 }));
-  });
+  await mouse(surface, 'mousedown', 30, 120);
+  await mouse(window, 'mouseup', 30, 120);
+  assert(blocks.every(block => !block.dataset.blockSelected));
+  assert.equal(formatMenu(), null);
+
+  const first = blocks[0].querySelector('textarea')!;
+  const second = blocks[1].querySelector('textarea')!;
+  await mouse(first, 'mousedown', 160, 120);
+  await mouse(second, 'mousemove', 200, 175);
+  await mouse(second, 'mouseup', 200, 175);
+  assert(formatMenu(), 'Dragging across text lines must open the formatting dialog');
+  await mouse(second, 'mousedown', 200, 175);
+  await mouse(second, 'mouseup', 200, 175);
+  assert.equal(formatMenu(), null);
+
+  const spacer = surface.querySelector('[data-editor-bottom-spacer]')!;
+  await mouse(spacer, 'mousedown', 250, 230);
+  await mouse(window, 'mousemove', 130, 170);
+  await mouse(window, 'mouseup', 130, 170);
+  assert.equal(blocks[0].dataset.blockSelected, undefined);
+  assert.equal(blocks[1].dataset.blockSelected, 'true');
+  await mouse(spacer, 'click', 130, 170);
+  assert.equal(container.querySelectorAll('[data-block-id]').length, 2, 'Releasing a drag must not insert a new block');
+
+  const outside = document.querySelector('[data-doc-header-actions]')!;
+  outside.addEventListener('mousedown', event => event.stopPropagation(), { once: true });
+  await mouse(outside, 'mousedown', 500, 35);
   assert(blocks.every(block => !block.dataset.blockSelected));
 });

@@ -109,7 +109,8 @@ test('template URLs render note, mind map and Excel cards with direct-use action
   const html = render('/templates');
   assert.equal((html.match(/<article/g) || []).length, 14);
   assert.equal((html.match(/aria-label="Sử dụng mẫu /g) || []).length, 14);
-  assert.equal((html.match(/mind-map-template-thumbnail/g) || []).length, 3);
+  assert.equal((html.match(/class="template-gallery-preview /g) || []).length, 14);
+  assert.equal((html.match(/class="mind-map-preview"/g) || []).length, 3);
   assert.equal((html.match(/spreadsheet-grid--compact/g) || []).length, 6);
 });
 

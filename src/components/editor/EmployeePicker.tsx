@@ -9,9 +9,12 @@ const directorySearchLabel = 'Tìm kiếm theo tên/SĐT/email';
 
 export const employeeName = (email: string) => TEAM_MEMBERS.find(person => person.email === email)?.name || email;
 
-export function EmployeePicker({ value, onChange, autoFocus = false, exclude = [], invitationLayout = false }: {
-  value: string[]; onChange: (emails: string[]) => void; autoFocus?: boolean; exclude?: string[]; invitationLayout?: boolean;
-}) {
+type EmployeePickerSelection =
+  | { value: string[]; onChange: (emails: string[]) => void; onSelect?: never }
+  | { value?: never; onChange?: never; onSelect: (email: string) => void };
+
+export function EmployeePicker({ value = [], onChange, onSelect, autoFocus = false, exclude = [], invitationLayout = false }:
+  EmployeePickerSelection & { autoFocus?: boolean; exclude?: string[]; invitationLayout?: boolean }) {
   const [query, setQuery] = useState('');
   const [directoryQuery, setDirectoryQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -71,7 +74,8 @@ export function EmployeePicker({ value, onChange, autoFocus = false, exclude = [
   }, [open, browse, value.length, matches.length]);
 
   const choose = (email: string) => {
-    if (!value.includes(email)) onChange([...value, email]);
+    if (onSelect) onSelect(email);
+    else if (!value.includes(email)) onChange([...value, email]);
     setQuery(''); setActive(0); setOpen(browse);
     (browse ? directoryInput : input).current?.focus();
   };
@@ -98,7 +102,7 @@ export function EmployeePicker({ value, onChange, autoFocus = false, exclude = [
     {value.length > 0 && <div className="flex flex-wrap gap-1 px-1 pb-1" aria-label="Nhân viên đã chọn">
       {value.map(email => <span key={email} className="inline-flex max-w-full items-center gap-1 rounded-md bg-[#2383e2]/10 px-2 py-1 text-xs text-[var(--ui-text)]">
         <span className="truncate" title={email}>{employeeName(email)}</span>
-        <button type="button" aria-label={`Bỏ chọn ${employeeName(email)}`} onClick={() => onChange(value.filter(item => item !== email))}
+        <button type="button" aria-label={`Bỏ chọn ${employeeName(email)}`} onClick={() => onChange?.(value.filter(item => item !== email))}
           className="rounded hover:bg-[var(--ui-border)]"><X className="w-3 h-3" /></button>
       </span>)}
     </div>}

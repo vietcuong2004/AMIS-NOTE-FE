@@ -8,6 +8,7 @@ import { SLASH_COMMANDS, SlashCommand } from './slashCommands';
 import { employeeName } from './EmployeePicker';
 import { readSlashHistory, recordSlashCommand } from '../../utils/slashHistory';
 import { SlashCommandPreview } from './SlashCommandPreview';
+import { DEFAULT_MENTION_PERMISSION } from './inlineMentions';
 
 type MenuItem = SlashCommand & { sourceId?: string; group?: EmployeeGroup };
 
@@ -87,10 +88,11 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, 
   const cleanQuery = normalizeCommandQuery(mentionsOnly ? query.slice(1) : query);
   const mentionedCommands = new Map<string, SlashCommand>();
   for (const mention of mentions) {
-    if (mentionsOnly && mention.kind === 'group' && groups.some(group => group.name === mention.groupName)) continue;
-    const entries = mention.kind === 'group' ? [mention] : mention.emails.map(email => ({
-      ...mention, emails: [email], permission: mention.permissions?.[email] || mention.permission,
-      permissions: { [email]: mention.permissions?.[email] || mention.permission },
+    if (mention.kind === 'group' && groups.some(group => group.name === mention.groupName)) continue;
+    const emailLists = mention.kind === 'group' ? [mention.emails] : mention.emails.map(email => [email]);
+    const entries = emailLists.map<NonNullable<BlockProperties['mention']>>(emails => ({
+      ...mention, emails, permission: DEFAULT_MENTION_PERMISSION,
+      permissions: Object.fromEntries(emails.map(email => [email, DEFAULT_MENTION_PERMISSION])),
     }));
     for (const entry of entries) {
       const key = `${entry.kind}:${entry.groupName || entry.emails[0]}`;
@@ -112,7 +114,7 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, 
     .filter(result => result.rank >= 0)
     .sort((a, b) => a.rank - b.rank)
     .map(result => result.item);
-  const mentionSections = mentionsOnly ? (['person', 'group'] as const).map(kind => {
+  const mentionSections = (['person', 'group'] as const).flatMap(kind => {
     const isPerson = kind === 'person';
     const command = SLASH_COMMANDS.find(item => item.id === (isPerson ? 'command_57' : 'mention_group'))!;
     const saved = Array.from(mentionedCommands.values()).filter(item => item.properties?.mention?.kind === kind);
@@ -121,7 +123,7 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, 
         const previous = mentionedCommands.get(`person:${email}`);
         return previous ? { ...previous, title, subtitle: undefined } : {
           id: `mention-person-${email}`, type: 'utility', category: 'Nội tuyến', title,
-          properties: { utilityKind: 'Nhắc đến một người', mention: { kind, emails: [email], permission: 'view', scope: 'page', message: '' } },
+          properties: { utilityKind: 'Nhắc đến một người', mention: { kind, emails: [email], permission: DEFAULT_MENTION_PERMISSION, scope: 'page', message: '' } },
         };
       }),
       ...saved.filter(item => !suggestedPeople.some(person => person.email === item.properties?.mention?.emails[0])),
@@ -131,15 +133,25 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, 
       ...saved,
     ];
     const search = { ...command, id: `search-${kind}`, sourceId: command.id, title: isPerson ? 'Tìm 1 người' : 'Tìm 1 nhóm', subtitle: undefined, shortcut: undefined };
-    return { command, suggestions: rankItems(suggestions), search };
-  }) : [];
+    const matchingSuggestions = rankItems(suggestions);
+    if (!mentionsOnly && cleanQuery && !matchingSuggestions.length && !rankItems([command, search]).length) return [];
+    return [{ command, suggestions: matchingSuggestions, search }];
+  });
   const menuItems: MenuItem[] = showRecent ? [...commands.filter(item => item.category === 'Được đề xuất'), ...recentItems, ...commands.filter(item => item.category !== 'Được đề xuất')] : commands;
-  const filteredItems: MenuItem[] = mentionsOnly
-    ? mentionSections.flatMap(({ command, suggestions, search }) => [command, ...suggestions, search])
-    : rankItems(menuItems);
+  const inlineItems = mentionSections.flatMap(({ command, suggestions, search }) => [command, ...suggestions, search]);
+  const rankedItems = mentionsOnly ? [] : rankItems([
+    ...menuItems.filter(item => item.category !== 'Nội tuyến'),
+    ...inlineItems,
+  ]);
+  const firstInline = cleanQuery ? rankedItems.findIndex(item => item.category === 'Nội tuyến')
+    : menuItems.findIndex(item => item.category === 'Nội tuyến');
+  const regularItems = rankedItems.filter(item => item.category !== 'Nội tuyến');
+  const inlineIndex = firstInline < 0 ? regularItems.length : firstInline;
+  const filteredItems: MenuItem[] = mentionsOnly ? inlineItems
+    : [...regularItems.slice(0, inlineIndex), ...inlineItems, ...regularItems.slice(inlineIndex)];
   const categories = [...new Set(filteredItems.map(item => item.category))];
   const selectableItems = filteredItems.filter(item => !item.disabled);
-  const previewItem = mentionsOnly ? undefined : selectableItems.find(item => item.id === hoveredItemId);
+  const previewItem = selectableItems.find(item => item.id === hoveredItemId && item.category !== 'Nội tuyến');
 
   useLayoutEffect(() => {
     if (!previewItem) { setPreviewLayout(null); return; }
@@ -270,6 +282,7 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, 
 
   const renderItem = (item: MenuItem, variant?: 'suggestion' | 'search') => {
     const index = selectableItems.indexOf(item);
+    const isInline = item.category === 'Nội tuyến';
     const templateIcons: Record<string, typeof Type> = { tpl_personal_note: FileText, tpl_meeting_minutes: Users, tpl_work_plan: Target, tpl_weekly_plan: Calendar, tpl_internal_doc: BookOpen };
     const Icon = variant === 'search' ? Search : item.properties?.utilityKind === 'Nhắc đến một nhóm' ? Users
       : variant === 'suggestion' ? User : item.templateId ? templateIcons[item.templateId] || FileText : item.category === 'Nội tuyến' || item.properties?.mention || item.properties?.utilityKind?.startsWith('Nhắc đến') ? AtSign : icons[item.type] || Type;
@@ -280,7 +293,7 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, 
       onMouseLeave={leavePreviewArea}
       className={`flex w-full items-center gap-3 rounded-lg px-3 text-left text-sm ${variant ? 'min-h-8 py-1' : 'min-h-14 py-2.5'} ${item.disabled
         ? 'opacity-50 cursor-not-allowed'
-        : `cursor-pointer ${index === selectedIndex ? `${mentionsOnly ? 'bg-blue-500/10' : 'bg-[var(--ui-hover)]'} ring-1 ring-inset ring-[var(--ui-accent)]` : 'hover:bg-[var(--ui-hover)]'}`}`}>
+        : `cursor-pointer ${index === selectedIndex ? `${isInline ? 'bg-blue-500/10' : 'bg-[var(--ui-hover)]'} ring-1 ring-inset ring-[var(--ui-accent)]` : 'hover:bg-[var(--ui-hover)]'}`}`}>
       {item.color ? <span aria-hidden="true" className="w-5 h-5 shrink-0 rounded-md border flex items-center justify-center text-xs"
         style={{
           color: item.color.target === 'textColor' ? item.color.value || 'var(--ui-text)' : undefined,
@@ -288,35 +301,38 @@ export const SlashMenu: React.FC<SlashMenuProps> = ({ query, onSelect, onClose, 
           borderColor: item.color.border || item.color.value || 'var(--ui-border)',
         }}>{item.color.target === 'textColor' ? 'A' : ''}</span>
         : <span aria-hidden="true" className={`flex shrink-0 items-center justify-center rounded-md bg-[var(--ui-hover)] ${variant ? 'h-7 w-7' : 'h-9 w-9'}`}><Icon className={`text-[var(--ui-muted)] ${variant ? 'h-4 w-4' : 'h-5 w-5'}`} strokeWidth={1.6} /></span>}
-      <span className="flex-1 min-w-0 leading-5"><span className={`block text-sm ${mentionsOnly && !variant ? 'font-semibold' : 'font-medium'} ${variant === 'search' ? 'text-[var(--ui-accent)]' : ''}`}>{item.title}</span>
+      <span className="flex-1 min-w-0 leading-5"><span className={`block text-sm ${isInline && !variant ? 'font-semibold' : 'font-medium'} ${variant === 'search' ? 'text-[var(--ui-accent)]' : ''}`}>{item.title}</span>
         {item.subtitle && <span className="mt-0.5 block text-[11px] leading-4 text-[var(--ui-muted)]">{item.subtitle}</span>}</span>
       {item.badge && <span className="text-[11px] px-1.5 rounded-full bg-[#EBF5FF] text-[var(--ui-accent)] shrink-0">{item.badge}</span>}
       {item.shortcut && <kbd className="shrink-0 whitespace-nowrap rounded-full bg-[var(--ui-hover)] px-1.5 py-0.5 font-sans text-[9px] font-semibold uppercase tracking-wide text-[var(--ui-muted)]">{item.shortcut}</kbd>}
     </button>;
   };
 
+  const renderInlineSection = () => <div key="Nội tuyến" role="group" aria-label="Nội tuyến">
+    <p className="px-3 pt-2 pb-1 text-xs text-[var(--ui-tertiary)]">Nội tuyến</p>
+    {mentionSections.map(({ command, suggestions, search }) => <div key={command.id} role="group" aria-label={command.title}
+      className="mb-1.5 border-b border-[var(--ui-border)] pb-1.5 last:mb-0 last:border-b-0">
+      {renderItem(command)}
+      <div className="ml-6">
+        {suggestions.length > 0 && <div>
+          {suggestions.map(item => <div key={item.id} className="relative pl-3 before:absolute before:inset-y-0 before:left-0 before:border-l before:border-[var(--ui-border-strong)] last:before:bottom-1/2 after:absolute after:top-1/2 after:left-0 after:w-3 after:border-t after:border-[var(--ui-border-strong)]">
+            {renderItem(item, 'suggestion')}
+          </div>)}
+        </div>}
+        <div className="mt-0.5 pl-3">{renderItem(search, 'search')}</div>
+      </div>
+    </div>)}
+  </div>;
+
   return createPortal(<><div ref={containerRef} role="dialog" aria-label="Chèn tiện ích nhanh"
     className="fixed z-50 w-[384px] max-w-[calc(100vw-24px)] flex flex-col bg-[var(--ui-surface)] rounded-xl border border-[var(--ui-border)] shadow-2xl overflow-hidden"
     style={{ top: layout.top, left: layout.left, maxHeight: layout.maxHeight }}>
     <div role="listbox" aria-label="Tiện ích nhanh" aria-activedescendant={selectableItems[selectedIndex] ? `slash-${selectableItems[selectedIndex].id}` : undefined}
       className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5">
-      {mentionsOnly ? <>
-        <p className="px-3 pt-2 pb-1 text-xs text-[var(--ui-tertiary)]">Nội tuyến</p>
-        {mentionSections.map(({ command, suggestions, search }) => <div key={command.id} role="group" aria-label={command.title}
-          className="mb-1.5 border-b border-[var(--ui-border)] pb-1.5 last:mb-0 last:border-b-0">
-          {renderItem(command)}
-          <div className="ml-6">
-            {suggestions.length > 0 && <div>
-              {suggestions.map(item => <div key={item.id} className="relative pl-3 before:absolute before:inset-y-0 before:left-0 before:border-l before:border-[var(--ui-border-strong)] last:before:bottom-1/2 after:absolute after:top-1/2 after:left-0 after:w-3 after:border-t after:border-[var(--ui-border-strong)]">
-                {renderItem(item, 'suggestion')}
-              </div>)}
-            </div>}
-            <div className="mt-0.5 pl-3">{renderItem(search, 'search')}</div>
-          </div>
-        </div>)}
-      </> : !filteredItems.length ? <p className="px-3 py-4 text-sm text-[var(--ui-tertiary)]">Không tìm thấy thành phần nào</p> :
-        cleanQuery ? <><p className="px-2 py-2 text-xs text-[var(--ui-tertiary)]">Kết quả đã lọc ({filteredItems.length})</p>{filteredItems.map(item => renderItem(item))}</> :
-          categories.map(category => <div key={category} role="group" aria-label={category}
+      {mentionsOnly ? renderInlineSection() : !filteredItems.length ? <p className="px-3 py-4 text-sm text-[var(--ui-tertiary)]">Không tìm thấy thành phần nào</p> :
+        cleanQuery ? <><p className="px-2 py-2 text-xs text-[var(--ui-tertiary)]">Kết quả đã lọc ({filteredItems.length})</p>
+          {filteredItems.map((item, index) => item.category !== 'Nội tuyến' ? renderItem(item) : index === inlineIndex ? renderInlineSection() : null)}</> :
+          categories.map(category => category === 'Nội tuyến' ? renderInlineSection() : <div key={category} role="group" aria-label={category}
             className={`mb-2 ${category === 'Màu chữ' || category === 'Màu nền' ? 'border-t border-[var(--ui-border)] pt-1' : ''}`}>
             <p className="px-2 pt-2 pb-1 text-xs text-[var(--ui-tertiary)]">{category}</p>
             {filteredItems.filter(item => item.category === category).map(item => renderItem(item))}</div>)}

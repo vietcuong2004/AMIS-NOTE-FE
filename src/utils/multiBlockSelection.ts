@@ -10,11 +10,15 @@ export interface MultiBlockSelectionOptions {
   isDisabled?: boolean;
   onReplaceBlocks?: (nextBlocks: Block[], focusBlockId: string, caretAtEnd?: boolean) => void;
   onFocusBlock?: (blockId: string) => void;
+  onSelectionComplete?: (blockIds: string[]) => void;
   createFallbackBlock?: () => Block;
   onToast?: (message: string, type?: 'success' | 'info' | 'error') => void;
 }
 
-function clearNativeTextSelection() {
+type SelectionRectangle = { left: number; top: number; width: number; height: number };
+const dragThreshold = 4;
+
+export function clearNativeTextSelection() {
   if (typeof window !== 'undefined') {
     window.getSelection()?.removeAllRanges();
   }
@@ -86,12 +90,15 @@ export function useMultiBlockSelection({
   isDisabled = false,
   onReplaceBlocks,
   onFocusBlock,
+  onSelectionComplete,
   createFallbackBlock,
   onToast,
 }: MultiBlockSelectionOptions) {
   const [rawSelectedIds, setRawSelectedIds] = useState<string[]>([]);
+  const [selectionRectangle, setSelectionRectangle] = useState<SelectionRectangle | null>(null);
   const dragCleanupRef = useRef<(() => void) | null>(null);
   const anchorIndexRef = useRef<number | null>(null);
+  const suppressClickRef = useRef(false);
 
   const selectedBlockIds = useMemo(() => {
     if (rawSelectedIds.length === 0) return rawSelectedIds;
@@ -105,6 +112,8 @@ export function useMultiBlockSelection({
   selectedIdsRef.current = selectedBlockIds;
   const blocksRef = useRef<Block[]>(blocks);
   blocksRef.current = blocks;
+  const onSelectionCompleteRef = useRef(onSelectionComplete);
+  onSelectionCompleteRef.current = onSelectionComplete;
 
   const clearSelection = useCallback(() => {
     setRawSelectedIds((prev) => (prev.length === 0 ? prev : []));
@@ -117,6 +126,7 @@ export function useMultiBlockSelection({
     setRawSelectedIds(allIds);
     clearNativeTextSelection();
     containerRef.current?.focus({ preventScroll: true });
+    onSelectionCompleteRef.current?.(allIds);
   }, [containerRef]);
 
   useEffect(() => {
@@ -136,21 +146,31 @@ export function useMultiBlockSelection({
     dragCleanupRef.current?.();
   }, []);
 
-  // Clear highlight when user clicks outside editor content (except editor toolbars / menus).
+  // Capture clicks even when an editor control stops propagation.
   useEffect(() => {
     if (selectedBlockIds.length === 0 || typeof document === 'undefined') return;
-    const handleOutsideMouseDown = (event: MouseEvent) => {
+    const handleMouseDown = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
-      if (!target || !('nodeType' in target)) return;
-      if (containerRef.current?.contains(target)) return;
-      const surface = containerRef.current?.closest('[data-block-selection-surface]');
-      if (surface?.contains(target)) return;
-      if (target.closest?.('[role="toolbar"], [role="menu"], [role="listbox"]')) return;
+      if (target?.closest?.('[data-block-selection-actions]')) return;
+      const block = target?.closest?.('[data-block-id]');
+      if (event.shiftKey && block && containerRef.current?.contains(block)) return;
+      anchorIndexRef.current = null;
       clearSelection();
     };
-    document.addEventListener('mousedown', handleOutsideMouseDown);
-    return () => document.removeEventListener('mousedown', handleOutsideMouseDown);
+    document.addEventListener('mousedown', handleMouseDown, true);
+    return () => document.removeEventListener('mousedown', handleMouseDown, true);
   }, [clearSelection, containerRef, selectedBlockIds.length]);
+
+  const handleSurfaceMouseDownCapture = useCallback(() => {
+    suppressClickRef.current = false;
+  }, []);
+
+  const handleSurfaceClickCapture = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    if (!suppressClickRef.current || event.detail === 0) return;
+    suppressClickRef.current = false;
+    event.preventDefault();
+    event.stopPropagation();
+  }, []);
 
   const deleteSelectedBlocks = useCallback(
     (replacementChar?: string) => {
@@ -194,62 +214,93 @@ export function useMultiBlockSelection({
     (event: React.MouseEvent<HTMLElement>) => {
       if (isDisabled || event.button !== 0 || !containerRef.current) return;
       const target = event.target as HTMLElement;
-      const insideMindMap = Boolean(target.closest?.('[data-block-type="mind_map"]'));
-      if (!insideMindMap && isInteractiveControlTarget(target)) return;
-
       const container = containerRef.current;
-      // A surface handler also receives clicks in the margins around the block container.
-      // Text fields outside it (such as the document title) keep their own selection.
+      const surface = container.closest<HTMLElement>('[data-block-selection-surface]') ?? container;
+      if (!surface.contains(target) || target.closest('[data-mind-map], [data-spreadsheet]') || isInteractiveControlTarget(target)) return;
       const startedInText = Boolean(target.closest('textarea, [contenteditable="true"]'));
-      if (startedInText && !container.contains(target)) return;
+      const clickedBlock = target.closest<HTMLElement>('[data-block-id]');
+      // Leave the document title and text fields outside the block list to native selection.
+      if (startedInText && !clickedBlock) return;
       const currentBlocks = blocksRef.current;
       if (currentBlocks.length === 0) return;
 
-      const clickedIdx = resolveBlockIndexFromEvent(container, currentBlocks, event.target, event.clientY);
-      if (insideMindMap || currentBlocks[clickedIdx]?.type === 'mind_map') {
-        dragCleanupRef.current?.();
-        anchorIndexRef.current = null;
-        clearSelection();
-        return;
-      }
-      if (clickedIdx === -1) return;
-
-      if (event.shiftKey && anchorIndexRef.current !== null) {
+      const clickedIdx = currentBlocks.findIndex(block => block.id === clickedBlock?.dataset.blockId);
+      if (currentBlocks[clickedIdx]?.type === 'mind_map') return;
+      if (event.shiftKey && clickedIdx !== -1 && anchorIndexRef.current !== null) {
         event.preventDefault();
         const start = Math.min(anchorIndexRef.current, clickedIdx);
         const end = Math.max(anchorIndexRef.current, clickedIdx);
-        setRawSelectedIds(currentBlocks.slice(start, end + 1).map((b) => b.id));
+        const ids = currentBlocks.slice(start, end + 1).map((b) => b.id);
+        setRawSelectedIds(ids);
         clearNativeTextSelection();
         container.focus({ preventScroll: true });
+        onSelectionCompleteRef.current?.(ids);
         return;
       }
 
-      if (selectedIdsRef.current.length > 0) {
-        clearSelection();
-      }
-      anchorIndexRef.current = clickedIdx;
-
       dragCleanupRef.current?.();
+      anchorIndexRef.current = clickedIdx === -1 ? null : clickedIdx;
       let isMultiDragging = false;
+      let dragSelection: string[] = [];
       const anchorIdx = clickedIdx;
-      if (!startedInText) {
-        event.preventDefault();
-        clearNativeTextSelection();
-        setRawSelectedIds([currentBlocks[clickedIdx].id]);
-        container.focus({ preventScroll: true });
-      }
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const startBounds = surface.getBoundingClientRect();
+      const anchorX = startX - startBounds.left - surface.clientLeft + surface.scrollLeft;
+      const anchorY = startY - startBounds.top - surface.clientTop + surface.scrollTop;
+      let pointerX = startX;
+      let pointerY = startY;
+
+      const updateRectangle = () => {
+        if (startedInText || !isMultiDragging) return;
+        const bounds = surface.getBoundingClientRect();
+        const viewportX = bounds.left + surface.clientLeft;
+        const viewportY = bounds.top + surface.clientTop;
+        const originX = viewportX - surface.scrollLeft;
+        const originY = viewportY - surface.scrollTop;
+        const endX = Math.max(viewportX, Math.min(pointerX, viewportX + surface.clientWidth)) - originX;
+        const endY = Math.max(viewportY, Math.min(pointerY, viewportY + surface.clientHeight)) - originY;
+        const left = Math.min(anchorX, endX);
+        const top = Math.min(anchorY, endY);
+        const right = Math.max(anchorX, endX);
+        const bottom = Math.max(anchorY, endY);
+        setSelectionRectangle({ left, top, width: right - left, height: bottom - top });
+
+        const hitIds = new Set<string>();
+        for (const element of container.querySelectorAll<HTMLElement>('[data-block-id]:not([data-block-type="mind_map"])')) {
+          const rect = element.getBoundingClientRect();
+          const id = element.dataset.blockId;
+          if (id && rect.width > 0 && rect.height > 0 && rect.left < originX + right && rect.right > originX + left
+            && rect.top < originY + bottom && rect.bottom > originY + top) hitIds.add(id);
+        }
+        dragSelection = blocksRef.current.filter(block => hitIds.has(block.id)).map(block => block.id);
+        setRawSelectedIds(dragSelection);
+      };
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
-        if (!containerRef.current) return;
+        if (!startedInText) {
+          pointerX = moveEvent.clientX;
+          pointerY = moveEvent.clientY;
+          if (!isMultiDragging && Math.hypot(pointerX - startX, pointerY - startY) < dragThreshold) return;
+          if (!isMultiDragging) {
+            isMultiDragging = true;
+            suppressClickRef.current = true;
+            clearNativeTextSelection();
+            container.focus({ preventScroll: true });
+          }
+          moveEvent.preventDefault();
+          updateRectangle();
+          return;
+        }
         const hoveredIdx = resolveBlockIndexFromEvent(
-          containerRef.current,
+          container,
           blocksRef.current,
           moveEvent.target,
           moveEvent.clientY
         );
         if (hoveredIdx === -1) return;
 
-        if (startedInText && !isMultiDragging && hoveredIdx === anchorIdx) {
+        if (!isMultiDragging && hoveredIdx === anchorIdx) {
           return;
         }
         isMultiDragging = true;
@@ -257,12 +308,16 @@ export function useMultiBlockSelection({
         clearNativeTextSelection();
         const start = Math.min(anchorIdx, hoveredIdx);
         const end = Math.max(anchorIdx, hoveredIdx);
-        setRawSelectedIds(blocksRef.current.slice(start, end + 1).map((b) => b.id));
+        dragSelection = blocksRef.current.slice(start, end + 1).map((b) => b.id);
+        setRawSelectedIds(dragSelection);
       };
 
       const cleanup = () => {
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('blur', cleanup);
+        surface.removeEventListener('scroll', updateRectangle);
+        if (isMultiDragging && !startedInText) setSelectionRectangle(null);
         if (dragCleanupRef.current === cleanup) {
           dragCleanupRef.current = null;
         }
@@ -273,12 +328,15 @@ export function useMultiBlockSelection({
         if (isMultiDragging) {
           clearNativeTextSelection();
           containerRef.current?.focus({ preventScroll: true });
+          onSelectionCompleteRef.current?.(dragSelection);
         }
       };
 
       dragCleanupRef.current = cleanup;
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('blur', cleanup);
+      surface.addEventListener('scroll', updateRectangle);
     },
     [clearSelection, containerRef, isDisabled]
   );
@@ -326,6 +384,7 @@ export function useMultiBlockSelection({
         event.stopPropagation();
         event.nativeEvent.stopPropagation?.();
         const firstId = selectedIdsRef.current[0];
+        dragCleanupRef.current?.();
         clearSelection();
         if (firstId) onFocusBlock?.(firstId);
         return true;
@@ -426,8 +485,12 @@ export function useMultiBlockSelection({
     selectedBlockIds,
     selectedBlockIdSet,
     clearSelection,
+    deleteSelectedBlocks,
     selectAllBlocks,
     handleContainerMouseDown,
+    handleSurfaceMouseDownCapture,
+    handleSurfaceClickCapture,
+    selectionRectangle,
     handleContainerKeyDownCapture,
     handleContainerCopy,
     handleContainerCut,

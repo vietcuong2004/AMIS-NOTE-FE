@@ -45,8 +45,8 @@ import {
   computeBlocksAfterMergeWithPrevious,
   focusBlockAtOffset,
 } from '../../utils/blockBackspace';
-import { extractBlocksFromClipboardData, mergePastedBlocks, replaceSelectedBlocks } from '../../utils/blockClipboard';
-import { useMultiBlockSelection } from '../../utils/multiBlockSelection';
+import { blocksToPlainText, copyBlocksToClipboard, extractBlocksFromClipboardData, mergePastedBlocks, replaceSelectedBlocks } from '../../utils/blockClipboard';
+import { clearNativeTextSelection, useMultiBlockSelection } from '../../utils/multiBlockSelection';
 import { DocumentRolePill } from '../DocumentRolePill';
 
 interface BlockEditorProps {
@@ -324,7 +324,11 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     selectedBlockIds,
     selectedBlockIdSet,
     clearSelection,
+    deleteSelectedBlocks,
     handleContainerMouseDown,
+    handleSurfaceMouseDownCapture,
+    handleSurfaceClickCapture,
+    selectionRectangle,
     handleContainerKeyDownCapture,
     handleContainerCopy,
     handleContainerCut,
@@ -334,6 +338,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     resetKey: doc.id,
     canEdit: !isReadOnly,
     isDisabled: slashState.isOpen,
+    onSelectionComplete: showBlockSelectionMenu,
     onToast,
     onFocusBlock: (blockId) => {
       setFocusCursorPosition('start');
@@ -715,6 +720,7 @@ function getTextareaSelectionCoords(
     };
     selectedText: string;
     blockId: string | null;
+    isBlockSelection?: boolean;
     blockType?: BlockType;
     fontSize?: number;
   }>({
@@ -724,167 +730,112 @@ function getTextareaSelectionCoords(
     blockId: null,
   });
 
-  const checkTextSelection = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    const docElem = window.document;
-    if (!docElem) return;
-
-    // Do not close if focus is currently inside the dialog (e.g. typing in search)
-    const activeEl = docElem.activeElement;
-    const isFocusInsideDialog =
-      activeEl &&
-      (activeEl.closest?.('[role="dialog"]') ||
-        activeEl.closest?.('[aria-label="Định dạng văn bản"]'));
-
-    if (isFocusInsideDialog) {
-      return;
-    }
-
-    const editorContainer = docElem.getElementById('document-editor-container');
-
-    // 1. Check if active element is textarea or input in editor
-    if (activeEl instanceof HTMLTextAreaElement || activeEl instanceof HTMLInputElement) {
-      if (editorContainer && editorContainer.contains(activeEl) && !activeEl.closest('[data-mind-map], [data-spreadsheet]')) {
-        const start = activeEl.selectionStart;
-        const end = activeEl.selectionEnd;
-        if (start !== null && end !== null && end > start) {
-          const text = activeEl.value.substring(start, end);
-          if (text.trim().length > 0) {
-            const blockElem = activeEl.closest('[data-block-id]');
-            const bId = blockElem?.getAttribute('data-block-id') || null;
-            const matchedBlock = doc.blocks.find((b) => b.id === bId);
-            const coords = getTextareaSelectionCoords(activeEl, start, end);
-
-            setEditTextDialog({
-              isOpen: true,
-              position: {
-                top: coords.bottom + 8,
-                left: Math.max(16, Math.min(coords.left, window.innerWidth - 300)),
-                selectionTop: coords.top,
-                selectionBottom: coords.bottom,
-              },
-              selectedText: text,
-              blockId: bId,
-              blockType: matchedBlock?.type || 'paragraph',
-              fontSize: Number.parseFloat(window.getComputedStyle(activeEl).fontSize) || matchedBlock?.properties?.fontSize || 14,
-            });
-            return;
-          }
-        }
-      }
-    }
-
-    // 2. Check window selection
-    const sel = typeof window.getSelection === 'function' ? window.getSelection() : null;
-    if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
-      const text = sel.toString();
-      if (text.trim().length > 0) {
-        const range = sel.getRangeAt(0);
-        if (
-          editorContainer &&
-          (editorContainer.contains(range.commonAncestorContainer) ||
-            (activeEl && editorContainer.contains(activeEl)))
-        ) {
-          const rect = range.getBoundingClientRect();
-          const blockElem =
-            (range.commonAncestorContainer as HTMLElement).closest?.('[data-block-id]') ||
-            range.commonAncestorContainer.parentElement?.closest?.('[data-block-id]');
-          const bId = blockElem?.getAttribute('data-block-id') || null;
-          const matchedBlock = doc.blocks.find((b) => b.id === bId);
-
-          setEditTextDialog({
-            isOpen: true,
-            position: {
-              top: rect.bottom + 8,
-              left: Math.max(16, Math.min(rect.left, window.innerWidth - 300)),
-              selectionTop: rect.top,
-              selectionBottom: rect.bottom,
-            },
-            selectedText: text,
-            fontSize: Number.parseFloat(window.getComputedStyle(range.startContainer.nodeType === Node.ELEMENT_NODE
-              ? range.startContainer as Element : range.startContainer.parentElement!).fontSize) || matchedBlock?.properties?.fontSize || 14,
-            blockId: bId,
-            blockType: matchedBlock?.type || 'paragraph',
-          });
-          return;
-        }
-      }
-    }
-
-    // 3. No highlighted text: Dialog MUST close immediately
-    setEditTextDialog((prev) => (prev.isOpen ? { ...prev, isOpen: false, selectedText: '' } : prev));
-  }, [doc.blocks]);
+  const closeTextSelectionMenu = useCallback(() => {
+    setEditTextDialog(previous => previous.isOpen ? { ...previous, isOpen: false } : previous);
+  }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
+    if (editTextDialog.isBlockSelection && !selectedBlockIds.length) closeTextSelectionMenu();
+  }, [editTextDialog.isBlockSelection, selectedBlockIds.length, closeTextSelectionMenu]);
 
-    const handleMouseDown = (e: MouseEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (
-        target?.closest?.('[role="dialog"]') ||
-        target?.closest?.('[aria-label="Định dạng văn bản"]')
-      ) {
+  function showBlockSelectionMenu(ids: string[]) {
+    const selected = new Set(ids);
+    const blocks = docRef.current.blocks.filter(block => selected.has(block.id) && block.type !== 'mind_map' && block.type !== 'spreadsheet');
+    const text = blocksToPlainText(blocks);
+    if (!text.trim() || !blocksContainerRef.current) return;
+    const elements = Array.from(blocksContainerRef.current.querySelectorAll<HTMLElement>('[data-block-id]'))
+      .filter(element => element.dataset.blockId && selected.has(element.dataset.blockId));
+    const first = elements[0]?.getBoundingClientRect();
+    const last = elements.at(-1)?.getBoundingClientRect();
+    if (!first || !last) return;
+    const bottom = Math.min(last.bottom, window.innerHeight - 16);
+    const top = first.top < 320 && window.innerHeight - bottom < 320 ? bottom : first.top;
+    setEditTextDialog({
+      isOpen: true,
+      isBlockSelection: true,
+      position: { top: bottom + 8, left: first.left, selectionTop: top, selectionBottom: bottom },
+      selectedText: text,
+      blockId: null,
+      blockType: blocks[0].type,
+    });
+  }
+
+  const showTextSelectionMenu = (container: HTMLDivElement) => {
+    const active = container.ownerDocument.activeElement;
+    let text: string;
+    let coords: { top: number; bottom: number; left: number };
+    let formatElement: Element;
+    let blockElement: Element | null;
+
+    if ((active instanceof HTMLTextAreaElement || active instanceof HTMLInputElement) && container.contains(active)) {
+      const { selectionStart: start, selectionEnd: end } = active;
+      if (start === null || end === null || end <= start || active.closest('[data-mind-map], [data-spreadsheet]')) {
+        closeTextSelectionMenu();
         return;
       }
-      // Close open dialog when starting a new click/drag selection in editor
-      setEditTextDialog((prev) => (prev.isOpen ? { ...prev, isOpen: false, selectedText: '' } : prev));
-    };
-
-    const handleMouseUp = () => {
-      checkTextSelection();
-    };
-
-    const handleKeyUp = () => {
-      checkTextSelection();
-    };
-
-    window.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mouseup', handleMouseUp);
-    window.addEventListener('keyup', handleKeyUp);
-
-    return () => {
-      window.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [checkTextSelection]);
-
-  const handleTurnIntoBlock = (newType: BlockType, extraProps?: any) => {
-    if (!editTextDialog.blockId) return;
-    const updatedBlocks = doc.blocks.map((b) => {
-      if (b.id === editTextDialog.blockId) {
-        return {
-          ...b,
-          type: newType,
-          properties: extraProps ? { ...b.properties, ...extraProps } : b.properties,
-        };
+      text = active.value.slice(start, end);
+      coords = getTextareaSelectionCoords(active, start, end);
+      formatElement = active;
+      blockElement = active.closest('[data-block-id]');
+    } else {
+      const selection = window.getSelection();
+      const range = selection && !selection.isCollapsed && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+      if (!range || !container.contains(range.commonAncestorContainer)) {
+        closeTextSelectionMenu();
+        return;
       }
-      return b;
+      const ancestor = range.commonAncestorContainer;
+      const element = ancestor.nodeType === Node.ELEMENT_NODE ? ancestor as Element : ancestor.parentElement ?? container;
+      if (element.closest('[data-mind-map], [data-spreadsheet]')) {
+        closeTextSelectionMenu();
+        return;
+      }
+      text = range.toString();
+      coords = range.getBoundingClientRect?.() ?? element.getBoundingClientRect();
+      formatElement = range.startContainer.parentElement ?? element;
+      blockElement = element.closest('[data-block-id]');
+    }
+
+    if (!text.trim()) {
+      closeTextSelectionMenu();
+      return;
+    }
+    const blockId = blockElement?.getAttribute('data-block-id') ?? null;
+    const block = doc.blocks.find(item => item.id === blockId);
+    setEditTextDialog({
+      isOpen: true,
+      position: { top: coords.bottom + 8, left: coords.left, selectionTop: coords.top, selectionBottom: coords.bottom },
+      selectedText: text,
+      blockId,
+      blockType: block?.type ?? 'paragraph',
+      fontSize: Number.parseFloat(window.getComputedStyle(formatElement).fontSize) || block?.properties?.fontSize || 14,
     });
-    const updatedDoc = { ...doc, blocks: updatedBlocks, updatedAt: new Date().toISOString() };
+  };
+
+  const formatBlockIds = editTextDialog.isBlockSelection ? selectedBlockIdSet : new Set(editTextDialog.blockId ? [editTextDialog.blockId] : []);
+  const updateFormatBlocks = (update: (block: Block) => Block) => {
+    if (isReadOnly || !formatBlockIds.size) return;
+    const current = docRef.current;
+    const updatedDoc = { ...current, blocks: current.blocks.map(block =>
+      formatBlockIds.has(block.id) && block.type !== 'mind_map' && block.type !== 'spreadsheet' ? update(block) : block),
+      updatedAt: new Date().toISOString() };
     setDoc(updatedDoc);
     triggerAutoSave(updatedDoc);
+  };
+
+  const handleTurnIntoBlock = (newType: BlockType, extraProps?: BlockProperties) => {
+    if (!formatBlockIds.size || isReadOnly) return;
+    updateFormatBlocks(block => editTextDialog.isBlockSelection && !inlineMentionTextTypes.includes(block.type) ? block : {
+      ...block,
+      type: newType,
+      properties: extraProps ? { ...block.properties, ...extraProps } : block.properties,
+    });
     onToast(`Đã chuyển thành ${newType}`);
   };
 
   const handleApplyColor = (colorHex: string, isBg?: boolean) => {
-    if (!editTextDialog.blockId) return;
-    const updatedBlocks = doc.blocks.map((b) => {
-      if (b.id === editTextDialog.blockId) {
-        const props = b.properties || {};
-        return {
-          ...b,
-          properties: {
-            ...props,
-            [isBg ? 'backgroundColor' : 'textColor']: colorHex,
-          },
-        };
-      }
-      return b;
-    });
-    const updatedDoc = { ...doc, blocks: updatedBlocks, updatedAt: new Date().toISOString() };
-    setDoc(updatedDoc);
-    triggerAutoSave(updatedDoc);
+    if (!formatBlockIds.size || isReadOnly) return;
+    updateFormatBlocks(block => ({ ...block, properties: { ...block.properties, [isBg ? 'backgroundColor' : 'textColor']: colorHex } }));
     onToast(isBg ? 'Đã đổi màu nền văn bản' : 'Đã đổi màu chữ');
   };
 
@@ -895,7 +846,12 @@ function getTextareaSelectionCoords(
   };
 
   const handleDuplicateBlockOrText = () => {
-    if (editTextDialog.blockId) {
+    if (editTextDialog.isBlockSelection) {
+      void copyBlocksToClipboard(docRef.current.blocks.filter(block => selectedBlockIdSet.has(block.id))).then(result => {
+        if (result.ok) onToast('Đã sao chép vùng chọn giữ nguyên định dạng');
+        else onToast(result.error || 'Không thể sao chép nội dung.', 'error');
+      });
+    } else if (editTextDialog.blockId) {
       handleDuplicateBlock(editTextDialog.blockId);
       onToast('Đã nhân bản khối nội dung');
     } else {
@@ -905,6 +861,11 @@ function getTextareaSelectionCoords(
   };
 
   const handleDeleteSelection = () => {
+    if (isReadOnly) return;
+    if (editTextDialog.isBlockSelection) {
+      deleteSelectedBlocks();
+      return;
+    }
     if (editTextDialog.blockId) {
       const block = doc.blocks.find((b) => b.id === editTextDialog.blockId);
       if (block) {
@@ -1064,10 +1025,11 @@ function getTextareaSelectionCoords(
         <MindMapBlock block={mindMap} readOnly={isReadOnly} fullscreen
           onChange={(content, properties) => handleUpdateBlock(mindMap.id, content, properties)} />
       </> : spreadsheet ? <SpreadsheetWorkspace block={spreadsheet} title={displayTitle} readOnly={isReadOnly} saved={!pendingSaveRef.current}
-        onChange={(content, properties) => handleUpdateBlock(spreadsheet.id, content, properties)}
-        onDownload={handleDownloadWorkbook} onPrint={handlePrintDocument} /> : <div
+        onChange={(content, properties) => handleUpdateBlock(spreadsheet.id, content, properties)} /> : <div
         ref={scrollContainerRef}
         data-block-selection-surface
+        onMouseDownCapture={handleSurfaceMouseDownCapture}
+        onClickCapture={handleSurfaceClickCapture}
         onMouseDown={(event) => {
           if (!blocksContainerRef.current?.contains(event.target as Node)) handleContainerMouseDown(event);
         }}
@@ -1076,8 +1038,10 @@ function getTextareaSelectionCoords(
           if (e.deltaY > 0) maybeExpandBottomSpace(e.currentTarget);
         }}
         data-content-width={wideContent ? 'wide' : 'reading'}
-        className="flex-1 overflow-y-auto print:overflow-visible px-[5%] print:px-0 pt-10 pb-8 print:py-0"
+        className="relative flex-1 overflow-y-auto print:overflow-visible px-[5%] print:px-0 pt-10 pb-8 print:py-0"
       >
+        {selectionRectangle && <div aria-hidden="true" data-block-selection-marquee
+          className="pointer-events-none absolute z-30 border border-blue-500/70 bg-blue-500/10 print:hidden" style={selectionRectangle} />}
         <div className={`mx-auto w-full min-w-0 space-y-4 ${wideContent ? '' : 'max-w-2xl print:max-w-none'}`}>
           {/* Document Title matching screenshot */}
           <div>
@@ -1145,10 +1109,33 @@ function getTextareaSelectionCoords(
             ref={blocksContainerRef}
             tabIndex={-1}
             data-has-multi-selection={selectedBlockIds.length > 0 ? 'true' : undefined}
+            onMouseDownCapture={event => {
+              if (event.button !== 0 || event.shiftKey || event.detail >= 2 || !(event.target instanceof Node)
+                || !event.currentTarget.contains(event.target)) return;
+              closeTextSelectionMenu();
+              const nativeSelection = window.getSelection();
+              const active = window.document.activeElement;
+              const linkedText = event.target instanceof HTMLElement ? event.target.closest('[data-linked-text]') : null;
+              if (event.target === active || (linkedText && linkedText === active?.nextElementSibling)
+                || (nativeSelection?.anchorNode && event.currentTarget.contains(nativeSelection.anchorNode))) {
+                clearNativeTextSelection();
+              }
+            }}
             onMouseDown={handleContainerMouseDown}
+            onMouseUp={event => {
+              if (selectedBlockIds.length === 0 && event.button === 0 && event.target instanceof Node && event.currentTarget.contains(event.target)) {
+                showTextSelectionMenu(event.currentTarget);
+              }
+            }}
+            onKeyUp={event => {
+              if (selectedBlockIds.length === 0 && event.key !== 'Escape' && event.target instanceof Node && event.currentTarget.contains(event.target)) {
+                showTextSelectionMenu(event.currentTarget);
+              }
+            }}
             onCopy={(event) => handleContainerCopy(event)}
             onCut={handleContainerCut}
             onKeyDownCapture={(event) => {
+              if (event.key === 'Escape') closeTextSelectionMenu();
               if (event.target instanceof HTMLElement && event.target.closest('[data-mind-map], [data-spreadsheet]')) return;
               if (handleContainerKeyDownCapture(event)) return;
               if (isReadOnly || event.nativeEvent.isComposing || event.getModifierState?.('AltGraph')) return;
@@ -1238,10 +1225,11 @@ function getTextareaSelectionCoords(
                 onSelect={handleSelectSlashItem}
                 onSelectTemplate={handleInsertTemplate}
                 onApplyColor={handleSlashColor}
-                groups={slashState.mentionRange ? getEmployeeGroups() : undefined}
+                groups={getEmployeeGroups()}
                 onSelectGroup={group => {
                   const { blockId, mentionRange } = slashState;
-                  if (blockId && mentionRange) insertGroupMention({ blockId, range: mentionRange }, group);
+                  const source = doc.blocks.find(block => block.id === blockId);
+                  if (source) insertGroupMention({ blockId: source.id, range: mentionRange ?? { start: 0, end: source.content.length } }, group);
                 }}
                 mentions={doc.blocks.flatMap(block => block.properties?.mention ? [block.properties.mention] : [])}
                 onClose={() => setSlashState({ isOpen: false, blockId: null, query: '' })}
@@ -1325,17 +1313,11 @@ function getTextareaSelectionCoords(
         blockType={editTextDialog.blockType}
         authorName={doc.author?.name || 'Việt Cường Vương'}
         updatedTime={formatDateTime(doc.updatedAt)}
-        onClose={() => setEditTextDialog((prev) => ({ ...prev, isOpen: false }))}
+        onClose={closeTextSelectionMenu}
         onTurnInto={handleTurnIntoBlock}
         onApplyColor={handleApplyColor}
-        formatting={{ fontSize: editTextDialog.fontSize, ...doc.blocks.find(block => block.id === editTextDialog.blockId)?.properties }}
-        onFormat={patch => {
-          if (!editTextDialog.blockId || isReadOnly) return;
-          const updatedDoc = { ...doc, blocks: doc.blocks.map(block => block.id === editTextDialog.blockId
-            ? { ...block, properties: { ...block.properties, ...patch } } : block), updatedAt: new Date().toISOString() };
-          setDoc(updatedDoc);
-          triggerAutoSave(updatedDoc);
-        }}
+        formatting={{ fontSize: editTextDialog.fontSize, ...doc.blocks.find(block => formatBlockIds.has(block.id))?.properties }}
+        onFormat={patch => updateFormatBlocks(block => ({ ...block, properties: { ...block.properties, ...patch } }))}
         onCopyLink={handleCopyBlockLink}
         onDuplicate={handleDuplicateBlockOrText}
         onMoveTo={!isReadOnly ? openMoveDialog : undefined}

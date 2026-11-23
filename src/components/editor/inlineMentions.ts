@@ -7,6 +7,7 @@ export type MentionTarget = { blockId: string; range: MentionRange };
 export type MentionEntry = { name: string; data: InlineMentionData };
 type Mention = NonNullable<BlockProperties['mention']>;
 
+export const DEFAULT_MENTION_PERMISSION = 'edit';
 export const inlineMentionTextTypes = ['paragraph', 'h1', 'h2', 'h3', 'h4', 'quote', 'callout', 'toggle'];
 
 export function mentionBlockContent(mention: Mention, text: string) {

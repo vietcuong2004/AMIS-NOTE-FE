@@ -1,19 +1,28 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Info, Plus, Search, Trash2, Users, X } from 'lucide-react';
+import { ChevronDown, Info, Plus, Search, Trash2, Users, X } from 'lucide-react';
 import { Block, BlockProperties, EmployeeGroup, GroupAccess } from '../../types';
 import { getEmployeeGroups } from '../../utils/documentSharing';
 import { EmployeePicker, employeeName } from './EmployeePicker';
 import { getMentionTrigger, LinkedTextarea, mentionPillClassName, shiftInlineRanges } from './LinkedTextarea';
-import { mentionBlockContent } from './inlineMentions';
+import { DEFAULT_MENTION_PERMISSION, mentionBlockContent } from './inlineMentions';
 
 const permissions = [
-  { id: 'full', label: 'Truy cập đầy đủ' },
-  { id: 'edit', label: 'Có thể chỉnh sửa' },
-  { id: 'comment', label: 'Có thể bình luận' },
-  { id: 'view', label: 'Có thể xem' },
+  { id: 'view', label: 'Người xem' },
+  { id: 'comment', label: 'Người bình luận' },
+  { id: 'edit', label: 'Người chỉnh sửa' },
 ] as const;
 type Mention = NonNullable<BlockProperties['mention']>;
+type InvitationPermission = typeof permissions[number]['id'];
+const GROUP_MEMBER_PREVIEW_LIMIT = 5;
+
+function employeeInitials(name: string) {
+  return (name.includes('@') ? name.slice(0, 2) : name.split(' ').slice(-2).map(part => part[0]).join('')).toUpperCase();
+}
+
+function invitationPermission(permission: Mention['permission'] | undefined): InvitationPermission {
+  return permission === 'view' || permission === 'comment' ? permission : DEFAULT_MENTION_PERMISSION;
+}
 
 function dialogKeys(event: React.KeyboardEvent<HTMLDivElement>, onClose: () => void) {
   if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onClose(); }
@@ -28,13 +37,11 @@ export function MentionDialog({ kind, value, group, onSave, onClose }: {
   kind: Mention['kind']; value?: Mention; group?: EmployeeGroup | null; onSave: (value: Mention) => void; onClose: () => void;
 }) {
   const [emails, setEmails] = useState<string[]>(value?.emails || group?.emails || []);
-  const [pending, setPending] = useState<string[]>([]);
   const [groupName, setGroupName] = useState(value?.groupName || group?.name || '');
-  const defaultPermission = kind === 'group' ? 'edit' : 'full';
-  const [groupPermission, setGroupPermission] = useState<Mention['permission']>(value?.permission || defaultPermission);
+  const [groupPermission, setGroupPermission] = useState(() => invitationPermission(value?.permission));
   const [message, setMessage] = useState(value?.message || '');
-  const [roles, setRoles] = useState<Record<string, Mention['permission']>>(() => Object.fromEntries(
-    emails.map(email => [email, value?.permissions?.[email] || groupPermission])
+  const [roles, setRoles] = useState<Record<string, InvitationPermission>>(() => Object.fromEntries(
+    emails.map(email => [email, invitationPermission(value?.permissions?.[email] ?? value?.permission)])
   ));
   const [error, setError] = useState('');
   const initial = useRef<HTMLInputElement>(null);
@@ -61,10 +68,9 @@ export function MentionDialog({ kind, value, group, onSave, onClose }: {
           setError('Tên nhóm đã có trong danh sách.'); return;
         }
         if (!emails.length) { setError('Thêm ít nhất một nhân viên vào danh sách được mời.'); return; }
-        if (pending.length) { setError('Bấm Thêm để đưa những người vừa chọn vào danh sách trước khi gửi.'); return; }
         savedRef.current = true;
         onSave({ kind, emails, groupName: kind === 'group' ? groupName.trim() : undefined,
-          message: message.trim(), permission: kind === 'group' ? groupPermission : roles[emails[0]] || defaultPermission,
+          message: message.trim(), permission: kind === 'group' ? groupPermission : roles[emails[0]] ?? DEFAULT_MENTION_PERMISSION,
           permissions: Object.fromEntries(emails.map(email => [email, roles[email] || groupPermission])), scope: 'page' });
         onClose();
       }}>
@@ -74,25 +80,22 @@ export function MentionDialog({ kind, value, group, onSave, onClose }: {
               className="mt-2 w-full rounded-lg border border-[var(--ui-border)] bg-transparent px-3 py-2.5 text-sm font-normal" /></label>}
           {kind === 'group' && <label className="flex flex-wrap items-center justify-between gap-2 text-sm font-semibold">Quyền truy cập của nhóm
             <select aria-label="Quyền truy cập của nhóm" value={groupPermission} onChange={event => {
-              const permission = event.target.value as Mention['permission'];
+              const permission = event.target.value as InvitationPermission;
               setRoles(previous => Object.fromEntries(Object.entries(previous).map(([email, role]) => [email, role === groupPermission ? permission : role])));
               setGroupPermission(permission);
             }} className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm font-normal">
-              {permissions.filter(item => group === undefined || item.id !== 'full').map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+              {permissions.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
             </select>
           </label>}
           <section className="border-b border-[var(--ui-border)] pb-5 space-y-3">
             <h3 className="text-lg font-semibold">Thêm người</h3>
             <div className="flex flex-wrap items-end gap-3">
-              <EmployeePicker value={pending} exclude={emails} invitationLayout autoFocus={kind === 'person'}
-                onChange={next => { setPending(next); setError(''); }} />
-              <button type="button" disabled={!pending.length} onClick={() => {
-                setEmails(previous => [...new Set([...previous, ...pending])]);
-                setRoles(previous => ({ ...previous, ...Object.fromEntries(pending.map(email => [email, groupPermission])) }));
-                setPending([]); setError('');
-              }} className="rounded-lg bg-[#087cfa] px-7 py-3 text-sm font-semibold text-white hover:bg-[#066bda] disabled:opacity-40 disabled:cursor-not-allowed">Thêm</button>
+              <EmployeePicker exclude={emails} invitationLayout autoFocus={kind === 'person'} onSelect={email => {
+                setEmails(previous => previous.includes(email) ? previous : [...previous, email]);
+                setRoles(previous => ({ ...previous, [email]: kind === 'group' ? groupPermission : DEFAULT_MENTION_PERMISSION }));
+                setError('');
+              }} />
             </div>
-            <p className="text-xs text-[var(--ui-muted)]">Thêm người vào danh sách, sau đó chọn quyền cho từng người.</p>
           </section>
           <section className="space-y-3">
             <h3 className="text-lg font-semibold">Danh sách người được mời ({emails.length})</h3>
@@ -100,12 +103,11 @@ export function MentionDialog({ kind, value, group, onSave, onClose }: {
               {!emails.length && <p className="px-4 py-8 text-center text-sm text-[var(--ui-tertiary)]">Chưa có người được mời.</p>}
               {emails.map((email, index) => {
                 const name = employeeName(email);
-                const initials = name.split(' ').slice(-2).map(part => part[0]).join('').toUpperCase();
                 return <div key={email} data-invite-email={email} className="flex flex-wrap items-center gap-3 px-4 py-3 sm:flex-nowrap">
-                  <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${['bg-blue-100 text-blue-700', 'bg-green-100 text-green-700', 'bg-purple-100 text-purple-700'][index % 3]}`}>{initials}</span>
+                  <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${['bg-blue-100 text-blue-700', 'bg-green-100 text-green-700', 'bg-purple-100 text-purple-700'][index % 3]}`}>{employeeInitials(name)}</span>
                   <div className="min-w-0 flex-1"><p className="text-sm font-semibold truncate">{name}</p><p className="text-xs text-[var(--ui-muted)] break-all mt-0.5">{email}</p></div>
                   <select aria-label={`Quyền của ${name}`} value={roles[email] || groupPermission}
-                    onChange={event => setRoles(previous => ({ ...previous, [email]: event.target.value as Mention['permission'] }))}
+                    onChange={event => setRoles(previous => ({ ...previous, [email]: event.target.value as InvitationPermission }))}
                     className="w-44 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2.5 text-sm">
                     {permissions.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
                   </select>
@@ -142,6 +144,56 @@ export function GroupInvitationDialog({ group, onSave, onClose }: {
   }} />;
 }
 
+function GroupPickerRow({ group, onSelect }: { group: EmployeeGroup; onSelect: (group: EmployeeGroup) => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const membersId = useId();
+  const countId = useId();
+  const memberList = useRef<HTMLUListElement>(null);
+  const memberCount = group.emails.length;
+  const visibleEmails = showAll ? group.emails : group.emails.slice(0, GROUP_MEMBER_PREVIEW_LIMIT);
+  useLayoutEffect(() => {
+    if (showAll) memberList.current?.focus({ preventScroll: true });
+  }, [showAll]);
+
+  return <div>
+    <div className="flex items-center gap-2 rounded-lg pr-1">
+      <button type="button" onClick={() => onSelect(group)} aria-describedby={countId}
+        className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-[var(--ui-hover)]">
+        <span className="shrink-0 rounded-full bg-blue-100 p-2 text-blue-700"><Users aria-hidden="true" className="h-4 w-4" /></span>
+        <span className="break-words min-w-0 font-medium">{group.name}</span>
+      </button>
+      <span id={countId} className="shrink-0 text-xs text-[var(--ui-muted)]">{memberCount} thành viên</span>
+      <button type="button" aria-label={`${expanded ? 'Thu gọn' : 'Mở rộng'} thành viên ${group.name}`}
+        aria-expanded={expanded} aria-controls={membersId} onClick={() => {
+          setExpanded(!expanded);
+          setShowAll(false);
+        }} className="shrink-0 rounded-lg p-2 text-[var(--ui-muted)] hover:bg-[var(--ui-hover)] hover:text-[var(--ui-accent)]">
+        <ChevronDown aria-hidden="true" className={`h-4 w-4 ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+    </div>
+    <div id={membersId} hidden={!expanded} className="mb-2 ml-7 border-l border-[var(--ui-border)] pl-3 pr-1">
+      {expanded && (memberCount ? <>
+        <ul ref={memberList} role="list" aria-label={`Thành viên ${group.name}`} tabIndex={showAll ? 0 : undefined}
+          className={showAll ? 'max-h-56 overflow-y-auto overscroll-contain' : undefined}>
+          {visibleEmails.map(email => {
+            const name = employeeName(email);
+            return <li key={email} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
+              <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700">{employeeInitials(name)}</span>
+              <div className="min-w-0">
+                <p className="break-words text-sm font-medium">{name}</p>
+                <p className="break-all text-xs text-[var(--ui-muted)]">{email}</p>
+              </div>
+            </li>;
+          })}
+        </ul>
+        {!showAll && memberCount > GROUP_MEMBER_PREVIEW_LIMIT && <button type="button" onClick={() => setShowAll(true)}
+          className="mt-1 rounded-md px-2 py-1.5 text-sm font-semibold text-[var(--ui-accent)] hover:bg-[var(--ui-hover)]">Xem tất cả</button>}
+      </> : <p className="px-2 py-1.5 text-sm text-[var(--ui-muted)]">Chưa có thành viên.</p>)}
+    </div>
+  </div>;
+}
+
 export function GroupMentionFlow({ onConfirm, onClose }: {
   onConfirm: (group: EmployeeGroup, grant?: GroupAccess) => void; onClose: () => void;
 }) {
@@ -170,11 +222,7 @@ export function GroupMentionFlow({ onConfirm, onClose }: {
           }} className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none" />
       </label>
       <div className="min-h-0 overflow-y-auto" aria-label="Danh sách nhóm">
-        {matches.map(group => <button type="button" key={group.id} onClick={() => onConfirm(group)}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-[var(--ui-hover)] focus-visible:bg-[var(--ui-hover)]">
-          <span className="rounded-full bg-blue-100 p-2 text-blue-700"><Users aria-hidden="true" className="h-4 w-4" /></span>
-          <span className="font-medium">{group.name}</span>
-        </button>)}
+        {matches.map(group => <GroupPickerRow key={group.id} group={group} onSelect={onConfirm} />)}
         {!matches.length && <p role="status" className="px-3 py-2 text-sm text-[var(--ui-muted)]">Không tìm thấy nhóm phù hợp.</p>}
       </div>
       <button type="button" onClick={() => setCreating(true)} className="flex items-center gap-2 border-t border-[var(--ui-border)] px-3 py-2 text-left text-sm font-semibold text-[var(--ui-accent)] hover:bg-[var(--ui-hover)]">

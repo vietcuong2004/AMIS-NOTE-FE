@@ -1,9 +1,10 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
-import { ArrowRight, ChevronDown, ChevronRight, FileText, Folder as FolderIcon, Info, Search, X } from 'lucide-react';
+import { ArrowRight, ChevronDown, ChevronRight, FileText, Folder as FolderIcon, Search, X } from 'lucide-react';
 import type { Document, Folder, ViewState } from '../../types';
 import { findWorkspaceResults, searchTerms, workspaceName, type SearchResult, type SearchScope } from '../../utils/workspaceSearch';
 import { getFolderAncestors } from '../../utils/folders';
+import { DocumentRolePill } from '../DocumentRolePill';
 
 const RESULT_ROW_HEIGHT_REM = 5;
 const VISIBLE_RESULT_ROWS = 5;
@@ -25,6 +26,11 @@ export function SearchResultRows({ results, query, selected, listId, onSelect }:
   return <ul id={listId} role={listId ? 'listbox' : undefined} aria-label="Kết quả tìm kiếm" className="divide-y divide-[var(--ui-border)]">
     {results.map((result, index) => {
       const Icon = result.type === 'folder' ? FolderIcon : FileText;
+      const path = <span className="flex items-center gap-1.5 text-xs text-[var(--ui-muted)]">
+        <FolderIcon aria-hidden="true" className="size-3.5 shrink-0" />
+        <span className="truncate" title={result.path}>{highlight(result.path)}</span>
+      </span>;
+      const snippet = result.snippet && <span className="block truncate text-sm text-[var(--ui-muted)]">{highlight(result.snippet)}</span>;
       return <li key={`${result.type}-${result.id}`} role={listId ? 'presentation' : undefined}
         style={listId ? { height: `${RESULT_ROW_HEIGHT_REM}rem` } : undefined}>
         <button type="button" id={listId ? `${listId}-${index}` : undefined} role={listId ? 'option' : undefined}
@@ -34,12 +40,11 @@ export function SearchResultRows({ results, query, selected, listId, onSelect }:
             <Icon aria-hidden="true" className="size-5" />
           </span>
           <span className="min-w-0 flex-1 space-y-0.5">
-            <span className="block truncate text-sm font-semibold" title={result.title}>{highlight(result.title)}</span>
-            {result.snippet && <span className="block truncate text-sm text-[var(--ui-muted)]">{highlight(result.snippet)}</span>}
-            <span className="flex items-center gap-1.5 text-xs text-[var(--ui-muted)]">
-              <FolderIcon aria-hidden="true" className="size-3.5 shrink-0" />
-              <span className="truncate" title={result.path}>{highlight(result.path)}</span>
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="truncate text-sm font-semibold" title={result.title}>{highlight(result.title)}</span>
+              {!listId && result.type === 'document' && <DocumentRolePill role={result.permission} />}
             </span>
+            {listId ? <>{snippet}{path}</> : <>{path}{snippet}</>}
           </span>
         </button>
       </li>;
@@ -140,6 +145,16 @@ export function SpotlightSearchModal({
     setSelected(undefined);
     inputRef.current?.focus();
   }
+  function renderScopePath(scope: SearchScope) {
+    const trail = [{ name: workspaceName(scope.space), scope: { space: scope.space, folderId: undefined } },
+      ...pickerAncestors.map(item => ({ name: item.name, scope: { space: item.space, folderId: item.id } }))];
+    return trail.map((item, index) => <span key={item.scope.folderId ?? item.scope.space} className="inline-flex min-w-0 items-center gap-1">
+      {index > 0 && <span aria-hidden="true" className="shrink-0 text-[var(--ui-tertiary)]">/</span>}
+      <button type="button" aria-current={index === trail.length - 1 ? 'location' : undefined} title={item.name}
+        onClick={() => applyScope(item.scope)}
+        className="truncate rounded px-1 py-1 hover:bg-[var(--ui-hover)] hover:underline aria-[current=location]:font-semibold">{item.name}</button>
+    </span>);
+  }
   function renderFolders(parentId: string | undefined, visited: Set<string>) {
     return <ul className="space-y-0.5">
       {childrenByParent.get(parentId)?.filter(child => !visited.has(child.id)).map(child => {
@@ -234,14 +249,7 @@ export function SpotlightSearchModal({
           {scopePickerOpen && pickerScope && <div role="region" aria-label="Phạm vi tìm kiếm"
             className="absolute top-full right-0 z-10 mt-1 max-h-[min(21rem,55dvh)] w-[min(19rem,calc(100vw-3rem))] overflow-y-auto overscroll-contain rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 text-[var(--ui-text)] shadow-lg sm:right-auto sm:left-0">
             <nav aria-label="Đường dẫn phạm vi" className="mb-1 flex flex-wrap items-center gap-x-1 border-b border-[var(--ui-border)] pb-1 text-xs">
-              <button type="button" aria-current={!pickerFolderId ? 'location' : undefined} onClick={() => applyScope({ space: pickerScope.space })}
-                className="rounded px-1 py-1 hover:bg-[var(--ui-hover)] aria-[current=location]:font-semibold">{workspaceName(pickerScope.space)}</button>
-              {pickerAncestors.map(item => <span key={item.id} className="inline-flex min-w-0 items-center gap-1">
-                <ChevronRight aria-hidden="true" className="size-3 shrink-0" />
-                <button type="button" aria-current={item.id === pickerFolderId ? 'location' : undefined}
-                  title={item.name} onClick={() => applyScope({ space: item.space, folderId: item.id })}
-                  className="truncate rounded px-1 py-1 hover:bg-[var(--ui-hover)] aria-[current=location]:font-semibold">{item.name}</button>
-              </span>)}
+              {renderScopePath(pickerScope)}
             </nav>
             {childrenByParent.get(pickerFolderId)?.length ? renderFolders(pickerFolderId, new Set(pickerAncestors.map(item => item.id)))
               : <p className="px-2 py-2 text-xs text-[var(--ui-muted)]">Không có thư mục con.</p>}
@@ -250,9 +258,11 @@ export function SpotlightSearchModal({
         <button type="button" aria-label="Đóng tìm kiếm" onClick={() => { onClose(); inputRef.current?.focus(); }}
           className="ml-auto shrink-0 rounded-lg bg-[var(--ui-subtle)] px-2.5 py-1.5 text-xs text-[var(--ui-muted)] hover:bg-[var(--ui-hover)]"><kbd>ESC</kbd> đóng</button>
       </div>
-      <p className="mb-3 flex shrink-0 items-center gap-2 rounded-lg bg-blue-500/10 px-3 py-2.5 text-sm text-[var(--ui-muted)]">
-        <Info aria-hidden="true" className="size-4 shrink-0 text-[var(--ui-accent)]" />Tìm theo tên thư mục / tên tài liệu / nội dung
-      </p>
+      <nav aria-label="Vị trí tìm kiếm" className="mb-3 flex shrink-0 items-center gap-1.5 rounded-lg bg-blue-500/10 px-3 py-1.5 text-sm text-[var(--ui-muted)]">
+        <FolderIcon aria-hidden="true" className="size-4 shrink-0 text-[var(--ui-accent)]" />
+        {effectiveScope ? <div className="flex min-w-0 flex-wrap items-center gap-x-1">{renderScopePath(effectiveScope)}</div>
+          : <span className="px-1 py-1">Tất cả tài liệu</span>}
+      </nav>
       <div className="flex min-h-0 flex-col px-0.5">
         <div className="flex shrink-0 items-center justify-between gap-2 py-1">
           <h2 className="text-sm font-bold">{keyword ? 'Kết quả phù hợp' : 'Kết quả tìm kiếm'}</h2>

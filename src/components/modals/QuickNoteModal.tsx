@@ -59,7 +59,7 @@ import {
 import { BlockItem } from '../editor/BlockItem';
 import { EmptyBlockRow } from '../editor/EmptyBlockRow';
 import { GroupMentionFlow, MentionDialog } from '../editor/MentionBlock';
-import { insertMentionInBlocks, personMentionEntries, type MentionEntry, type MentionRange, type MentionTarget } from '../editor/inlineMentions';
+import { DEFAULT_MENTION_PERMISSION, insertMentionInBlocks, personMentionEntries, type MentionEntry, type MentionRange, type MentionTarget } from '../editor/inlineMentions';
 import { SlashMenu } from '../editor/SlashMenu';
 import { commandForShortcut, SLASH_COMMANDS } from '../editor/slashCommands';
 import { RenameDialog } from './RenameDialog';
@@ -1007,6 +1007,9 @@ export const QuickNoteModal: React.FC<QuickNoteModalProps> = ({
     selectedBlockIdSet,
     clearSelection,
     handleContainerMouseDown,
+    handleSurfaceMouseDownCapture,
+    handleSurfaceClickCapture,
+    selectionRectangle,
     handleContainerKeyDownCapture,
     handleContainerCopy,
     handleContainerCut,
@@ -1324,7 +1327,7 @@ export const QuickNoteModal: React.FC<QuickNoteModalProps> = ({
     }
     handleSelectSlashItem('utility', {
       utilityKind: 'Nhắc đến một nhóm',
-      mention: { kind: 'group', groupName: group.name, emails: group.emails, permission: access?.permission ?? 'view',
+      mention: { kind: 'group', groupName: group.name, emails: group.emails, permission: access?.permission ?? DEFAULT_MENTION_PERMISSION,
         permissions: access?.permissions, message: access?.message ?? '', scope: 'page' },
     }, blockId);
     setGroupSearch(null);
@@ -1951,6 +1954,8 @@ export const QuickNoteModal: React.FC<QuickNoteModalProps> = ({
               ref={editorBodyRef}
               data-quick-note-editor-body
               data-block-selection-surface
+              onMouseDownCapture={handleSurfaceMouseDownCapture}
+              onClickCapture={handleSurfaceClickCapture}
               onMouseDown={(event) => {
                 if (!blocksContainerRef.current?.contains(event.target as Node)) handleContainerMouseDown(event);
               }}
@@ -1960,8 +1965,10 @@ export const QuickNoteModal: React.FC<QuickNoteModalProps> = ({
                   setActiveBlockId(blockEl.dataset.blockId);
                 }
               }}
-              className="flex-1 min-h-0 overflow-y-auto px-[5%] pt-3 pb-6"
+              className="relative flex-1 min-h-0 overflow-y-auto px-[5%] pt-3 pb-6"
             >
+              {selectionRectangle && <div aria-hidden="true" data-block-selection-marquee
+                className="pointer-events-none absolute z-30 border border-blue-500/70 bg-blue-500/10 print:hidden" style={selectionRectangle} />}
               <div className="flex items-center justify-center gap-2 text-[11px] text-[var(--ui-tertiary)] mb-3 select-none">
                 <span>{formatDateTime(draft.updatedAt || draft.createdAt)}</span>
                 {isSaving && (
@@ -2049,7 +2056,7 @@ export const QuickNoteModal: React.FC<QuickNoteModalProps> = ({
                     position={slashState.position}
                     onSelect={handleSelectSlashItem}
                     onApplyColor={handleSlashColor}
-                    groups={slashState.query.startsWith('@') ? getEmployeeGroups() : undefined}
+                    groups={getEmployeeGroups()}
                     onSelectGroup={group => selectQuickNoteGroup(group, slashState.blockId, slashState.blockId ? getInlineRange(slashState.blockId) : undefined)}
                     onClose={() => setSlashState({ isOpen: false, blockId: null, query: '' })}
                   />

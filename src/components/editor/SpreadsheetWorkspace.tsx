@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
-  AlignCenter, AlignLeft, AlignRight, Bold, Check, Download, FileSpreadsheet,
-  Filter, Grid2X2, Italic, Minus, Plus, Printer, Redo2, Underline, Undo2,
+  AlignCenter, AlignLeft, AlignRight, Bold, Check, FileSpreadsheet,
+  Filter, Grid2X2, Italic, Minus, Plus, Redo2, Underline, Undo2,
 } from 'lucide-react';
 import { spreadsheetText } from '../../data/excelTemplates';
 import {
@@ -11,7 +11,7 @@ import {
 import type { Block, BlockProperties, SpreadsheetCellStyle, SpreadsheetData, SpreadsheetTab } from '../../types';
 import { SpreadsheetGrid } from './SpreadsheetBlock';
 
-const categories = ['Tệp', 'Trang chủ', 'Chèn', 'Công thức', 'Dữ liệu', 'Xem'] as const;
+const categories = ['Trang chủ', 'Chèn', 'Dữ liệu', 'Xem'] as const;
 const fonts = ['Arial', 'Calibri', 'Times New Roman', 'Verdana'] as const;
 const fontSizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32];
 const sheetTitle = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 });
@@ -22,10 +22,9 @@ export function spreadsheetTabs(block: Block): SpreadsheetTab[] {
   return [{ id: 'primary', name: block.properties?.spreadsheetName || 'Bảng 1', sheet }, ...(block.properties?.spreadsheetTabs ?? [])];
 }
 
-export function SpreadsheetWorkspace({ block, title, readOnly, saved, onChange, onDownload, onPrint }: {
+export function SpreadsheetWorkspace({ block, title, readOnly, saved, onChange }: {
   block: Block; title: string; readOnly: boolean; saved: boolean;
   onChange: (content: string, properties: BlockProperties) => void;
-  onDownload: () => void; onPrint: () => void;
 }) {
   const tabs = spreadsheetTabs(block);
   const [tabId, setTabId] = useState('primary');
@@ -81,13 +80,6 @@ export function SpreadsheetWorkspace({ block, title, readOnly, saved, onChange, 
     setHistory({ past: [...history.past, tabs], future: history.future.slice(1) });
     persist(next);
   };
-  const addFormula = (operation: string) => {
-    const column = columnName(position.column);
-    const above = position.row > 1;
-    const first = above ? 2 : position.row + 2;
-    const last = above ? position.row : sheet.rows.length + 1;
-    if (first <= last) edit(setSpreadsheetCell(sheet, activeAddress, `=${operation}(${column}${first}:${column}${last})`));
-  };
   const numericValues = sheet.rows.flatMap((row, index) => row.flatMap((value, column) => {
     const result = value.startsWith('=') ? spreadsheetValue(sheet, `${columnName(column)}${index + 2}`) : value;
     const number = typeof result === 'number' ? result : spreadsheetNumber(result);
@@ -112,10 +104,6 @@ export function SpreadsheetWorkspace({ block, title, readOnly, saved, onChange, 
     </div>
     <div className="shrink-0 overflow-x-auto border-b border-[var(--ui-border)] px-3 py-1.5 print:hidden" role="group" aria-label="Thanh công cụ bảng tính">
       <div className="flex min-h-8 w-max items-center gap-1.5">
-        {category === 'Tệp' && <>
-          <button type="button" className="sheet-action" onClick={onDownload}><Download aria-hidden="true" className="h-4 w-4" />Xuất .xlsx</button>
-          <button type="button" className="sheet-action" onClick={onPrint}><Printer aria-hidden="true" className="h-4 w-4" />In bảng tính</button>
-        </>}
         {category === 'Trang chủ' && <>
           <button type="button" className="sheet-action" title="Hoàn tác" aria-label="Hoàn tác" onClick={undo} disabled={readOnly || !history.past.length}><Undo2 aria-hidden="true" className="h-4 w-4" /></button>
           <button type="button" className="sheet-action" title="Làm lại" aria-label="Làm lại" onClick={redo} disabled={readOnly || !history.future.length}><Redo2 aria-hidden="true" className="h-4 w-4" /></button>
@@ -142,8 +130,6 @@ export function SpreadsheetWorkspace({ block, title, readOnly, saved, onChange, 
           <button type="button" className="sheet-action" disabled={readOnly} onClick={() => edit(changeSpreadsheetColumns(sheet, position.column + 1))}>Chèn cột bên phải</button>
           <button type="button" className="sheet-action" disabled={readOnly} onClick={addTab}>Thêm trang tính</button>
         </>}
-        {category === 'Công thức' && ['SUM', 'AVERAGE', 'MIN', 'MAX', 'COUNT'].map(operation =>
-          <button key={operation} type="button" className="sheet-action" disabled={readOnly} onClick={() => addFormula(operation)}>{operation}</button>)}
         {category === 'Dữ liệu' && <label className="flex items-center gap-2 px-2 text-sm"><Filter aria-hidden="true" className="h-4 w-4" />
           <input type="search" aria-label="Lọc hàng theo nội dung" placeholder="Lọc theo nội dung…" value={filter}
             onChange={event => setFilter(event.target.value)} className="rounded border border-[var(--ui-border)] px-2 py-1" /></label>}

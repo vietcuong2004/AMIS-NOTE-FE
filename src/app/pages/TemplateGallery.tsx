@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Search } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { TemplateCard, templateCardGridClass } from './TemplateCard';
 
 const normalize = (text: string) => text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
 
@@ -22,7 +23,6 @@ export function TemplateGallery<T extends GalleryTemplate>({
   const filtered = templates.filter(template =>
     (category === 'Tất cả' || template.category === category) &&
     normalize(`${template.title} ${template.description} ${template.category}`).includes(keyword));
-  const iconAccent = tone === 'green' ? 'text-green-700' : 'text-[var(--ui-accent)]';
 
   return <>
     <nav aria-label="Đường dẫn" className="flex min-h-12 shrink-0 items-center gap-2 border-b border-[var(--ui-border)] px-5 text-sm">
@@ -48,24 +48,9 @@ export function TemplateGallery<T extends GalleryTemplate>({
             onClick={() => setCategory(item)}
             className={`rounded-full border px-3 py-1.5 text-sm ${category === item ? 'theme-primary border-[var(--ui-primary)] bg-[var(--ui-primary)] text-white' : 'border-[var(--ui-border)] hover:bg-[var(--ui-hover)]'}`}>{item}</button>)}
         </div>
-        <div className="grid grid-cols-1 gap-4 @min-[37rem]:grid-cols-2 @min-[56rem]:grid-cols-3">
-          {filtered.map(template => <article key={template.id} aria-labelledby={`${template.id}-title`}
-            className="flex min-w-0 flex-col rounded-xl border border-[var(--ui-border)]">
-            <div className="flex-1 space-y-2 p-3">
-              <div aria-hidden="true" className="template-gallery-preview grid h-48 min-w-0 place-items-center overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-subtle)] p-2 [&>*]:w-full">
-                {renderPreview(template)}
-              </div>
-              <h2 id={`${template.id}-title`} className="flex items-start gap-1.5 text-sm font-bold">
-                <Icon aria-hidden="true" className={`mt-0.5 h-4 w-4 shrink-0 ${iconAccent}`} />
-                <span className="truncate" title={template.title}>{template.title}</span>
-              </h2>
-              <p title={template.description} className="line-clamp-2 min-h-[2lh] text-xs leading-relaxed text-[var(--ui-muted)]">{template.description}</p>
-            </div>
-            <div className="px-3 pb-3">
-              <button type="button" onClick={() => onUseTemplate(template.id)} aria-label={`Sử dụng mẫu ${template.title}`}
-                className="theme-primary w-full rounded-lg bg-[var(--ui-primary)] px-2 py-2 text-xs font-semibold text-white hover:bg-[var(--ui-primary-hover)]">Sử dụng mẫu</button>
-            </div>
-          </article>)}
+        <div className={templateCardGridClass}>
+          {filtered.map(template => <TemplateCard key={template.id} id={template.id} title={template.title} description={template.description}
+            Icon={Icon} tone={tone} preview={renderPreview(template)} onUse={() => onUseTemplate(template.id)} />)}
         </div>
         {!filtered.length && <p role="status" className="py-8 text-center text-sm text-[var(--ui-muted)]">Không tìm thấy {templateLabel} phù hợp.</p>}
       </section>

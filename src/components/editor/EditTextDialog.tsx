@@ -110,10 +110,10 @@ export const EditTextDialog: React.FC<EditTextDialogProps> = ({
     };
 
     if (isOpen && typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
-      window.addEventListener('mousedown', handleMouseDown);
+      window.addEventListener('mousedown', handleMouseDown, true);
       window.addEventListener('keydown', handleKeyDown);
       return () => {
-        window.removeEventListener('mousedown', handleMouseDown);
+        window.removeEventListener('mousedown', handleMouseDown, true);
         window.removeEventListener('keydown', handleKeyDown);
       };
     }
@@ -153,6 +153,7 @@ export const EditTextDialog: React.FC<EditTextDialogProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="Định dạng văn bản"
+      data-block-selection-actions
       className={`fixed z-50 flex select-none animate-in fade-in zoom-in-95 duration-100 ${
         placeAbove ? 'items-end' : 'items-start'
       }`}

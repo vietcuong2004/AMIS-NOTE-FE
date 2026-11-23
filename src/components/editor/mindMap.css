@@ -26,20 +26,6 @@
   padding: 0.75rem;
 }
 
-.mind-map-template-thumbnail > .mind-map-preview {
-  height: 100%;
-  min-height: 0;
-  padding: 0.5rem;
-}
-
-.mind-map-template-thumbnail .mind-map-tree {
-  --node-gap: clamp(0.5rem, 5cqw, 1rem);
-  --node-width: clamp(2.375rem, 27cqw, 5.5rem);
-  font-size: 0.625rem;
-}
-
-.mind-map-template-thumbnail .mind-map-children > li { padding-block: 0.125rem; }
-
 .mind-map-canvas {
   overflow: auto;
   border: 1px solid var(--ui-border);
