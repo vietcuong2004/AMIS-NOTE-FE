@@ -70,7 +70,7 @@ export function ListBlock({ block, readOnly, autoFocus, onChange, onExitItem, on
           {block.type === 'numbered' ? `${numbers[index]}${listLevel(item) === 1 ? '.' : ''}` : ['–', '●', '○', '■'][listLevel(item) - 1]}
         </span>}
         <LinkedTextarea links={item.inlineLinks} groupMentions={item.inlineGroupMentions} onGroupMentionClick={onGroupMentionClick} ref={node => { if (node) inputs.current.set(item.id, node); else inputs.current.delete(item.id); }}
-          rows={1} disabled={readOnly} aria-label={`Nội dung mục ${index + 1}`} value={item.content}
+          rows={1} disabled={readOnly} aria-label={`Nội dung mục ${index + 1}`} value={item.content} commentItemId={item.id}
           placeholder={block.type === 'checklist' ? 'Việc cần làm...' : 'Nội dung danh sách...'}
           className={`block w-full min-w-0 resize-none bg-transparent text-sm leading-6 outline-none placeholder:text-[var(--ui-tertiary)] ${item.checked && block.type === 'checklist' ? 'line-through text-[var(--ui-tertiary)]' : 'text-[var(--ui-text)]'}`}
           onChange={event => {

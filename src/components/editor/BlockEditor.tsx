@@ -48,6 +48,13 @@ import {
 import { blocksToPlainText, copyBlocksToClipboard, extractBlocksFromClipboardData, mergePastedBlocks, replaceSelectedBlocks } from '../../utils/blockClipboard';
 import { clearNativeTextSelection, useMultiBlockSelection } from '../../utils/multiBlockSelection';
 import { DocumentRolePill } from '../DocumentRolePill';
+import { CommentsPanel } from './CommentsPanel';
+import { CommentHighlights } from './commentHighlights';
+import type { CommentHighlight } from './commentHighlights';
+import { useDocumentComments } from './useDocumentComments';
+import { commentBlockFields, commentRangeText, mapCommentAnchor } from '../../utils/commentAnchors';
+import { canWriteComments } from '../../types/comments';
+import type { CommentRange, CommentThread } from '../../types/comments';
 
 interface BlockEditorProps {
   document: Document;
@@ -140,8 +147,26 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0;
   }, [document.id]);
 
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [activeComment, setActiveComment] = useState<string>();
+  const [commentDraft, setCommentDraft] = useState<{ anchor: CommentRange[]; quote: string; blocks: Block[] }>();
+  const commentOrigin = useRef<HTMLElement | null>(null);
   const currentRole = doc.permission ?? 'owner';
   const isReadOnly = currentRole === 'viewer' || currentRole === 'commenter';
+  const comments = useDocumentComments(doc.id, doc.blocks, currentRole);
+  const commentThreads = comments.threads;
+  const canComment = canWriteComments(currentRole);
+  const commentHighlights = React.useMemo(() => {
+    const byBlock = new Map<string, CommentHighlight[]>();
+    for (const thread of commentThreads) for (const range of thread.anchor) {
+      if (range.detached) continue;
+      const highlights = byBlock.get(range.blockId) ?? [];
+      highlights.push({ ...range, threadId: thread.id, title: `${thread.author.name} · ${thread.content.slice(0, 140)}`,
+        active: activeComment === thread.id, resolved: thread.status === 'RESOLVED' });
+      byBlock.set(range.blockId, highlights);
+    }
+    return byBlock;
+  }, [commentThreads, activeComment]);
 
   useEffect(() => {
     if (!autoFocusTitle || isReadOnly) return;
@@ -721,6 +746,7 @@ function getTextareaSelectionCoords(
     selectedText: string;
     blockId: string | null;
     isBlockSelection?: boolean;
+    commentAnchor?: CommentRange[];
     blockType?: BlockType;
     fontSize?: number;
   }>({
@@ -757,6 +783,8 @@ function getTextareaSelectionCoords(
       selectedText: text,
       blockId: null,
       blockType: blocks[0].type,
+      commentAnchor: blocks.flatMap(block => commentBlockFields(block).flatMap(field => field.text.trim()
+        ? [{ blockId: block.id, itemId: field.itemId, start: 0, end: field.text.length }] : [])),
     });
   }
 
@@ -766,6 +794,7 @@ function getTextareaSelectionCoords(
     let coords: { top: number; bottom: number; left: number };
     let formatElement: Element;
     let blockElement: Element | null;
+    let commentAnchor: CommentRange[] | undefined;
 
     if ((active instanceof HTMLTextAreaElement || active instanceof HTMLInputElement) && container.contains(active)) {
       const { selectionStart: start, selectionEnd: end } = active;
@@ -777,6 +806,12 @@ function getTextareaSelectionCoords(
       coords = getTextareaSelectionCoords(active, start, end);
       formatElement = active;
       blockElement = active.closest('[data-block-id]');
+      const id = blockElement?.getAttribute('data-block-id');
+      const itemId = active.getAttribute('data-comment-item') ?? active.closest('[data-list-item]')?.getAttribute('data-list-item') ?? undefined;
+      if (id) {
+        const range = { blockId: id, itemId, start, end };
+        if (commentRangeText(doc.blocks.find(block => block.id === id), range) === text) commentAnchor = [range];
+      }
     } else {
       const selection = window.getSelection();
       const range = selection && !selection.isCollapsed && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
@@ -808,6 +843,7 @@ function getTextareaSelectionCoords(
       selectedText: text,
       blockId,
       blockType: block?.type ?? 'paragraph',
+      commentAnchor,
       fontSize: Number.parseFloat(window.getComputedStyle(formatElement).fontSize) || block?.properties?.fontSize || 14,
     });
   };
@@ -881,8 +917,42 @@ function getTextareaSelectionCoords(
     }
   };
 
-  const handleCommentSelection = (text: string) => {
-    onToast(`Đã gắn bình luận vào: "${text.slice(0, 30)}..."`);
+  const handleCommentSelection = () => {
+    if (!canComment || !editTextDialog.commentAnchor?.length) return;
+    const anchor = editTextDialog.commentAnchor;
+    const quote = anchor.map(range => commentRangeText(doc.blocks.find(block => block.id === range.blockId), range) ?? '').join('\n');
+    if (!quote.trim()) return;
+    const active = window.document.activeElement;
+    if (active instanceof HTMLElement && blocksContainerRef.current?.contains(active)) commentOrigin.current = active;
+    setCommentDraft({ anchor, quote, blocks: doc.blocks });
+    setCommentsOpen(true);
+  };
+
+  const selectComment = (thread: CommentThread) => {
+    setActiveComment(thread.id);
+    setCommentsOpen(true);
+    const bounds = thread.anchor.find(range => commentRangeText(doc.blocks.find(block => block.id === range.blockId), range) !== undefined);
+    if (!bounds) return;
+    const scrollToAnchor = () => {
+      const block = Array.from(blocksContainerRef.current?.querySelectorAll<HTMLElement>('[data-block-id]') ?? [])
+        .find(element => element.dataset.blockId === bounds.blockId);
+      const field = bounds.itemId ? Array.from(block?.querySelectorAll<HTMLElement>('[data-list-item]') ?? [])
+        .find(item => item.dataset.listItem === bounds.itemId) ?? block : block;
+      const target = Array.from(field?.querySelectorAll<HTMLElement>('[data-comment-highlight]') ?? [])
+        .find(mark => (JSON.parse(mark.dataset.commentHighlight ?? '[]') as string[]).includes(thread.id));
+      (target ?? field)?.scrollIntoView?.({ block: 'center' });
+    };
+    const source = doc.blocks.find(block => block.id === bounds.blockId);
+    if (source?.type === 'toggle' && bounds.itemId === 'toggle-caption' && !source.properties?.open) {
+      handleUpdateBlock(source.id, source.content, { ...source.properties, open: true });
+      window.requestAnimationFrame(scrollToAnchor);
+    } else scrollToAnchor();
+  };
+
+  const activateCommentHighlight = (ids: string[]) => {
+    const next = ids[(ids.indexOf(activeComment ?? '') + 1) % ids.length];
+    const thread = commentThreads.find(item => item.id === next);
+    if (thread) selectComment(thread);
   };
 
   const handleSuggestEdit = (_text: string) => {
@@ -1011,6 +1081,8 @@ function getTextareaSelectionCoords(
                 setDoc((prev) => ({ ...prev, isFavorite: !prev.isFavorite }));
               } : undefined}
               onShare={() => setShareOpen(true)}
+              onComments={() => setCommentsOpen(value => !value)}
+              commentsOpen={commentsOpen}
               onRename={!isReadOnly ? () => setRenameOpen(true) : undefined}
               onMove={!isReadOnly ? openMoveDialog : undefined}
               onDelete={!isReadOnly ? () => onSoftDeleteDocument(doc.id) : undefined}
@@ -1019,6 +1091,7 @@ function getTextareaSelectionCoords(
         </div>
       </div>
 
+      <div className="relative flex min-h-0 min-w-0 flex-1 print:block">
       {/* Editor Canvas */}
       {mindMap ? <>
         <h1 className="hidden text-2xl font-bold print:block">{doc.title}</h1>
@@ -1038,7 +1111,7 @@ function getTextareaSelectionCoords(
           if (e.deltaY > 0) maybeExpandBottomSpace(e.currentTarget);
         }}
         data-content-width={wideContent ? 'wide' : 'reading'}
-        className="relative flex-1 overflow-y-auto print:overflow-visible px-[5%] print:px-0 pt-10 pb-8 print:py-0"
+        className="relative min-w-0 flex-1 overflow-y-auto print:overflow-visible px-[5%] print:px-0 pt-10 pb-8 print:py-0"
       >
         {selectionRectangle && <div aria-hidden="true" data-block-selection-marquee
           className="pointer-events-none absolute z-30 border border-blue-500/70 bg-blue-500/10 print:hidden" style={selectionRectangle} />}
@@ -1136,6 +1209,15 @@ function getTextareaSelectionCoords(
             onCut={handleContainerCut}
             onKeyDownCapture={(event) => {
               if (event.key === 'Escape') closeTextSelectionMenu();
+              if (event.key === 'Tab' && !event.shiftKey && canComment && editTextDialog.isOpen && editTextDialog.commentAnchor?.length) {
+                const action = window.document.querySelector<HTMLButtonElement>('[data-block-selection-actions] button[aria-label="Thêm nhận xét"]');
+                if (action) {
+                  event.preventDefault();
+                  if (event.target instanceof HTMLElement) commentOrigin.current = event.target;
+                  action.focus();
+                  return;
+                }
+              }
               if (event.target instanceof HTMLElement && event.target.closest('[data-mind-map], [data-spreadsheet]')) return;
               if (handleContainerKeyDownCapture(event)) return;
               if (isReadOnly || event.nativeEvent.isComposing || event.getModifierState?.('AltGraph')) return;
@@ -1181,6 +1263,8 @@ function getTextareaSelectionCoords(
           >
             {doc.blocks.map((block, idx) => (
               <React.Fragment key={block.id}>
+              <CommentHighlights.Provider value={{ ranges: commentHighlights.get(block.id) ?? [],
+                allowReadOnlySelection: canComment || commentHighlights.has(block.id), onActivate: activateCommentHighlight }}>
               <BlockItem
                 key={block.id}
                 block={block}
@@ -1212,6 +1296,7 @@ function getTextareaSelectionCoords(
                   setDragOverBlockIndex(null);
                 }}
               />
+              </CommentHighlights.Provider>
               {!isReadOnly && ['bullet', 'numbered', 'checklist'].includes(block.type) && doc.blocks[idx + 1]?.type !== 'paragraph' &&
                 <EmptyBlockRow listId={block.id} compact={idx < doc.blocks.length - 1} onCreate={openMenu => handleExitList(idx, openMenu)} />}
               </React.Fragment>
@@ -1263,6 +1348,26 @@ function getTextareaSelectionCoords(
           />
         </div>
       </div>}
+      {commentsOpen && <CommentsPanel blocks={doc.blocks} threads={commentThreads} viewer={{ user: comments.user, role: currentRole }}
+        activeId={activeComment} draft={commentDraft}
+        onClose={() => { setCommentsOpen(false); moreButtonRef.current?.focus({ preventScroll: true }); }}
+        onSelect={selectComment} onCancelDraft={() => {
+          setCommentDraft(undefined);
+          if (commentOrigin.current?.isConnected) commentOrigin.current.focus({ preventScroll: true });
+          else blocksContainerRef.current?.focus({ preventScroll: true });
+        }}
+        onMutate={comments.mutate}
+        onCreate={content => {
+          if (!commentDraft) return false;
+          const anchor = mapCommentAnchor(commentDraft.anchor, commentDraft.blocks, doc.blocks).filter(range => !range.detached);
+          if (!anchor.length) { onToast('Nội dung gốc đã bị xóa. Chọn lại đoạn cần nhận xét.', 'error'); return false; }
+          const id = comments.create(anchor, content);
+          if (!id) return false;
+          setCommentDraft(undefined);
+          setActiveComment(id);
+          return true;
+        }} />}
+      </div>
 
       {showTemplatePills && <TemplateSuggestions templates={visibleTemplates} onSelect={handleInsertTemplate}
         onDismiss={id => setDismissedTemplates(previous => [...previous, id])} />}
@@ -1306,7 +1411,7 @@ function getTextareaSelectionCoords(
 
       {/* Floating Text Selection Format Dialog matching user screenshot */}
       <EditTextDialog
-        isOpen={editTextDialog.isOpen}
+        isOpen={editTextDialog.isOpen && (!isReadOnly || (canComment && !!editTextDialog.commentAnchor?.length))}
         position={editTextDialog.position}
         selectedText={editTextDialog.selectedText}
         blockId={editTextDialog.blockId}
@@ -1322,7 +1427,8 @@ function getTextareaSelectionCoords(
         onDuplicate={handleDuplicateBlockOrText}
         onMoveTo={!isReadOnly ? openMoveDialog : undefined}
         onDelete={handleDeleteSelection}
-        onComment={handleCommentSelection}
+        onComment={canComment && editTextDialog.commentAnchor?.length ? handleCommentSelection : undefined}
+        commentsOnly={isReadOnly}
         onSuggestEdit={handleSuggestEdit}
         onAskAI={handleAskAI}
         onSkillAction={handleSkillAction}

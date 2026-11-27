@@ -50,6 +50,144 @@ async function click(element: Element | null | undefined) {
 const button = (text: string, scope: ParentNode = document) => Array.from(scope.querySelectorAll('button')).find(element => element.textContent?.trim() === text);
 const heading = () => document.querySelector('main h1')?.textContent;
 
+test('inline comments survive navigation within the session and disappear when the session resets', async () => {
+  const { saveStoredDocuments } = await import('../utils/storage');
+  const doc = { ...getStoredDocuments().find(item => item.id === 'doc_week_plan')!, blocks: [
+    { id: 'commentable', type: 'paragraph' as const, content: 'Đầu đoạn nhận xét cuối.' },
+  ] };
+  saveStoredDocuments([doc]);
+  const documentPath = `/documents/${doc.id}`;
+  const panel = () => document.querySelector<HTMLElement>('[aria-label="Nhận xét tài liệu"]')!;
+  const field = () => document.querySelector<HTMLTextAreaElement>('[data-block-id="commentable"] textarea')!;
+  const fill = (input: HTMLTextAreaElement, content: string) => act(async () => {
+    Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')!.set!.call(input, content);
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+  });
+  const openPanel = async () => {
+    await click(document.querySelector('[data-doc-header-actions] button[title="Tùy chọn khác"]'));
+    await click(button('Nhận xét', document.querySelector('[aria-label="Thao tác tài liệu"]')!));
+  };
+  const switchRole = async (permission: typeof doc.permission) => {
+    await mount('/private');
+    saveStoredDocuments(getStoredDocuments().map(item => item.id === doc.id ? { ...item, permission } : item));
+    await mount(documentPath);
+  };
+  await mount(documentPath);
+  await openPanel();
+  assert.match(panel().textContent!, /Chưa có nhận xét nào/);
+  const separator = () => panel().querySelector<HTMLElement>('[role="separator"]')!;
+  const commentWidth = () => panel().style.getPropertyValue('--comments-width');
+  const resizeMouse = (target: EventTarget, type: string, clientX: number) => act(async () => {
+    target.dispatchEvent(new window.MouseEvent(type, { bubbles: true, cancelable: true, button: 0, clientX }));
+  });
+  assert.equal(commentWidth(), '384px');
+  await resizeMouse(separator(), 'mousedown', 640);
+  await resizeMouse(window, 'mousemove', 540);
+  await resizeMouse(window, 'mouseup', 540);
+  assert.equal(commentWidth(), '484px');
+  assert.equal(document.body.style.cursor, '');
+  await openPanel();
+  assert.equal(panel(), null);
+  await openPanel();
+  assert.equal(commentWidth(), '484px');
+  await act(async () => {
+    separator().dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+  });
+  assert.equal(commentWidth(), '468px');
+  await resizeMouse(separator(), 'dblclick', 540);
+  assert.equal(commentWidth(), '384px');
+  await openPanel();
+  assert.equal(panel(), null);
+  await act(async () => {
+    field().focus();
+    field().setSelectionRange(4, 17);
+    field().dispatchEvent(new window.MouseEvent('mouseup', { bubbles: true }));
+  });
+  await click(document.querySelector('button[aria-label="Thêm nhận xét"]'));
+  assert.equal(field().selectionStart, 4);
+  assert.equal(field().selectionEnd, 17);
+  const draft = panel().querySelector<HTMLTextAreaElement>('[aria-label="Nhập nhận xét của bạn..."]')!;
+  assert.equal(document.activeElement, draft);
+  assert.equal(button('Gửi', panel())?.disabled, true);
+  await fill(draft, 'Làm rõ nội dung');
+  await act(async () => { draft.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true, cancelable: true })); });
+  const mark = () => document.querySelector<HTMLElement>('[data-comment-highlight]')!;
+  assert.equal(mark().textContent, 'đoạn nhận xét');
+  assert.match(panel().textContent!, /Làm rõ nội dung/);
+  const quote = panel().querySelector<HTMLButtonElement>('button[title="Đến nội dung được nhận xét"]')!;
+  assert.equal(document.activeElement, quote);
+  let scrolled = false;
+  mark().scrollIntoView = () => { scrolled = true; };
+  await click(quote);
+  assert(scrolled);
+  await click(panel().querySelector('summary[aria-label="Thao tác nhận xét"]'));
+  await click(button('Sửa', panel()));
+  await fill(panel().querySelector<HTMLTextAreaElement>('[aria-label="Sửa nội dung nhận xét"]')!, 'Làm rõ nội dung cập nhật');
+  await click(button('Gửi', panel()));
+  assert.match(panel().textContent!, /Làm rõ nội dung cập nhật/);
+  const reply = panel().querySelector<HTMLTextAreaElement>('[aria-label="Trả lời..."]')!;
+  await fill(reply, 'Đã bổ sung');
+  await click(button('Gửi', panel()));
+  assert.match(panel().textContent!, /Đã bổ sung/);
+  await fill(field(), `Mới ${field().value}`);
+  assert.equal(mark().textContent, 'đoạn nhận xét');
+  await click(button('Đã hoàn thành', panel().querySelector('article')!));
+  assert.equal(panel().querySelector('article'), null);
+  await click(button('Đã hoàn thành', panel()));
+  assert.match(panel().textContent!, /Đã hoàn thành · Người dùng Demo/);
+  await click(button('Mở lại', panel()));
+
+  await switchRole('viewer');
+  await openPanel();
+  assert.equal(field().value, `Mới ${doc.blocks[0].content}`);
+  assert.equal(mark().textContent, 'đoạn nhận xét');
+  assert.match(panel().textContent!, /Làm rõ nội dung/);
+  assert.equal(panel().querySelector('[aria-label="Trả lời..."]'), null);
+  assert.equal(panel().querySelector('[aria-label="Thao tác nhận xét"]'), null);
+
+  await switchRole('commenter');
+  assert.equal(field().readOnly, true);
+  await act(async () => {
+    field().focus();
+    field().setSelectionRange(8, 21);
+    field().dispatchEvent(new window.MouseEvent('mouseup', { bubbles: true }));
+  });
+  await click(document.querySelector('button[aria-label="Thêm nhận xét"]'));
+  await fill(panel().querySelector<HTMLTextAreaElement>('[aria-label="Nhập nhận xét của bạn..."]')!, 'Nhận xét trùng phạm vi');
+  await click(button('Gửi', panel()));
+  assert.equal(JSON.parse(mark().dataset.commentHighlight!).length, 2);
+  assert.equal(panel().querySelectorAll('[data-comment-thread]').length, 2);
+  const previous = panel().querySelector('[aria-current="true"]')?.closest<HTMLElement>('article')?.dataset.commentThread;
+  await click(panel().querySelector('[aria-label="Đóng nhận xét"]'));
+  mark().getClientRects = () => [new window.DOMRect(5, 5, 30, 15)] as unknown as DOMRectList;
+  await act(async () => {
+    field().setSelectionRange(8, 8);
+    field().dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1, clientX: 10, clientY: 10 }));
+  });
+  const activated = panel().querySelector('[aria-current="true"]')?.closest<HTMLElement>('article')?.dataset.commentThread;
+  assert(activated && activated !== previous, 'Clicking an overlapping highlight opens the other thread');
+
+  await switchRole('owner');
+  await openPanel();
+  await fill(field(), field().value.replace('đoạn nhận xét', ''));
+  assert.equal(mark(), null);
+  assert.equal(panel().textContent!.match(/Nội dung gốc đã bị xóa/g)?.length, 2);
+  const article = panel().querySelector('article')!;
+  await click(article.querySelector('summary[aria-label="Thao tác nhận xét"]'));
+  await click(button('Xóa', article));
+  assert.equal(panel().querySelectorAll('[data-comment-thread]').length, 2);
+  await click(button('Xóa', panel().querySelector('[role="alertdialog"]')!));
+  assert.equal(panel().querySelectorAll('[data-comment-thread]').length, 1);
+  await mount('/private');
+  // The memory store is freshly initialized by a browser reload.
+  memoryStorage.clear();
+  saveStoredDocuments([doc]);
+  await mount(documentPath);
+  await openPanel();
+  assert.match(panel().textContent!, /Chưa có nhận xét nào/);
+  assert.equal(mark(), null);
+});
+
 test('header search opens below the input, highlights matches and preserves folder scope in all results', async () => {
   const { getStoredFolders, saveStoredFolders, saveStoredDocuments } = await import('../utils/storage');
   const folders = getStoredFolders();

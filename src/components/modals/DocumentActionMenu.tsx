@@ -1,5 +1,5 @@
 import React, { forwardRef, useEffect, useRef, useImperativeHandle } from 'react';
-import { Star, Edit2, ArrowRight, Trash2, Share2, Copy } from 'lucide-react';
+import { Star, Edit2, ArrowRight, Trash2, Share2, Copy, MessageSquare } from 'lucide-react';
 
 export interface DocumentActionMenuProps {
   isOpen: boolean;
@@ -9,6 +9,8 @@ export interface DocumentActionMenuProps {
   onRename?: () => void;
   onMove?: () => void;
   onShare?: () => void;
+  onComments?: () => void;
+  commentsOpen?: boolean;
   onDelete?: () => void;
   onDuplicate?: () => void;
   position?: { top: number; left: number };
@@ -27,6 +29,8 @@ export const DocumentActionMenu = forwardRef<HTMLDivElement, DocumentActionMenuP
       onRename,
       onMove,
       onShare,
+      onComments,
+      commentsOpen,
       onDelete,
       onDuplicate,
       position,
@@ -89,6 +93,10 @@ export const DocumentActionMenu = forwardRef<HTMLDivElement, DocumentActionMenuP
             </div>
           )}
 
+          {onComments && <button type="button" aria-expanded={commentsOpen} onClick={() => { onComments(); onClose(); }}
+            className="flex w-full items-center gap-2.5 px-3 py-1.5 text-left hover:bg-[var(--ui-hover)]">
+            <MessageSquare aria-hidden="true" className="size-3.5" />Nhận xét
+          </button>}
           {/* 1. Thêm vào mục Yêu thích / Xóa khỏi mục Yêu thích */}
           {onToggleFavorite && (
             <button

@@ -167,6 +167,10 @@ Hệ thống sử dụng HTML5 History API để đem lại trải nghiệm Sing
 
 ---
 
+## Nhận xét trực tiếp trên tài liệu
+
+Chọn **⋯ → Tiện ích → Nhận xét** để mở sidebar, hoặc bôi đen văn bản và chọn **Thêm nhận xét**. Có thể trả lời, sửa, xóa, đánh dấu hoàn thành và mở lại nhận xét. Nhận xét được lưu trong bộ nhớ theo từng tài liệu. Bạn có thể chuyển trang rồi quay lại trong cùng phiên chạy. Tải lại trang sẽ xóa toàn bộ nhận xét của phiên đó.
+
 ## 📋 Danh sách Lệnh Scripts
 
 | Lệnh                    | Chức năng                                                                         |

@@ -9,6 +9,7 @@ import {
   Bold,
   Italic,
   Underline,
+  MessageSquare,
 } from 'lucide-react';
 import { BlockProperties, BlockType } from '../../types';
 
@@ -35,6 +36,7 @@ export interface EditTextDialogProps {
   onMoveTo?: () => void;
   onDelete?: () => void;
   onComment?: (text: string) => void;
+  commentsOnly?: boolean;
   onSuggestEdit?: (text: string) => void;
   onAskAI?: (text: string) => void;
   onSkillAction?: (skillId: string, text: string) => void;
@@ -85,6 +87,9 @@ export const EditTextDialog: React.FC<EditTextDialogProps> = ({
   onFormat,
   onDuplicate,
   onDelete,
+  onComment,
+  selectedText,
+  commentsOnly = false,
 }) => {
   const [activeSubmenu, setActiveSubmenu] = useState<SubmenuType>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -166,7 +171,7 @@ export const EditTextDialog: React.FC<EditTextDialogProps> = ({
         className="w-[320px] bg-[var(--ui-surface)] rounded-2xl border border-[var(--ui-border)] shadow-2xl overflow-hidden text-xs text-[var(--ui-text)] flex flex-col shrink-0"
         style={{ maxHeight: `${Math.min(480, maxAvailableHeight)}px` }}
       >
-        <div role="toolbar" aria-label="Định dạng nhanh" className="grid grid-cols-[32px_32px_32px_minmax(0,1fr)_76px] items-center gap-1.5 border-b border-[var(--ui-border)] p-3">
+        {!commentsOnly && <div role="toolbar" aria-label="Định dạng nhanh" className="grid grid-cols-[32px_32px_32px_minmax(0,1fr)_76px] items-center gap-1.5 border-b border-[var(--ui-border)] p-3">
           {([{ key: 'bold', label: 'Đậm', Icon: Bold }, { key: 'italic', label: 'Nghiêng', Icon: Italic }, { key: 'underline', label: 'Gạch chân', Icon: Underline }] as const).map(({ key, label, Icon }) =>
             <button key={key} type="button" title={label} aria-label={label} aria-pressed={!!formatting[key]}
               onMouseDown={event => event.preventDefault()} onClick={() => onFormat?.({ [key]: !formatting[key] })}
@@ -181,9 +186,13 @@ export const EditTextDialog: React.FC<EditTextDialogProps> = ({
             className="h-8 w-full min-w-0 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 outline-none focus:ring-2 focus:ring-[#2383e2]/30">
             {Array.from(new Set([10, 11, 12, 13, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72, formatting.fontSize || 14])).sort((a, b) => a - b).map(size => <option key={size} value={size}>{size}</option>)}
           </select>
-        </div>
+        </div>}
+        {onComment && <button type="button" aria-label="Thêm nhận xét" title="Thêm nhận xét" onMouseDown={event => event.preventDefault()}
+          onClick={() => { onComment(selectedText); onClose(); }} className="flex items-center gap-2 border-b border-[var(--ui-border)] px-3 py-2 text-left text-sm text-[var(--ui-accent)] hover:bg-blue-500/10">
+          <MessageSquare aria-hidden="true" className="size-4" />Thêm nhận xét
+        </button>}
         {/* 2. Menu 1 Actions list */}
-        <div className="flex-1 overflow-y-auto divide-y divide-[var(--ui-border)]">
+        {!commentsOnly && <div className="flex-1 overflow-y-auto divide-y divide-[var(--ui-border)]">
           {/* Section 1: Text category */}
           <div className="p-2 space-y-1">
             <div className="px-2.5 pt-1.5 pb-0.5 text-[11px] font-semibold text-[var(--ui-tertiary)]">
@@ -260,7 +269,7 @@ export const EditTextDialog: React.FC<EditTextDialogProps> = ({
               </button>
           </div>
 
-        </div>
+        </div>}
       </div>
 
       {/* MENU CẤP 2 (Secondary Submenu displayed SIDE-BY-SIDE beside Menu 1) */}

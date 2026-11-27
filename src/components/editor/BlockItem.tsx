@@ -288,6 +288,7 @@ export const BlockItem: React.FC<BlockItemProps> = ({
                 <LinkedTextarea links={block.properties?.inlineLinks}
                   rows={2}
                   disabled={isReadOnly}
+                  commentItemId="toggle-caption"
                   value={block.properties?.caption || ''}
                   onChange={(e) =>
                     onUpdate(block.id, block.content, {
